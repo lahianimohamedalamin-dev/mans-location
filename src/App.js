@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+// eslint-disable-next-line no-unused-vars import { supabase } from './supabase';
 import { useState, useEffect, useRef } from "react";
 
 const DEF_FRAIS=[
@@ -549,6 +549,8 @@ function calcTarifAuto(vehicle,nbJours,heuresLoc){
 }
 
 export default function App(){
+  const [user, setUser] = useState(null);
+const [authLoading, setAuthLoading] = useState(true);
   const[vehicles,setVehicles]=useState(INIT_V);
   const[contrats,setContrats]=useState([]);
   const[depenses,setDepenses]=useState([]);
@@ -581,6 +583,21 @@ export default function App(){
   const[ntarif,setNtarif]=useState({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});
 
   const sel=selId?vehicles.find(v=>v.id===selId)||null:null;
+useEffect(()=>{
+  supabase.auth.getSession().then(({data:{session}})=>{
+    setUser(session?.user ?? null);
+    setAuthLoading(false);
+  });
+  const {data:{subscription}} = supabase.auth.onAuthStateChange((_,session)=>{
+    setUser(session?.user ?? null);
+  });
+  return ()=> subscription.unsubscribe();
+},[]);
+
+if(authLoading) return <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh"}}>Chargement...</div>;
+
+if(!user) return <AuthPage/>;
+
 
   function toast_(msg,type="success"){setToast({msg,type});setTimeout(()=>setToast(null),3500);}
 
@@ -1344,5 +1361,44 @@ export default function App(){
 
       </div>
     </div>
+   );
+}
+
+function AuthPage(){
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(){
+    setLoading(true); setError("");
+    const fn = mode==="login" ? supabase.auth.signInWithPassword : supabase.auth.signUp;
+    const {error:err} = await fn({email, password});
+    if(err) setError(err.message);
+    setLoading(false);
+  }
+
+  return(
+    <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"#f1f5f9"}}>
+      <div style={{background:"white",borderRadius:16,padding:"40px 32px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
+        <h1 style={{textAlign:"center",marginBottom:8,fontSize:22,fontWeight:700}}>🚗 MAN'S LOCATION</h1>
+        <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:14}}>Accès réservé aux professionnels</p>
+        <div style={{display:"flex",marginBottom:24,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
+          {["login","signup"].map(m=>(
+            <button key={m} onClick={()=>setMode(m)} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600}}>
+              {m==="login"?"Connexion":"Inscription"}
+            </button>
+          ))}
+        </div>
+        <input placeholder="Email professionnel" value={email} onChange={e=>setEmail(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
+        <input placeholder="Mot de passe" type="password" value={password} onChange={e=>setPassword(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:16,fontSize:14,boxSizing:"border-box"}}/>
+        {error && <p style={{color:"red",fontSize:13,marginBottom:12}}>{error}</p>}
+        <button onClick={handleSubmit} disabled={loading} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:"pointer"}}>
+          {loading?"...":(mode==="login"?"Se connecter":"Créer mon compte")}
+        </button>
+      </div>
+    </div>
   );
-}  
+}
+

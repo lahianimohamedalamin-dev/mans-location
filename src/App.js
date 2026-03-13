@@ -1,3 +1,4 @@
+import { supabase } from './supabase';
 import { useState, useEffect, useRef } from "react";
 
 const DEF_FRAIS=[

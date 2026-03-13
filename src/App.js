@@ -1258,6 +1258,7 @@ function AuthPage(){
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -1278,7 +1279,7 @@ function AuthPage(){
     if(mode==="login"){
       result = await supabase.auth.signInWithPassword({email, password});
     } else {
-      result = await supabase.auth.signUp({email, password});
+      result = await supabase.auth.signUp({email, password, options:{emailRedirectTo: window.location.origin}});
     }
     if(result.error){
       setError(result.error.message);
@@ -1307,7 +1308,10 @@ function AuthPage(){
         )}
         <input placeholder="Email professionnel" value={email} onChange={e=>setEmail(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
         {mode!=="forgot" && (
-        <input placeholder="Mot de passe" type="password" value={password} onChange={e=>setPassword(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:16,fontSize:14,boxSizing:"border-box"}}/>
+        <div style={{position:"relative",marginBottom:16}}>
+          <input placeholder="Mot de passe" type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} style={{width:"100%",padding:"10px 12px",paddingRight:40,border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
+          <span onClick={()=>setShowPassword(!showPassword)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:18,color:"#6b7280",userSelect:"none"}}>{showPassword?"🙈":"👁️"}</span>
+        </div>
         )}
         {error && <p style={{color:"red",fontSize:13,marginBottom:12}}>{error}</p>}
         {success && <p style={{color:"#16a34a",fontSize:13,marginBottom:12}}>{success}</p>}

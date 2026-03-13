@@ -110,7 +110,8 @@ const CURRENT_YEAR=new Date().getFullYear();
 const CAR_YEARS=Array.from({length:30},(_,i)=>CURRENT_YEAR-i);
 
 function loadLS(key,def){try{const v=localStorage.getItem(key);return v?JSON.parse(v):def;}catch(e){return def;}}
-function saveLS(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}}
+let _lsWarned=false;
+function saveLS(key,val){try{localStorage.setItem(key,JSON.stringify(val));_lsWarned=false;}catch(e){if(e.name==="QuotaExceededError"&&!_lsWarned){_lsWarned=true;if(window._mansToast)window._mansToast("Stockage local plein ! Certaines données risquent de ne pas être sauvegardées.","error");}}}
 
 function fuelLabel(pct){
   if(pct>=100)return"Plein";
@@ -146,7 +147,7 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   const extPropre=contrat.exterieurPropre===true?"\u2705 Oui":contrat.exterieurPropre===false?"\u274c Non":"\u2014";
   const intPropre=contrat.interieurPropre===true?"\u2705 Oui":contrat.interieurPropre===false?"\u274c Non":"\u2014";
   const etatHtml="<div style='display:flex;gap:16px;margin:4px 0'><span style='font-size:10px'><b>Ext\u00e9rieur propre :</b> "+extPropre+"</span><span style='font-size:10px'><b>Int\u00e9rieur propre :</b> "+intPropre+"</span></div>";
-  const kmRow=vehicle.kmInclus?"<div><span class='lbl'>Km inclus : </span><span class='val'>"+vehicle.kmInclus+" km</span> &nbsp; <span class='lbl'>Surplus : </span><span class='val'>"+(vehicle.prixKmSup||0)+" \u20ac/km</span></div>":"";
+  const kmRow=vehicle.kmInclus?(vehicle.kmInclus>=999999?"<div><span class='lbl'>Km inclus : </span><span class='val'>Illimit\u00e9</span></div>":"<div><span class='lbl'>Km inclus : </span><span class='val'>"+vehicle.kmInclus+" km</span> &nbsp; <span class='lbl'>Surplus : </span><span class='val'>"+(vehicle.prixKmSup||0)+" \u20ac/km</span></div>"):"";
   const cautionMode=contrat.cautionMode==="especes"?"Esp\u00e8ces":contrat.cautionMode==="virement"?"Virement bancaire":contrat.cautionMode==="emprunt"?"Emprunt bancaire":"Autre";
   const photosDepart=contrat.photosDepart||[];
   const photosHtml=photosDepart.length>0?"<div style='margin-top:6px'><div style='font-size:10px;font-weight:bold;color:#555;margin-bottom:4px'>Photos d\u00e9part ("+photosDepart.length+")</div><div style='display:flex;flex-wrap:wrap;gap:6px'>"+photosDepart.map(p=>"<img src='"+p.data+"' style='width:120px;height:90px;object-fit:cover;border-radius:6px;border:1px solid #ddd'>").join("")+"</div></div>":"";
@@ -589,10 +590,10 @@ export default function App(){
   // --- TOUS LES HOOKS EN PREMIER, SANS EXCEPTION ---
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const[vehicles,setVehicles]=useState(()=>loadLS('mans_vehicles',INIT_V));
-  const[contrats,setContrats]=useState(()=>loadLS('mans_contrats',[]));
-  const[depenses,setDepenses]=useState(()=>loadLS('mans_depenses',[]));
-  const[profil,setProfil]=useState(()=>loadLS('mans_profil',INIT_PROFIL));
+  const[vehicles,setVehicles]=useState(INIT_V);
+  const[contrats,setContrats]=useState([]);
+  const[depenses,setDepenses]=useState([]);
+  const[profil,setProfil]=useState(INIT_PROFIL);
   const[page,setPage]=useState("dashboard");
   const[selId,setSelId]=useState(null);
   const FORM0={locNom:"",locAdresse:"",locTel:"",locEmail:"",locPermis:"",dateDebut:"",heureDebut:"10:00",dateFin:"",heureFin:"10:00",paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null,docPermis:null,docJustificatif:null,docCNI:null};
@@ -615,7 +616,7 @@ export default function App(){
   const[newDoc,setNewDoc]=useState({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});
   const[lastContrat,setLastContrat]=useState(null);
   const[retourContratId,setRetourContratId]=useState(null);
-  const[retours,setRetours]=useState(()=>loadLS('mans_retours',{}));
+  const[retours,setRetours]=useState({});
   const[tarifsVehicleId,setTarifsVehicleId]=useState(null);
   const[tarifsTemp,setTarifsTemp]=useState([]);
   const[ntarif,setNtarif]=useState({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});
@@ -632,11 +633,27 @@ export default function App(){
     return ()=> subscription.unsubscribe();
   },[]);
 
-  useEffect(()=>{saveLS('mans_vehicles',vehicles);},[vehicles]);
-  useEffect(()=>{saveLS('mans_contrats',contrats);},[contrats]);
-  useEffect(()=>{saveLS('mans_depenses',depenses);},[depenses]);
-  useEffect(()=>{saveLS('mans_profil',profil);},[profil]);
-  useEffect(()=>{saveLS('mans_retours',retours);},[retours]);
+  const lsKey=u=>k=>u?k+'_'+u.id:k;
+  const userReady=!!user;
+  const userIdRef=useRef(null);
+
+  useEffect(()=>{
+    if(!user)return;
+    if(userIdRef.current===user.id)return;
+    userIdRef.current=user.id;
+    const k=lsKey(user);
+    setVehicles(loadLS(k('mans_vehicles'),INIT_V));
+    setContrats(loadLS(k('mans_contrats'),[]));
+    setDepenses(loadLS(k('mans_depenses'),[]));
+    setProfil(loadLS(k('mans_profil'),INIT_PROFIL));
+    setRetours(loadLS(k('mans_retours'),{}));
+  },[user]);
+
+  useEffect(()=>{if(userReady)saveLS(lsKey(user)('mans_vehicles'),vehicles);},[vehicles,userReady]);
+  useEffect(()=>{if(userReady)saveLS(lsKey(user)('mans_contrats'),contrats);},[contrats,userReady]);
+  useEffect(()=>{if(userReady)saveLS(lsKey(user)('mans_depenses'),depenses);},[depenses,userReady]);
+  useEffect(()=>{if(userReady)saveLS(lsKey(user)('mans_profil'),profil);},[profil,userReady]);
+  useEffect(()=>{if(userReady)saveLS(lsKey(user)('mans_retours'),retours);},[retours,userReady]);
 
   useEffect(()=>{
     if(form.dateDebut&&form.dateFin){
@@ -665,7 +682,7 @@ export default function App(){
         <button onClick={()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel){return;}setProfil({...profilForm});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>
           Commencer
         </button>
-        <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
+        <button onClick={()=>{setVehicles(INIT_V);setContrats([]);setDepenses([]);setProfil(INIT_PROFIL);setRetours({});userIdRef.current=null;supabase.auth.signOut();}} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
       </div>
     </div>
   );
@@ -692,6 +709,7 @@ export default function App(){
   const inv=k=>touched[k]&&!form[k];
 
   function toast_(msg,type="success"){setToast({msg,type});setTimeout(()=>setToast(null),3500);}
+  window._mansToast=toast_;
 
   function calcJ(d1,h1,d2,h2){
     if(!d1||!d2)return{jours:1,heures:24};
@@ -840,7 +858,7 @@ export default function App(){
               </button>
             ))}
           </div>
-          <button onClick={()=>supabase.auth.signOut()} style={{background:"rgba(255,255,255,0.15)",color:"white",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,padding:"5px 10px",fontSize:11,cursor:"pointer",fontWeight:600}}>Déconnexion</button>
+          <button onClick={()=>{setVehicles(INIT_V);setContrats([]);setDepenses([]);setProfil(INIT_PROFIL);setRetours({});userIdRef.current=null;supabase.auth.signOut();}} style={{background:"rgba(255,255,255,0.15)",color:"white",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,padding:"5px 10px",fontSize:11,cursor:"pointer",fontWeight:600}}>Déconnexion</button>
         </div>
       </nav>
 

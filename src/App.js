@@ -1264,6 +1264,16 @@ function AuthPage(){
 
   async function handleSubmit(){
     setLoading(true); setError(""); setSuccess("");
+    if(mode==="forgot"){
+      const {error:err} = await supabase.auth.resetPasswordForEmail(email);
+      if(err){
+        setError(err.message);
+      } else {
+        setSuccess("Un email de réinitialisation a été envoyé. Vérifiez votre boîte mail.");
+      }
+      setLoading(false);
+      return;
+    }
     let result;
     if(mode==="login"){
       result = await supabase.auth.signInWithPassword({email, password});
@@ -1283,6 +1293,7 @@ function AuthPage(){
       <div style={{background:"white",borderRadius:16,padding:"40px 32px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
         <h1 style={{textAlign:"center",marginBottom:8,fontSize:22,fontWeight:700}}>🚗 MAN'S LOCATION</h1>
         <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:14}}>Accès réservé aux professionnels</p>
+        {mode!=="forgot" && (
         <div style={{display:"flex",marginBottom:24,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
           {["login","signup"].map(m=>(
             <button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600}}>
@@ -1290,13 +1301,29 @@ function AuthPage(){
             </button>
           ))}
         </div>
+        )}
+        {mode==="forgot" && (
+          <p style={{textAlign:"center",color:"#374151",marginBottom:20,fontSize:14}}>Entrez votre email pour recevoir un lien de réinitialisation.</p>
+        )}
         <input placeholder="Email professionnel" value={email} onChange={e=>setEmail(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
+        {mode!=="forgot" && (
         <input placeholder="Mot de passe" type="password" value={password} onChange={e=>setPassword(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:16,fontSize:14,boxSizing:"border-box"}}/>
+        )}
         {error && <p style={{color:"red",fontSize:13,marginBottom:12}}>{error}</p>}
         {success && <p style={{color:"#16a34a",fontSize:13,marginBottom:12}}>{success}</p>}
         <button onClick={handleSubmit} disabled={loading} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:"pointer"}}>
-          {loading?"...":(mode==="login"?"Se connecter":"Créer mon compte")}
+          {loading?"...":(mode==="login"?"Se connecter":mode==="signup"?"Créer mon compte":"Envoyer le lien")}
         </button>
+        {mode==="login" && (
+          <p style={{textAlign:"center",marginTop:14,fontSize:13}}>
+            <span onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Mot de passe oublié ?</span>
+          </p>
+        )}
+        {mode==="forgot" && (
+          <p style={{textAlign:"center",marginTop:14,fontSize:13}}>
+            <span onClick={()=>{setMode("login");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Retour à la connexion</span>
+          </p>
+        )}
       </div>
     </div>
   );

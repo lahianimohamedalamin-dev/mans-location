@@ -470,7 +470,6 @@ function ContratModal({vehicle,onClose,onSave}){
   const[nc,setNc]=useState({titre:"",texte:""});
   const[tab,setTab]=useState("frais");
   const IS={width:"100%",border:"1px solid #d1d5db",borderRadius:6,padding:"6px 8px",fontSize:12,boxSizing:"border-box"};
-  const LBL={fontSize:11,fontWeight:600,color:"#6b7280",display:"block",marginBottom:3};
   return(
     <div onClick={e=>{if(e.target===e.currentTarget)onClose();}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:640,height:"85vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
@@ -1345,4 +1344,4 @@ export default function App(){
       </div>
     </div>
   );
-}
+}o

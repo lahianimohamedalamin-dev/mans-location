@@ -69,11 +69,8 @@ const TARIFS_PRESETS=[
   {type:"Mois (30j)",heures:720},
 ];
 
-const INIT_V=[
-  {id:1,marque:"Renault",modele:"Clio 5 RS LINE",immat:"FM-256-AH",couleur:"Bleu",km:55000,tarif:75,caution:1000,kmInclus:200,prixKmSup:0.25,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[]},
-  {id:2,marque:"Peugeot",modele:"208 GT",immat:"AB-123-CD",couleur:"Noir",km:32000,tarif:80,caution:1000,kmInclus:150,prixKmSup:0.30,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[]},
-];
-const INIT_PROFIL={nom:"ZAURY Anas",entreprise:"MAN'S LOCATION",siren:"942062019",tel:"0771642048",email:"contact@manslocation.fr",adresse:"102 avenue des Champs Élysées 75008 Paris",ville:"Saint-Denis",iban:""};
+const INIT_V=[];
+const INIT_PROFIL={nom:"",entreprise:"",siren:"",tel:"",email:"",adresse:"",ville:"",iban:""};
 
 function fuelLabel(pct){
   if(pct>=100)return"Plein";
@@ -558,7 +555,7 @@ export default function App(){
   const[profil,setProfil]=useState(INIT_PROFIL);
   const[page,setPage]=useState("dashboard");
   const[selId,setSelId]=useState(null);
-  const FORM0={locNom:"",locAdresse:"",locTel:"",locEmail:"",locPermis:"",dateDebut:"",heureDebut:"10:00",dateFin:"",heureFin:"10:00",paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null};
+  const FORM0={locNom:"",locAdresse:"",locTel:"",locEmail:"",locPermis:"",dateDebut:"",heureDebut:"10:00",dateFin:"",heureFin:"10:00",paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null,docPermis:null,docJustificatif:null,docCNI:null};
   const[form,setForm]=useState(FORM0);
   const[photosDepart,setPhotosDepart]=useState([]);
   const[touched,setTouched]=useState({});
@@ -605,6 +602,27 @@ export default function App(){
   // --- RETURNS CONDITIONNELS APRÈS TOUS LES HOOKS ---
   if(authLoading) return <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",fontSize:14,color:"#6b7280"}}>Chargement...</div>;
   if(!user) return <AuthPage/>;
+
+  // Onboarding : si le profil n'est pas rempli, afficher le formulaire d'inscription des données
+  const profilVide=!profil.nom&&!profil.entreprise&&!profil.tel;
+  if(profilVide) return(
+    <div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"#f1f5f9",padding:16}}>
+      <div style={{background:"white",borderRadius:16,padding:"32px 28px",width:"100%",maxWidth:480,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
+        <h1 style={{textAlign:"center",marginBottom:6,fontSize:20,fontWeight:800}}>Bienvenue sur MAN'S LOCATION</h1>
+        <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:13}}>Remplissez vos informations pour commencer</p>
+        {[["nom","Nom complet *"],["entreprise","Nom de l'entreprise *"],["siren","SIREN"],["tel","Téléphone *"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
+          <div key={k} style={{marginBottom:10}}>
+            <label style={{fontSize:11,fontWeight:600,color:"#6b7280",display:"block",marginBottom:3}}>{l}</label>
+            <input placeholder={l.replace(" *","")} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:13,boxSizing:"border-box"}} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/>
+          </div>
+        ))}
+        <button onClick={()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel){return;}setProfil({...profilForm});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>
+          Commencer
+        </button>
+        <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
+      </div>
+    </div>
+  );
 
   const sel=selId?vehicles.find(v=>v.id===selId)||null:null;
 
@@ -1043,6 +1061,35 @@ export default function App(){
                   </div>
                 </div>
                 <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+                  <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>📄 Documents du locataire</h3>
+                  <p style={{fontSize:11,color:"#6b7280",marginBottom:12}}>Prenez en photo ou importez les documents du locataire</p>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+                    {[["docPermis","Permis","🪪"],["docJustificatif","Justificatif domicile","🏠"],["docCNI","CNI","🆔"]].map(([k,label,icon])=>(
+                      <div key={k} style={{border:"2px dashed "+(form[k]?"#16a34a":"#d1d5db"),borderRadius:12,padding:12,textAlign:"center",background:form[k]?"#f0fdf4":"#fafafa",position:"relative"}}>
+                        <div style={{fontSize:28,marginBottom:4}}>{icon}</div>
+                        <div style={{fontSize:11,fontWeight:600,color:"#374151",marginBottom:6}}>{label}</div>
+                        {form[k]?(
+                          <div>
+                            <img src={form[k]} alt={label} style={{width:"100%",maxHeight:80,objectFit:"cover",borderRadius:6,marginBottom:6}}/>
+                            <button onClick={()=>setForm(f=>({...f,[k]:null}))} style={{fontSize:10,color:"#dc2626",background:"#fef2f2",border:"none",borderRadius:6,padding:"3px 8px",cursor:"pointer"}}>Supprimer</button>
+                          </div>
+                        ):(
+                          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                            <label style={{fontSize:10,color:"#2563eb",cursor:"pointer",background:"#eff6ff",borderRadius:6,padding:"5px 8px",fontWeight:600}}>
+                              📁 Fichier
+                              <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setForm(fm=>({...fm,[k]:ev.target.result}));r.readAsDataURL(f);}}/>
+                            </label>
+                            <label style={{fontSize:10,color:"#2563eb",cursor:"pointer",background:"#eff6ff",borderRadius:6,padding:"5px 8px",fontWeight:600}}>
+                              📷 Photo
+                              <input type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setForm(fm=>({...fm,[k]:ev.target.result}));r.readAsDataURL(f);}}/>
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>✍️ Signatures</h3>
                   <div style={{display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center"}}>
                     <SigPad label="Signature du loueur" onSave={setSigL}/>
@@ -1258,6 +1305,7 @@ function AuthPage(){
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -1278,7 +1326,7 @@ function AuthPage(){
     if(mode==="login"){
       result = await supabase.auth.signInWithPassword({email, password});
     } else {
-      result = await supabase.auth.signUp({email, password});
+      result = await supabase.auth.signUp({email, password, options:{emailRedirectTo: window.location.origin}});
     }
     if(result.error){
       setError(result.error.message);
@@ -1307,7 +1355,10 @@ function AuthPage(){
         )}
         <input placeholder="Email professionnel" value={email} onChange={e=>setEmail(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
         {mode!=="forgot" && (
-        <input placeholder="Mot de passe" type="password" value={password} onChange={e=>setPassword(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:16,fontSize:14,boxSizing:"border-box"}}/>
+        <div style={{position:"relative",marginBottom:16}}>
+          <input placeholder="Mot de passe" type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} style={{width:"100%",padding:"10px 12px",paddingRight:40,border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
+          <span onClick={()=>setShowPassword(!showPassword)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:18,color:"#6b7280",userSelect:"none"}}>{showPassword?"🙈":"👁️"}</span>
+        </div>
         )}
         {error && <p style={{color:"red",fontSize:13,marginBottom:12}}>{error}</p>}
         {success && <p style={{color:"#16a34a",fontSize:13,marginBottom:12}}>{success}</p>}

@@ -70,7 +70,48 @@ const TARIFS_PRESETS=[
 ];
 
 const INIT_V=[];
-const INIT_PROFIL={nom:"",entreprise:"",siren:"",tel:"",email:"",adresse:"",ville:"",iban:""};
+const INIT_PROFIL={nom:"",entreprise:"",siren:"",siret:"",kbis:"",tel:"",whatsapp:"",snap:"",email:"",adresse:"",ville:"",iban:""};
+
+const CAR_BRANDS={
+  "Renault":["Clio","Megane","Captur","Kadjar","Scenic","Twingo","Arkana","Austral","Zoe","Kangoo","Trafic","Master"],
+  "Peugeot":["108","208","308","408","508","2008","3008","5008","Rifter","Partner","Expert"],
+  "Citroën":["C1","C3","C3 Aircross","C4","C4 X","C5 Aircross","C5 X","Berlingo","Jumpy","ë-C4"],
+  "Volkswagen":["Polo","Golf","T-Roc","T-Cross","Tiguan","Touareg","Passat","ID.3","ID.4","Caddy","Transporter"],
+  "BMW":["Série 1","Série 2","Série 3","Série 4","Série 5","X1","X2","X3","X4","X5","X6","iX1","iX3"],
+  "Mercedes":["Classe A","Classe B","Classe C","Classe E","Classe S","CLA","GLA","GLB","GLC","GLE","GLS","EQA","EQB"],
+  "Audi":["A1","A3","A4","A5","A6","Q2","Q3","Q5","Q7","Q8","e-tron","TT"],
+  "Toyota":["Aygo X","Yaris","Yaris Cross","Corolla","C-HR","RAV4","Camry","Land Cruiser","Hilux","Proace"],
+  "Dacia":["Sandero","Duster","Jogger","Spring","Logan"],
+  "Fiat":["500","500X","Panda","Tipo","Punto","Doblo"],
+  "Opel":["Corsa","Astra","Mokka","Crossland","Grandland","Combo","Vivaro"],
+  "Hyundai":["i10","i20","i30","Kona","Tucson","Santa Fe","Ioniq 5","Ioniq 6","Bayon"],
+  "Kia":["Picanto","Rio","Ceed","Sportage","Sorento","Niro","EV6","Stonic"],
+  "Nissan":["Micra","Juke","Qashqai","X-Trail","Leaf","Ariya","Navara"],
+  "Ford":["Fiesta","Focus","Puma","Kuga","Explorer","Mustang","Ranger","Transit","Transit Custom"],
+  "Seat":["Ibiza","Leon","Arona","Ateca","Tarraco"],
+  "Skoda":["Fabia","Octavia","Scala","Kamiq","Karoq","Kodiaq","Enyaq"],
+  "Tesla":["Model 3","Model Y","Model S","Model X"],
+  "Volvo":["XC40","XC60","XC90","S60","V60","C40"],
+  "Mini":["Cooper","Countryman","Clubman"],
+  "Jeep":["Renegade","Compass","Cherokee","Wrangler","Grand Cherokee","Avenger"],
+  "Alfa Romeo":["Giulia","Stelvio","Tonale","Giulietta"],
+  "DS":["DS 3","DS 4","DS 7","DS 9"],
+  "Cupra":["Formentor","Born","Leon","Ateca"],
+  "Suzuki":["Swift","Ignis","Vitara","S-Cross","Jimny"],
+  "Mazda":["Mazda2","Mazda3","CX-3","CX-30","CX-5","MX-5","CX-60"],
+  "Honda":["Jazz","Civic","HR-V","CR-V","ZR-V","e:Ny1"],
+  "Mitsubishi":["Space Star","ASX","Eclipse Cross","Outlander"],
+  "Land Rover":["Defender","Discovery","Discovery Sport","Range Rover","Range Rover Sport","Range Rover Evoque","Range Rover Velar"]
+};
+
+const CAR_COLORS=["Noir","Blanc","Gris","Argent","Bleu","Rouge","Vert","Beige","Marron","Orange","Jaune","Violet","Rose","Bordeaux","Bleu nuit","Gris anthracite","Blanc nacré","Noir métallisé","Bleu métallisé","Gris métallisé"];
+
+const CURRENT_YEAR=new Date().getFullYear();
+const CAR_YEARS=Array.from({length:30},(_,i)=>CURRENT_YEAR-i);
+
+function loadLS(key,def){try{const v=localStorage.getItem(key);return v?JSON.parse(v):def;}catch(e){return def;}}
+let _lsWarned=false;
+function saveLS(key,val){try{localStorage.setItem(key,JSON.stringify(val));_lsWarned=false;}catch(e){if(e.name==="QuotaExceededError"&&!_lsWarned){_lsWarned=true;if(window._mansToast)window._mansToast("Stockage local plein ! Certaines données risquent de ne pas être sauvegardées.","error");}}}
 
 function fuelLabel(pct){
   if(pct>=100)return"Plein";
@@ -106,7 +147,7 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   const extPropre=contrat.exterieurPropre===true?"\u2705 Oui":contrat.exterieurPropre===false?"\u274c Non":"\u2014";
   const intPropre=contrat.interieurPropre===true?"\u2705 Oui":contrat.interieurPropre===false?"\u274c Non":"\u2014";
   const etatHtml="<div style='display:flex;gap:16px;margin:4px 0'><span style='font-size:10px'><b>Ext\u00e9rieur propre :</b> "+extPropre+"</span><span style='font-size:10px'><b>Int\u00e9rieur propre :</b> "+intPropre+"</span></div>";
-  const kmRow=vehicle.kmInclus?"<div><span class='lbl'>Km inclus : </span><span class='val'>"+vehicle.kmInclus+" km</span> &nbsp; <span class='lbl'>Surplus : </span><span class='val'>"+(vehicle.prixKmSup||0)+" \u20ac/km</span></div>":"";
+  const kmRow=vehicle.kmInclus?(vehicle.kmInclus>=999999?"<div><span class='lbl'>Km inclus : </span><span class='val'>Illimit\u00e9</span></div>":"<div><span class='lbl'>Km inclus : </span><span class='val'>"+vehicle.kmInclus+" km</span> &nbsp; <span class='lbl'>Surplus : </span><span class='val'>"+(vehicle.prixKmSup||0)+" \u20ac/km</span></div>"):"";
   const cautionMode=contrat.cautionMode==="especes"?"Esp\u00e8ces":contrat.cautionMode==="virement"?"Virement bancaire":contrat.cautionMode==="emprunt"?"Emprunt bancaire":"Autre";
   const photosDepart=contrat.photosDepart||[];
   const photosHtml=photosDepart.length>0?"<div style='margin-top:6px'><div style='font-size:10px;font-weight:bold;color:#555;margin-bottom:4px'>Photos d\u00e9part ("+photosDepart.length+")</div><div style='display:flex;flex-wrap:wrap;gap:6px'>"+photosDepart.map(p=>"<img src='"+p.data+"' style='width:120px;height:90px;object-fit:cover;border-radius:6px;border:1px solid #ddd'>").join("")+"</div></div>":"";
@@ -129,7 +170,7 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
     ".tot{background:#0a1940;color:#fff;padding:8px 14px;border-radius:6px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}",
     "@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>",
     "<div class='header'><h1>"+(profil.entreprise||"MAN'S LOCATION")+"</h1><p>LOCATION DE CITADINES EN IDF</p>",
-    "<p>SIREN : "+profil.siren+" | T\u00e9l : "+profil.tel+" | "+profil.adresse+"</p></div>",
+    "<p>SIRET : "+(profil.siret||profil.siren)+" | T\u00e9l : "+profil.tel+" | "+profil.adresse+"</p></div>",
     "<div class='body'><div class='title'>Contrat de Location de V\u00e9hicule</div>",
     "<div style='margin-bottom:8px'><div class='st'>Le Propri\u00e9taire (Loueur)</div>",
     "<div class='row'><span><span class='lbl'>Nom : </span><span class='val'>"+profil.nom+"</span></span><span><span class='lbl'>T\u00e9l : </span><span class='val'>"+profil.tel+"</span></span></div>",
@@ -561,7 +602,7 @@ export default function App(){
   const[touched,setTouched]=useState({});
   const[sigL,setSigL]=useState(null);
   const[sigLoc,setSigLoc]=useState(null);
-  const[vForm,setVForm]=useState({marque:"",modele:"",immat:"",couleur:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:""});
+  const[vForm,setVForm]=useState({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false});
   const[showAddV,setShowAddV]=useState(false);
   const[editV,setEditV]=useState(null);
   const[toast,setToast]=useState(null);
@@ -592,6 +633,28 @@ export default function App(){
     return ()=> subscription.unsubscribe();
   },[]);
 
+  const userIdRef=useRef(null);
+  const lsKeyRef=useRef(k=>k);
+
+  useEffect(()=>{
+    if(!user)return;
+    if(userIdRef.current===user.id)return;
+    userIdRef.current=user.id;
+    lsKeyRef.current=k=>k+'_'+user.id;
+    const lk=lsKeyRef.current;
+    setVehicles(loadLS(lk('mans_vehicles'),INIT_V));
+    setContrats(loadLS(lk('mans_contrats'),[]));
+    setDepenses(loadLS(lk('mans_depenses'),[]));
+    setProfil(loadLS(lk('mans_profil'),INIT_PROFIL));
+    setRetours(loadLS(lk('mans_retours'),{}));
+  },[user]);
+
+  useEffect(()=>{if(userIdRef.current)saveLS(lsKeyRef.current('mans_vehicles'),vehicles);},[vehicles]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(userIdRef.current)saveLS(lsKeyRef.current('mans_contrats'),contrats);},[contrats]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(userIdRef.current)saveLS(lsKeyRef.current('mans_depenses'),depenses);},[depenses]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(userIdRef.current)saveLS(lsKeyRef.current('mans_profil'),profil);},[profil]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(userIdRef.current)saveLS(lsKeyRef.current('mans_retours'),retours);},[retours]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(()=>{
     if(form.dateDebut&&form.dateFin){
       const{jours,heures}=calcJ(form.dateDebut,form.heureDebut,form.dateFin,form.heureFin);
@@ -610,7 +673,7 @@ export default function App(){
       <div style={{background:"white",borderRadius:16,padding:"32px 28px",width:"100%",maxWidth:480,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
         <h1 style={{textAlign:"center",marginBottom:6,fontSize:20,fontWeight:800}}>Bienvenue sur MAN'S LOCATION</h1>
         <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:13}}>Remplissez vos informations pour commencer</p>
-        {[["nom","Nom complet *"],["entreprise","Nom de l'entreprise *"],["siren","SIREN"],["tel","Téléphone *"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
+        {[["nom","Nom complet *"],["entreprise","Nom de l'entreprise *"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["tel","Téléphone *"],["whatsapp","WhatsApp"],["snap","Snapchat"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
           <div key={k} style={{marginBottom:10}}>
             <label style={{fontSize:11,fontWeight:600,color:"#6b7280",display:"block",marginBottom:3}}>{l}</label>
             <input placeholder={l.replace(" *","")} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:13,boxSizing:"border-box"}} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/>
@@ -619,7 +682,7 @@ export default function App(){
         <button onClick={()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel){return;}setProfil({...profilForm});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>
           Commencer
         </button>
-        <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
+        <button onClick={()=>{setVehicles(INIT_V);setContrats([]);setDepenses([]);setProfil(INIT_PROFIL);setRetours({});userIdRef.current=null;supabase.auth.signOut();}} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
       </div>
     </div>
   );
@@ -636,12 +699,17 @@ export default function App(){
   const totalRetenues=Object.values(retours).reduce((s,r)=>s+(r.montantRetenu||0),0);
   const totalSurplusKm=Object.values(retours).reduce((s,r)=>s+(r.surplusKm||0),0);
   const bT=caT+totalRetenues+totalSurplusKm-dT;
+  const cautionsNonRendues=contrats.filter(c=>!retours[c.id]).reduce((s,c)=>{
+    const v=vehicles.find(x=>x.id===c.vehicleId);
+    return s+(v?v.caution:0);
+  },0);
   const tarifAuto=sel?calcTarifAuto(sel,form.nbJours,form.heuresLoc):{prix:0,label:"—"};
 
   const req=["locNom","locAdresse","locTel","dateDebut","dateFin"];
   const inv=k=>touched[k]&&!form[k];
 
   function toast_(msg,type="success"){setToast({msg,type});setTimeout(()=>setToast(null),3500);}
+  window._mansToast=toast_;
 
   function calcJ(d1,h1,d2,h2){
     if(!d1||!d2)return{jours:1,heures:24};
@@ -672,14 +740,21 @@ export default function App(){
     dlFile(html,`Contrat_${c.locNom.replace(/\s+/g,"_")}_${c.dateDebut}.html`);
   }
 
-  function saveRetour(contratId,data){setRetours(r=>({...r,[contratId]:data}));toast_("✅ Retour enregistré !");setRetourContratId(null);}
+  function saveRetour(contratId,data){
+    setRetours(r=>({...r,[contratId]:data}));
+    if(data.kmRetour){
+      const ct=contrats.find(x=>x.id===contratId);
+      if(ct)setVehicles(vs=>vs.map(v=>v.id===ct.vehicleId?{...v,km:parseFloat(data.kmRetour)}:v));
+    }
+    toast_("✅ Retour enregistré !");setRetourContratId(null);
+  }
 
   function addV(){
     if(!vForm.marque||!vForm.modele||!vForm.immat){toast_("Champs manquants","error");return;}
-    const base={...vForm,km:+vForm.km,tarif:+vForm.tarif,caution:+vForm.caution||1000,kmInclus:+vForm.kmInclus||0,prixKmSup:+vForm.prixKmSup||0};
+    const base={...vForm,km:+vForm.km,tarif:+vForm.tarif,caution:+vForm.caution||1000,kmInclus:vForm.kmIllimite?999999:+vForm.kmInclus||0,prixKmSup:vForm.kmIllimite?0:+vForm.prixKmSup||0,annee:vForm.annee||""};  
     if(editV){setVehicles(vs=>vs.map(x=>x.id===editV.id?{...x,...base}:x));toast_("Mis à jour");}
     else{setVehicles(vs=>[...vs,{id:Date.now(),...base,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[]}]);toast_("Véhicule ajouté !");}
-    setVForm({marque:"",modele:"",immat:"",couleur:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:""});setShowAddV(false);setEditV(null);
+    setVForm({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false});setShowAddV(false);setEditV(null);
   }
 
   function openTarifs(v){setTarifsVehicleId(v.id);setTarifsTemp((v.tarifsSpeciaux||[]).map(t=>({...t})));setNtarif({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});}
@@ -783,7 +858,7 @@ export default function App(){
               </button>
             ))}
           </div>
-          <button onClick={()=>supabase.auth.signOut()} style={{background:"rgba(255,255,255,0.15)",color:"white",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,padding:"5px 10px",fontSize:11,cursor:"pointer",fontWeight:600}}>Déconnexion</button>
+          <button onClick={()=>{setVehicles(INIT_V);setContrats([]);setDepenses([]);setProfil(INIT_PROFIL);setRetours({});userIdRef.current=null;supabase.auth.signOut();}} style={{background:"rgba(255,255,255,0.15)",color:"white",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,padding:"5px 10px",fontSize:11,cursor:"pointer",fontWeight:600}}>Déconnexion</button>
         </div>
       </nav>
 
@@ -885,6 +960,7 @@ export default function App(){
               {KPI("Extras",(totalRetenues+totalSurplusKm).toFixed(0)+" €","🔒","#d97706")}
               {KPI("Bénéfice net",bT.toFixed(0)+" €",bT>=0?"📈":"📉",bT>=0?"#16a34a":"#dc2626",null,bT<0)}
               {KPI("Véhicules",vehicles.length,"🚗","#7c3aed",vehicles.filter(v=>statut(v.id)==="loué").length+" en location")}
+              {KPI("Cautions non rendues",cautionsNonRendues+" €","🔓","#dc2626",contrats.filter(c=>!retours[c.id]).length+" contrat(s) en attente")}
             </div>
             <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)",marginBottom:16}}>
               <div style={{display:"flex",gap:16,marginBottom:8}}>
@@ -937,14 +1013,26 @@ export default function App(){
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>🚗 Flotte</h1>
-              <button onClick={()=>{setShowAddV(true);setEditV(null);setVForm({marque:"",modele:"",immat:"",couleur:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:""});}} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
+              <button onClick={()=>{setShowAddV(true);setEditV(null);setVForm({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false});}} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
             </div>
             {showAddV&&(
               <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 12px rgba(0,0,0,.1)",marginBottom:16,border:"2px solid #bfdbfe"}}>
                 <h3 style={{fontWeight:700,marginBottom:12,fontSize:14}}>{editV?"✏️ Modifier":"➕ Nouveau véhicule"}</h3>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
-                  {[["marque","Marque"],["modele","Modèle"],["immat","Immatriculation"],["couleur","Couleur"]].map(([k,l])=>(<div key={k}><label style={LBL}>{l}</label><input style={Inp()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:e.target.value}))}/></div>))}
-                  {[["km","Km actuel"],["tarif","Tarif €/j"],["caution","Caution €"],["kmInclus","Km inclus/loc"],["prixKmSup","Prix km sup €"]].map(([k,l])=>(<div key={k}><label style={LBL}>{l}</label><input type="number" style={Inp()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:e.target.value}))}/></div>))}
+                  <div><label style={LBL}>Marque *</label><select style={Inp()} value={vForm.marque} onChange={e=>setVForm(f=>({...f,marque:e.target.value,modele:""}))}><option value="">-- Choisir --</option>{Object.keys(CAR_BRANDS).sort().map(b=><option key={b} value={b}>{b}</option>)}</select></div>
+                  <div><label style={LBL}>Modèle *</label><select style={Inp()} value={vForm.modele} onChange={e=>setVForm(f=>({...f,modele:e.target.value}))} disabled={!vForm.marque}><option value="">-- Choisir --</option>{(CAR_BRANDS[vForm.marque]||[]).map(m=><option key={m} value={m}>{m}</option>)}</select></div>
+                  <div><label style={LBL}>Immatriculation *</label><input style={Inp()} placeholder="AA-123-BB" value={vForm.immat} onChange={e=>setVForm(f=>({...f,immat:e.target.value}))}/></div>
+                  <div><label style={LBL}>Couleur</label><select style={Inp()} value={vForm.couleur} onChange={e=>setVForm(f=>({...f,couleur:e.target.value}))}><option value="">-- Choisir --</option>{CAR_COLORS.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+                  <div><label style={LBL}>Année</label><select style={Inp()} value={vForm.annee} onChange={e=>setVForm(f=>({...f,annee:e.target.value}))}><option value="">-- Choisir --</option>{CAR_YEARS.map(y=><option key={y} value={y}>{y}</option>)}</select></div>
+                  {[["km","Km actuel"],["tarif","Tarif €/j"],["caution","Caution €"]].map(([k,l])=>(<div key={k}><label style={LBL}>{l}</label><input type="number" style={Inp()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:e.target.value}))}/></div>))}
+                  <div style={{gridColumn:"span 2"}}>
+                    <label style={{...LBL,display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+                      <input type="checkbox" checked={vForm.kmIllimite} onChange={e=>setVForm(f=>({...f,kmIllimite:e.target.checked}))} style={{width:16,height:16,accentColor:"#2563eb"}}/>
+                      <span style={{fontSize:12,fontWeight:700,color:vForm.kmIllimite?"#2563eb":"#6b7280"}}>∞ Kilométrage illimité</span>
+                    </label>
+                  </div>
+                  {!vForm.kmIllimite&&<><div><label style={LBL}>Km inclus/loc</label><input type="number" style={Inp()} value={vForm.kmInclus} onChange={e=>setVForm(f=>({...f,kmInclus:e.target.value}))}/></div>
+                  <div><label style={LBL}>Prix km sup €</label><input type="number" style={Inp()} value={vForm.prixKmSup} onChange={e=>setVForm(f=>({...f,prixKmSup:e.target.value}))}/></div></>}
                 </div>
                 <div style={{display:"flex",gap:8,marginTop:12}}>
                   <button onClick={addV} style={{background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>{editV?"Mettre à jour":"Ajouter"}</button>
@@ -956,12 +1044,12 @@ export default function App(){
               {vehicles.map(v=>(
                 <div key={v.id} style={{background:"white",borderRadius:16,boxShadow:"0 2px 10px rgba(0,0,0,.08)",overflow:"hidden",border:"1px solid #e5e7eb"}}>
                   <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div><div style={{color:"white",fontWeight:800,fontSize:15}}>{v.marque} {v.modele}</div><div style={{color:"rgba(255,255,255,.6)",fontSize:11}}>{v.immat} · {v.couleur}</div></div>
+                    <div><div style={{color:"white",fontWeight:800,fontSize:15}}>{v.marque} {v.modele}{v.annee?" "+v.annee:""}</div><div style={{color:"rgba(255,255,255,.6)",fontSize:11}}>{v.immat} · {v.couleur}</div></div>
                     <Badge s={statut(v.id)}/>
                   </div>
                   <div style={{padding:14}}>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-                      {[["💰 Tarif",v.tarif+" €/j"],["🔒 Caution",v.caution+" €"],["📏 Km inclus",v.kmInclus+" km"],["⚡ Km sup",v.prixKmSup+" €/km"],["🛣️ Km actuel",(v.km||0).toLocaleString()+" km"]].map(([l,val])=>(<div key={l} style={{background:"#f8fafc",borderRadius:8,padding:"7px 10px"}}><div style={{fontSize:9,color:"#9ca3af"}}>{l}</div><div style={{fontWeight:700,fontSize:12}}>{val}</div></div>))}
+                      {[["💰 Tarif",v.tarif+" €/j"],["🔒 Caution",v.caution+" €"],["📏 Km inclus",v.kmInclus>=999999?"∞ Illimité":v.kmInclus+" km"],["⚡ Km sup",v.kmInclus>=999999?"—":v.prixKmSup+" €/km"],["🛣️ Km actuel",(v.km||0).toLocaleString()+" km"]].map(([l,val])=>(<div key={l} style={{background:"#f8fafc",borderRadius:8,padding:"7px 10px"}}><div style={{fontSize:9,color:"#9ca3af"}}>{l}</div><div style={{fontWeight:700,fontSize:12}}>{val}</div></div>))}
                     </div>
                     {(v.tarifsSpeciaux||[]).length>0&&(
                       <div style={{background:"#fff7ed",borderRadius:8,padding:"6px 10px",marginBottom:10,border:"1px solid #fed7aa"}}>
@@ -973,7 +1061,7 @@ export default function App(){
                       <button onClick={()=>openTarifs(v)} style={{flex:1,padding:"6px 0",background:"#fff7ed",color:"#d97706",border:"1px solid #fed7aa",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>💰 Tarifs</button>
                       <button onClick={()=>setContratModalId(v.id)} style={{flex:1,padding:"6px 0",background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📄 Contrat</button>
                       <button onClick={()=>setDocsId(v.id)} style={{flex:1,padding:"6px 0",background:"#f0fdf4",color:"#16a34a",border:"1px solid #bbf7d0",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📁 Docs</button>
-                      <button onClick={()=>{setEditV(v);setVForm({marque:v.marque,modele:v.modele,immat:v.immat,couleur:v.couleur||"",km:v.km,tarif:v.tarif,caution:v.caution,kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0});setShowAddV(true);}} style={{padding:"6px 10px",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
+                      <button onClick={()=>{setEditV(v);setVForm({marque:v.marque,modele:v.modele,immat:v.immat,couleur:v.couleur||"",annee:v.annee||"",km:v.km,tarif:v.tarif,caution:v.caution,kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0,kmIllimite:v.kmInclus>=999999});setShowAddV(true);}} style={{padding:"6px 10px",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
                       <button onClick={()=>{if(window.confirm("Supprimer ?"))setVehicles(vs=>vs.filter(x=>x.id!==v.id));}} style={{padding:"6px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:11,cursor:"pointer"}}>🗑️</button>
                     </div>
                   </div>
@@ -1273,7 +1361,7 @@ export default function App(){
             </div>
             {profilEdit?(
               <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
-                {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["tel","Téléphone"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
+                {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["tel","Téléphone"],["whatsapp","WhatsApp"],["snap","Snapchat"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
                   <div key={k} style={{marginBottom:10}}><label style={LBL}>{l}</label><input style={Inp()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>
                 ))}
                 <button onClick={()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Enregistrer</button>
@@ -1285,7 +1373,7 @@ export default function App(){
                   <div style={{fontWeight:800,fontSize:16}}>{profil.nom}</div>
                   <div style={{color:"#6b7280",fontSize:12}}>{profil.entreprise}</div>
                 </div>
-                {[["SIREN",profil.siren],["Téléphone",profil.tel],["Email",profil.email],["Adresse",profil.adresse],["Ville",profil.ville],["IBAN",profil.iban]].filter(([,v])=>v).map(([l,v])=>(
+                {[["SIREN",profil.siren],["SIRET",profil.siret],["KBIS",profil.kbis],["Téléphone",profil.tel],["WhatsApp",profil.whatsapp],["Snapchat",profil.snap],["Email",profil.email],["Adresse",profil.adresse],["Ville",profil.ville],["IBAN",profil.iban]].filter(([,v])=>v).map(([l,v])=>(
                   <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f0f0"}}>
                     <span style={{fontSize:11,color:"#6b7280"}}>{l}</span>
                     <span style={{fontSize:12,fontWeight:600}}>{v}</span>

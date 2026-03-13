@@ -1,4 +1,4 @@
-//import { supabase } from './supabase';
+import { supabase } from './supabase'; // eslint-disable-line
 import { useState, useEffect, useRef } from "react";
 
 const DEF_FRAIS=[
@@ -549,8 +549,9 @@ function calcTarifAuto(vehicle,nbJours,heuresLoc){
 }
 
 export default function App(){
+  // --- TOUS LES HOOKS EN PREMIER, SANS EXCEPTION ---
   const [user, setUser] = useState(null);
-const [authLoading, setAuthLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
   const[vehicles,setVehicles]=useState(INIT_V);
   const[contrats,setContrats]=useState([]);
   const[depenses,setDepenses]=useState([]);
@@ -582,32 +583,17 @@ const [authLoading, setAuthLoading] = useState(true);
   const[tarifsTemp,setTarifsTemp]=useState([]);
   const[ntarif,setNtarif]=useState({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});
 
-  const sel=selId?vehicles.find(v=>v.id===selId)||null:null;
-useEffect(()=>{
-  supabase.auth.getSession().then(({data:{session}})=>{
-    setUser(session?.user ?? null);
-    setAuthLoading(false);
-  });
-  const {data:{subscription}} = supabase.auth.onAuthStateChange((_,session)=>{
-    setUser(session?.user ?? null);
-  });
-  return ()=> subscription.unsubscribe();
-},[]);
-
-if(authLoading) return <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh"}}>Chargement...</div>;
-
-if(!user) return <AuthPage/>;
-
-
-  function toast_(msg,type="success"){setToast({msg,type});setTimeout(()=>setToast(null),3500);}
-
-  function calcJ(d1,h1,d2,h2){
-    if(!d1||!d2)return{jours:1,heures:24};
-    const t1=new Date(`${d1}T${h1||"10:00"}`),t2=new Date(`${d2}T${h2||"10:00"}`);
-    const diff=t2-t1;
-    if(diff<=0)return{jours:1,heures:24};
-    return{jours:Math.max(1,Math.ceil(diff/86400000)),heures:Math.ceil(diff/3600000)};
-  }
+  // useEffect Supabase — DOIT être avant tout return conditionnel
+  useEffect(()=>{
+    supabase.auth.getSession().then(({data:{session}})=>{
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+    const {data:{subscription}} = supabase.auth.onAuthStateChange((_,session)=>{
+      setUser(session?.user ?? null);
+    });
+    return ()=> subscription.unsubscribe();
+  },[]);
 
   useEffect(()=>{
     if(form.dateDebut&&form.dateFin){
@@ -615,6 +601,12 @@ if(!user) return <AuthPage/>;
       setForm(f=>({...f,nbJours:jours,heuresLoc:heures}));
     }
   },[form.dateDebut,form.dateFin,form.heureDebut,form.heureFin]);
+
+  // --- RETURNS CONDITIONNELS APRÈS TOUS LES HOOKS ---
+  if(authLoading) return <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",fontSize:14,color:"#6b7280"}}>Chargement...</div>;
+  if(!user) return <AuthPage/>;
+
+  const sel=selId?vehicles.find(v=>v.id===selId)||null:null;
 
   const loues=contrats.filter(c=>new Date(c.dateFin)>=new Date()).map(c=>c.vehicleId);
   const statut=id=>loues.includes(id)?"loué":"disponible";
@@ -630,6 +622,16 @@ if(!user) return <AuthPage/>;
 
   const req=["locNom","locAdresse","locTel","dateDebut","dateFin"];
   const inv=k=>touched[k]&&!form[k];
+
+  function toast_(msg,type="success"){setToast({msg,type});setTimeout(()=>setToast(null),3500);}
+
+  function calcJ(d1,h1,d2,h2){
+    if(!d1||!d2)return{jours:1,heures:24};
+    const t1=new Date(`${d1}T${h1||"10:00"}`),t2=new Date(`${d2}T${h2||"10:00"}`);
+    const diff=t2-t1;
+    if(diff<=0)return{jours:1,heures:24};
+    return{jours:Math.max(1,Math.ceil(diff/86400000)),heures:Math.ceil(diff/3600000)};
+  }
 
   function saveContrat(){
     const miss=req.filter(k=>!form[k]);
@@ -739,7 +741,6 @@ if(!user) return <AuthPage/>;
     );
   }
 
-  // Docs: pick file helper
   function pickDocFile(e){
     const f=e.target.files[0];
     if(!f)return;
@@ -750,7 +751,6 @@ if(!user) return <AuthPage/>;
 
   return(
     <div style={{minHeight:"100vh",background:"#f0f4f8"}}>
-      {/* NAV */}
       <nav style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",boxShadow:"0 2px 12px rgba(0,0,0,.3)",position:"sticky",top:0,zIndex:100}}>
         <div style={{maxWidth:1100,margin:"0 auto",padding:"0 10px",height:50,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
@@ -765,16 +765,15 @@ if(!user) return <AuthPage/>;
               </button>
             ))}
           </div>
+          <button onClick={()=>supabase.auth.signOut()} style={{background:"rgba(255,255,255,0.15)",color:"white",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,padding:"5px 10px",fontSize:11,cursor:"pointer",fontWeight:600}}>Déconnexion</button>
         </div>
       </nav>
 
       {toast&&<div style={{position:"fixed",top:14,right:14,zIndex:10000,padding:"10px 16px",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,.15)",color:"white",fontSize:12,fontWeight:600,background:toast.type==="error"?"#ef4444":"#16a34a",maxWidth:320}}>{toast.msg}</div>}
 
-      {/* MODALS */}
       {contratModalId&&contratV&&<ContratModal vehicle={contratV} onClose={()=>setContratModalId(null)} onSave={(fr,cl)=>{setVehicles(vs=>vs.map(v=>v.id===contratModalId?{...v,frais:fr,clauses:cl}:v));setContratModalId(null);toast_("Mis à jour !");}}/>}
       {retourContratId&&retourContrat&&<RetourModal contrat={retourContrat} vehicle={retourVehicle} onClose={()=>setRetourContratId(null)} onSave={data=>saveRetour(retourContratId,data)}/>}
 
-      {/* Modal tarifs */}
       {tarifsVehicle&&(
         <div onClick={e=>{if(e.target===e.currentTarget)setTarifsVehicleId(null);}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
           <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:520,maxHeight:"88vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
@@ -818,7 +817,6 @@ if(!user) return <AuthPage/>;
         </div>
       )}
 
-      {/* Modal docs */}
       {docsId&&docsV&&(
         <div style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
           <div style={{background:"white",borderRadius:18,width:"100%",maxWidth:600,maxHeight:"88vh",display:"flex",flexDirection:"column"}}>
@@ -858,7 +856,6 @@ if(!user) return <AuthPage/>;
 
       <div style={{maxWidth:1100,margin:"0 auto",width:"100%",padding:"16px 12px"}}>
 
-        {/* DASHBOARD */}
         {page==="dashboard"&&(
           <div>
             <div style={{marginBottom:16}}>
@@ -918,7 +915,6 @@ if(!user) return <AuthPage/>;
           </div>
         )}
 
-        {/* VEHICULES */}
         {page==="vehicles"&&(
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -969,7 +965,6 @@ if(!user) return <AuthPage/>;
           </div>
         )}
 
-        {/* NOUVEAU CONTRAT */}
         {page==="nouveau"&&(
           <div style={{maxWidth:680,margin:"0 auto"}}>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>📝 Nouveau contrat</h1>
@@ -984,14 +979,12 @@ if(!user) return <AuthPage/>;
                 ))}
               </div>
             </div>
-
             {sel&&(
               <>
                 <div style={{background:"#1e3a8a",borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div><div style={{color:"rgba(255,255,255,.7)",fontSize:10}}>Tarif calculé automatiquement</div><div style={{color:"white",fontSize:11,marginTop:2}}>{tarifAuto.label}</div></div>
                   <div style={{color:"#4ade80",fontWeight:900,fontSize:22}}>{tarifAuto.prix} €</div>
                 </div>
-
                 <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>👤 Locataire</h3>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -1002,7 +995,6 @@ if(!user) return <AuthPage/>;
                     <F k="locPermis" label="N° Permis" span2/>
                   </div>
                 </div>
-
                 <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>📅 Durée</h3>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -1015,7 +1007,6 @@ if(!user) return <AuthPage/>;
                     ⏱️ Durée : {form.nbJours} jour(s) ({form.heuresLoc}h)
                   </div>
                 </div>
-
                 <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>🔍 État au départ</h3>
                   <div style={{marginBottom:12}}>
@@ -1031,13 +1022,11 @@ if(!user) return <AuthPage/>;
                     <CheckBool label="Intérieur propre" icon="🧹" val={form.interieurPropre} onChange={v=>setForm(f=>({...f,interieurPropre:v}))}/>
                   </div>
                 </div>
-
                 <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:4}}>📸 Photos du véhicule au départ</h3>
                   <p style={{fontSize:11,color:"#6b7280",marginBottom:12}}>{photosDepart.length} photo{photosDepart.length>1?"s":""} ajoutée{photosDepart.length>1?"s":""} — incluses dans le contrat PDF</p>
                   <PhotosDepart photos={photosDepart} setPhotos={setPhotosDepart}/>
                 </div>
-
                 <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>💳 Paiement & Caution</h3>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -1053,7 +1042,6 @@ if(!user) return <AuthPage/>;
                     </div>
                   </div>
                 </div>
-
                 <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>✍️ Signatures</h3>
                   <div style={{display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center"}}>
@@ -1061,13 +1049,11 @@ if(!user) return <AuthPage/>;
                     <SigPad label="Signature du locataire" onSave={setSigLoc}/>
                   </div>
                 </div>
-
                 <button onClick={saveContrat} style={{width:"100%",background:"linear-gradient(135deg,#0a1940,#1e3a8a)",color:"white",border:"none",borderRadius:12,padding:14,fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 14px rgba(0,0,0,.2)"}}>
                   ✅ Créer le contrat — {tarifAuto.prix} €
                 </button>
               </>
             )}
-
             {lastContrat&&(
               <div style={{marginTop:16,background:"#f0fdf4",borderRadius:14,padding:16,border:"2px solid #86efac"}}>
                 <div style={{fontWeight:700,color:"#16a34a",marginBottom:8}}>✅ Contrat créé pour {lastContrat.contrat.locNom}</div>
@@ -1080,114 +1066,43 @@ if(!user) return <AuthPage/>;
           </div>
         )}
 
-        {/* PLANNING */}
         {page==="planning"&&(
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>📅 Planning</h1>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
                 <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()-1);setPlanMonth(new Date(d));}} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>◀</button>
-                <span style={{fontWeight:700,fontSize:13,minWidth:130,textAlign:"center",textTransform:"capitalize"}}>
-                  {planMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}
-                </span>
+                <span style={{fontWeight:700,fontSize:13,minWidth:130,textAlign:"center",textTransform:"capitalize"}}>{planMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</span>
                 <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()+1);setPlanMonth(new Date(d));}} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>▶</button>
               </div>
             </div>
-
-            {contrats.length===0 && (
-              <div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}>
-                <div style={{fontSize:36,marginBottom:8}}>📅</div>
-                <p>Aucun contrat — créez-en un pour voir le planning.</p>
-              </div>
-            )}
-
+            {contrats.length===0&&(<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>📅</div><p>Aucun contrat — créez-en un pour voir le planning.</p></div>)}
             {vehicles.map(v=>{
               const vContrats=contrats.filter(c=>c.vehicleId===v.id);
               return(
                 <div key={v.id} style={{background:"white",borderRadius:14,marginBottom:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #e5e7eb"}}>
-                  {/* En-tête véhicule */}
                   <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div>
-                      <span style={{color:"white",fontWeight:800,fontSize:13}}>{v.marque} {v.modele}</span>
-                      <span style={{color:"rgba(255,255,255,.6)",fontSize:11,marginLeft:10}}>{v.immat}</span>
-                    </div>
+                    <div><span style={{color:"white",fontWeight:800,fontSize:13}}>{v.marque} {v.modele}</span><span style={{color:"rgba(255,255,255,.6)",fontSize:11,marginLeft:10}}>{v.immat}</span></div>
                     <Badge s={statut(v.id)}/>
                   </div>
-
-                  {/* Grille des jours */}
                   <div style={{overflowX:"auto"}}>
                     <div style={{display:"flex",minWidth:days.length*28+130}}>
-                      {/* Colonne label */}
                       <div style={{width:130,flexShrink:0}}/>
-                      {/* Numéros de jours */}
-                      {days.map(d=>{
-                        const isToday=d.toDateString()===new Date().toDateString();
-                        const isWE=d.getDay()===0||d.getDay()===6;
-                        return(
-                          <div key={d.getTime()} style={{width:28,flexShrink:0,textAlign:"center",padding:"5px 0",fontSize:10,fontWeight:isToday?800:400,color:isToday?"#2563eb":isWE?"#9ca3af":"#6b7280",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:"1px solid #f0f0f0"}}>
-                            {d.getDate()}
-                          </div>
-                        );
-                      })}
+                      {days.map(d=>{const isToday=d.toDateString()===new Date().toDateString();const isWE=d.getDay()===0||d.getDay()===6;return(<div key={d.getTime()} style={{width:28,flexShrink:0,textAlign:"center",padding:"5px 0",fontSize:10,fontWeight:isToday?800:400,color:isToday?"#2563eb":isWE?"#9ca3af":"#6b7280",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:"1px solid #f0f0f0"}}>{d.getDate()}</div>);})}
                     </div>
-
-                    {/* Ligne des jours de la semaine */}
                     <div style={{display:"flex",minWidth:days.length*28+130,borderBottom:"1px solid #e5e7eb"}}>
                       <div style={{width:130,flexShrink:0,padding:"2px 8px",fontSize:9,color:"#9ca3af",display:"flex",alignItems:"center"}}>Sem.</div>
-                      {days.map(d=>{
-                        const isWE=d.getDay()===0||d.getDay()===6;
-                        const labels=["D","L","M","M","J","V","S"];
-                        return(
-                          <div key={d.getTime()} style={{width:28,flexShrink:0,textAlign:"center",fontSize:9,padding:"2px 0",color:isWE?"#d97706":"#9ca3af",background:isWE?"#fffbeb":"white",borderLeft:"1px solid #f0f0f0"}}>
-                            {labels[d.getDay()]}
-                          </div>
-                        );
-                      })}
+                      {days.map(d=>{const isWE=d.getDay()===0||d.getDay()===6;const labels=["D","L","M","M","J","V","S"];return(<div key={d.getTime()} style={{width:28,flexShrink:0,textAlign:"center",fontSize:9,padding:"2px 0",color:isWE?"#d97706":"#9ca3af",background:isWE?"#fffbeb":"white",borderLeft:"1px solid #f0f0f0"}}>{labels[d.getDay()]}</div>);})}
                     </div>
-
-                    {/* Ligne disponibilité */}
                     <div style={{display:"flex",minWidth:days.length*28+130,padding:"4px 0"}}>
-                      <div style={{width:130,flexShrink:0,padding:"0 8px",fontSize:10,fontWeight:600,color:"#374151",display:"flex",alignItems:"center"}}>
-                        Disponibilité
-                      </div>
-                      {days.map(d=>{
-                        const b=isBooked(v.id,d);
-                        const isToday=d.toDateString()===new Date().toDateString();
-                        return(
-                          <div key={d.getTime()} style={{width:28,flexShrink:0,height:28,display:"flex",alignItems:"center",justifyContent:"center",background:b?"#dbeafe":isToday?"#eff6ff":"white",borderLeft:"1px solid #f0f0f0"}}>
-                            {b
-                              ? <div style={{width:20,height:20,borderRadius:4,background:"#2563eb"}}/>
-                              : <div style={{width:20,height:20,borderRadius:4,background:"#dcfce7"}}/>
-                            }
-                          </div>
-                        );
-                      })}
+                      <div style={{width:130,flexShrink:0,padding:"0 8px",fontSize:10,fontWeight:600,color:"#374151",display:"flex",alignItems:"center"}}>Disponibilité</div>
+                      {days.map(d=>{const b=isBooked(v.id,d);const isToday=d.toDateString()===new Date().toDateString();return(<div key={d.getTime()} style={{width:28,flexShrink:0,height:28,display:"flex",alignItems:"center",justifyContent:"center",background:b?"#dbeafe":isToday?"#eff6ff":"white",borderLeft:"1px solid #f0f0f0"}}>{b?<div style={{width:20,height:20,borderRadius:4,background:"#2563eb"}}/>:<div style={{width:20,height:20,borderRadius:4,background:"#dcfce7"}}/>}</div>);})}
                     </div>
                   </div>
-
-                  {/* Liste des contrats du mois */}
-                  {vContrats.length>0 && (
-                    <div style={{padding:"8px 12px",borderTop:"1px solid #f0f0f0",display:"flex",flexWrap:"wrap",gap:6}}>
-                      {vContrats.map(c=>{
-                        const dStart=new Date(c.dateDebut),dEnd=new Date(c.dateFin);
-                        const mStart=dStart.getMonth(),mEnd=dEnd.getMonth(),y=planMonth.getMonth();
-                        const inMonth=mStart===y||mEnd===y;
-                        if(!inMonth)return null;
-                        return(
-                          <div key={c.id} style={{background:"#eff6ff",borderRadius:8,padding:"4px 10px",fontSize:11,border:"1px solid #bfdbfe"}}>
-                            <span style={{fontWeight:700,color:"#1e3a8a"}}>{c.locNom}</span>
-                            <span style={{color:"#6b7280",marginLeft:6}}>{c.dateDebut} → {c.dateFin}</span>
-                            <span style={{marginLeft:6,fontWeight:700,color:"#2563eb"}}>{c.totalCalc} €</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                  {vContrats.length>0&&(<div style={{padding:"8px 12px",borderTop:"1px solid #f0f0f0",display:"flex",flexWrap:"wrap",gap:6}}>{vContrats.map(c=>{const dStart=new Date(c.dateDebut),dEnd=new Date(c.dateFin);const mStart=dStart.getMonth(),mEnd=dEnd.getMonth(),y=planMonth.getMonth();const inMonth=mStart===y||mEnd===y;if(!inMonth)return null;return(<div key={c.id} style={{background:"#eff6ff",borderRadius:8,padding:"4px 10px",fontSize:11,border:"1px solid #bfdbfe"}}><span style={{fontWeight:700,color:"#1e3a8a"}}>{c.locNom}</span><span style={{color:"#6b7280",marginLeft:6}}>{c.dateDebut} → {c.dateFin}</span><span style={{marginLeft:6,fontWeight:700,color:"#2563eb"}}>{c.totalCalc} €</span></div>);})}</div>)}
                 </div>
               );
             })}
-
-            {/* Légende */}
             <div style={{display:"flex",gap:16,padding:"10px 4px",fontSize:11,color:"#6b7280"}}>
               <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:16,height:16,borderRadius:3,background:"#2563eb"}}/> Loué</div>
               <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:16,height:16,borderRadius:3,background:"#dcfce7",border:"1px solid #bbf7d0"}}/> Disponible</div>
@@ -1197,47 +1112,37 @@ if(!user) return <AuthPage/>;
           </div>
         )}
 
-        {/* CONTRATS */}
         {page==="contrats"&&(
           <div>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>📋 Contrats ({contrats.length})</h1>
-            {contrats.length===0
-              ?<div style={{textAlign:"center",color:"#9ca3af",padding:40}}><div style={{fontSize:40}}>📋</div><p>Aucun contrat</p></div>
-              :contrats.map(c=>{
-                const r=retours[c.id];
-                return(
-                  <div key={c.id} style={{background:"white",borderRadius:14,padding:14,marginBottom:10,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #e5e7eb"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                      <div>
-                        <div style={{fontWeight:800,fontSize:14}}>{c.locNom.toUpperCase()}</div>
-                        <div style={{fontSize:11,color:"#6b7280"}}>{c.vehicleLabel} · {c.immat}</div>
-                        <div style={{fontSize:11,color:"#6b7280"}}>{c.dateDebut} → {c.dateFin} · {c.nbJours}j</div>
-                        {c.tarifLabel&&<div style={{fontSize:10,color:"#9ca3af",marginTop:2}}>{c.tarifLabel}</div>}
-                        <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
-                          <span style={{fontSize:10,background:fuelColor(c.carburantDepart||100)==="#16a34a"?"#f0fdf4":fuelColor(c.carburantDepart||100)==="#d97706"?"#fff7ed":"#fef2f2",color:fuelColor(c.carburantDepart||100),borderRadius:6,padding:"2px 7px",fontWeight:600}}>⛽ {c.carburantDepart||100}%</span>
-                          {c.exterieurPropre!==null&&<span style={{fontSize:10,background:c.exterieurPropre?"#f0fdf4":"#fef2f2",color:c.exterieurPropre?"#16a34a":"#dc2626",borderRadius:6,padding:"2px 7px",fontWeight:600}}>🚿 {c.exterieurPropre?"OK":"NON"}</span>}
-                          {c.interieurPropre!==null&&<span style={{fontSize:10,background:c.interieurPropre?"#f0fdf4":"#fef2f2",color:c.interieurPropre?"#16a34a":"#dc2626",borderRadius:6,padding:"2px 7px",fontWeight:600}}>🧹 {c.interieurPropre?"OK":"NON"}</span>}
-                          {(c.photosDepart||[]).length>0&&<span style={{fontSize:10,background:"#f5f3ff",color:"#7c3aed",borderRadius:6,padding:"2px 7px",fontWeight:600}}>📸 {c.photosDepart.length} photo{c.photosDepart.length>1?"s":""}</span>}
-                        </div>
-                      </div>
-                      <div style={{textAlign:"right"}}>
-                        <div style={{fontWeight:900,fontSize:18,color:"#1e3a8a"}}>{c.totalCalc} €</div>
-                        {r&&<div style={{fontSize:10,color:"#16a34a",fontWeight:600}}>✅ Retour OK</div>}
+            {contrats.length===0?<div style={{textAlign:"center",color:"#9ca3af",padding:40}}><div style={{fontSize:40}}>📋</div><p>Aucun contrat</p></div>
+              :contrats.map(c=>{const r=retours[c.id];return(
+                <div key={c.id} style={{background:"white",borderRadius:14,padding:14,marginBottom:10,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #e5e7eb"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                    <div>
+                      <div style={{fontWeight:800,fontSize:14}}>{c.locNom.toUpperCase()}</div>
+                      <div style={{fontSize:11,color:"#6b7280"}}>{c.vehicleLabel} · {c.immat}</div>
+                      <div style={{fontSize:11,color:"#6b7280"}}>{c.dateDebut} → {c.dateFin} · {c.nbJours}j</div>
+                      {c.tarifLabel&&<div style={{fontSize:10,color:"#9ca3af",marginTop:2}}>{c.tarifLabel}</div>}
+                      <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
+                        <span style={{fontSize:10,background:fuelColor(c.carburantDepart||100)==="#16a34a"?"#f0fdf4":fuelColor(c.carburantDepart||100)==="#d97706"?"#fff7ed":"#fef2f2",color:fuelColor(c.carburantDepart||100),borderRadius:6,padding:"2px 7px",fontWeight:600}}>⛽ {c.carburantDepart||100}%</span>
+                        {c.exterieurPropre!==null&&<span style={{fontSize:10,background:c.exterieurPropre?"#f0fdf4":"#fef2f2",color:c.exterieurPropre?"#16a34a":"#dc2626",borderRadius:6,padding:"2px 7px",fontWeight:600}}>🚿 {c.exterieurPropre?"OK":"NON"}</span>}
+                        {c.interieurPropre!==null&&<span style={{fontSize:10,background:c.interieurPropre?"#f0fdf4":"#fef2f2",color:c.interieurPropre?"#16a34a":"#dc2626",borderRadius:6,padding:"2px 7px",fontWeight:600}}>🧹 {c.interieurPropre?"OK":"NON"}</span>}
+                        {(c.photosDepart||[]).length>0&&<span style={{fontSize:10,background:"#f5f3ff",color:"#7c3aed",borderRadius:6,padding:"2px 7px",fontWeight:600}}>📸 {c.photosDepart.length} photo{c.photosDepart.length>1?"s":""}</span>}
                       </div>
                     </div>
-                    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                      <button onClick={()=>rePrint(c)} style={{padding:"5px 10px",background:"#eff6ff",color:"#2563eb",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>⬇️ PDF</button>
-                      {!r&&<button onClick={()=>setRetourContratId(c.id)} style={{padding:"5px 10px",background:"#f0fdf4",color:"#16a34a",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>🔄 Retour</button>}
-                      <button onClick={()=>{if(window.confirm("Supprimer ?"))setContrats(cs=>cs.filter(x=>x.id!==c.id));}} style={{padding:"5px 10px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:7,fontSize:11,cursor:"pointer"}}>🗑️</button>
-                    </div>
+                    <div style={{textAlign:"right"}}><div style={{fontWeight:900,fontSize:18,color:"#1e3a8a"}}>{c.totalCalc} €</div>{r&&<div style={{fontSize:10,color:"#16a34a",fontWeight:600}}>✅ Retour OK</div>}</div>
                   </div>
-                );
-              })
-            }
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    <button onClick={()=>rePrint(c)} style={{padding:"5px 10px",background:"#eff6ff",color:"#2563eb",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>⬇️ PDF</button>
+                    {!r&&<button onClick={()=>setRetourContratId(c.id)} style={{padding:"5px 10px",background:"#f0fdf4",color:"#16a34a",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>🔄 Retour</button>}
+                    <button onClick={()=>{if(window.confirm("Supprimer ?"))setContrats(cs=>cs.filter(x=>x.id!==c.id));}} style={{padding:"5px 10px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:7,fontSize:11,cursor:"pointer"}}>🗑️</button>
+                  </div>
+                </div>
+              );})}
           </div>
         )}
 
-        {/* RETOURS */}
         {page==="retours"&&(
           <div>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>🔄 Retours</h1>
@@ -1255,36 +1160,29 @@ if(!user) return <AuthPage/>;
             {contrats.filter(c=>retours[c.id]).length>0&&(
               <div>
                 <h2 style={{fontSize:13,fontWeight:700,color:"#6b7280",marginBottom:8}}>Retours effectués</h2>
-                {contrats.filter(c=>retours[c.id]).map(c=>{
-                  const r=retours[c.id];
-                  return(
-                    <div key={c.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"1px solid #e5e7eb"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                        <div>
-                          <div style={{fontWeight:700}}>{c.locNom}</div>
-                          <div style={{fontSize:11,color:"#6b7280"}}>{c.vehicleLabel}</div>
-                          <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
-                            {r.kmRetour&&<span style={{fontSize:10,background:"#eff6ff",color:"#2563eb",borderRadius:6,padding:"2px 7px",fontWeight:600}}>📏 {r.kmRetour} km</span>}
-                            {r.surplusKm>0&&<span style={{fontSize:10,background:"#fef3c7",color:"#d97706",borderRadius:6,padding:"2px 7px",fontWeight:600}}>+{r.surplusKm.toFixed(0)}€ km</span>}
-                            {r.montantRetenu>0&&<span style={{fontSize:10,background:"#fef2f2",color:"#dc2626",borderRadius:6,padding:"2px 7px",fontWeight:600}}>🔒 -{r.montantRetenu}€</span>}
-                            {r.cautionRestituee&&<span style={{fontSize:10,background:"#f0fdf4",color:"#16a34a",borderRadius:6,padding:"2px 7px",fontWeight:600}}>✅ Caution OK</span>}
-                          </div>
-                        </div>
-                        <div style={{textAlign:"right"}}>
-                          <div style={{fontWeight:900,fontSize:16,color:"#16a34a"}}>{((c.totalCalc||0)+(r.surplusKm||0)+(r.montantRetenu||0)).toFixed(0)} €</div>
-                          <div style={{fontSize:9,color:"#9ca3af"}}>total encaissé</div>
+                {contrats.filter(c=>retours[c.id]).map(c=>{const r=retours[c.id];return(
+                  <div key={c.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"1px solid #e5e7eb"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                      <div>
+                        <div style={{fontWeight:700}}>{c.locNom}</div>
+                        <div style={{fontSize:11,color:"#6b7280"}}>{c.vehicleLabel}</div>
+                        <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
+                          {r.kmRetour&&<span style={{fontSize:10,background:"#eff6ff",color:"#2563eb",borderRadius:6,padding:"2px 7px",fontWeight:600}}>📏 {r.kmRetour} km</span>}
+                          {r.surplusKm>0&&<span style={{fontSize:10,background:"#fef3c7",color:"#d97706",borderRadius:6,padding:"2px 7px",fontWeight:600}}>+{r.surplusKm.toFixed(0)}€ km</span>}
+                          {r.montantRetenu>0&&<span style={{fontSize:10,background:"#fef2f2",color:"#dc2626",borderRadius:6,padding:"2px 7px",fontWeight:600}}>🔒 -{r.montantRetenu}€</span>}
+                          {r.cautionRestituee&&<span style={{fontSize:10,background:"#f0fdf4",color:"#16a34a",borderRadius:6,padding:"2px 7px",fontWeight:600}}>✅ Caution OK</span>}
                         </div>
                       </div>
+                      <div style={{textAlign:"right"}}><div style={{fontWeight:900,fontSize:16,color:"#16a34a"}}>{((c.totalCalc||0)+(r.surplusKm||0)+(r.montantRetenu||0)).toFixed(0)} €</div><div style={{fontSize:9,color:"#9ca3af"}}>total encaissé</div></div>
                     </div>
-                  );
-                })}
+                  </div>
+                );})}
               </div>
             )}
             {contrats.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:40}}><div style={{fontSize:40}}>🔄</div><p>Aucun contrat enregistré.</p></div>}
           </div>
         )}
 
-        {/* FINANCES */}
         {page==="finances"&&(
           <div>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>💰 Finances</h1>
@@ -1311,20 +1209,15 @@ if(!user) return <AuthPage/>;
                   <button onClick={()=>{if(!dForm.label||!dForm.montant){toast_("Remplissez libellé et montant","error");return;}setDepenses(d=>[{id:Date.now(),...dForm},...d]);setDForm({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});setShowAddD(false);toast_("Dépense ajoutée");}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
                 </div>
               )}
-              {depenses.length===0
-                ?<p style={{color:"#9ca3af",fontSize:12,textAlign:"center",padding:16}}>Aucune dépense</p>
-                :depenses.map(d=>(
-                  <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px",borderRadius:8,background:"#f9fafb",marginBottom:5}}>
-                    <div><div style={{fontWeight:600,fontSize:12}}>{d.label}</div><div style={{fontSize:10,color:"#9ca3af"}}>{d.categorie} · {d.date}</div></div>
-                    <div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontWeight:700,color:"#ef4444"}}>-{d.montant} €</span><button onClick={()=>setDepenses(ds=>ds.filter(x=>x.id!==d.id))} style={{padding:"2px 6px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:10}}>🗑️</button></div>
-                  </div>
-                ))
-              }
+              {depenses.length===0?<p style={{color:"#9ca3af",fontSize:12,textAlign:"center",padding:16}}>Aucune dépense</p>
+                :depenses.map(d=>(<div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px",borderRadius:8,background:"#f9fafb",marginBottom:5}}>
+                  <div><div style={{fontWeight:600,fontSize:12}}>{d.label}</div><div style={{fontSize:10,color:"#9ca3af"}}>{d.categorie} · {d.date}</div></div>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontWeight:700,color:"#ef4444"}}>-{d.montant} €</span><button onClick={()=>setDepenses(ds=>ds.filter(x=>x.id!==d.id))} style={{padding:"2px 6px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:10}}>🗑️</button></div>
+                </div>))}
             </div>
           </div>
         )}
 
-        {/* PROFIL */}
         {page==="profil"&&(
           <div style={{maxWidth:520,margin:"0 auto"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -1334,10 +1227,7 @@ if(!user) return <AuthPage/>;
             {profilEdit?(
               <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["tel","Téléphone"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
-                  <div key={k} style={{marginBottom:10}}>
-                    <label style={LBL}>{l}</label>
-                    <input style={Inp()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/>
-                  </div>
+                  <div key={k} style={{marginBottom:10}}><label style={LBL}>{l}</label><input style={Inp()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>
                 ))}
                 <button onClick={()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Enregistrer</button>
               </div>
@@ -1361,7 +1251,7 @@ if(!user) return <AuthPage/>;
 
       </div>
     </div>
-   );
+  );
 }
 
 function AuthPage(){
@@ -1401,4 +1291,3 @@ function AuthPage(){
     </div>
   );
 }
-

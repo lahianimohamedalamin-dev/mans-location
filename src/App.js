@@ -633,27 +633,27 @@ export default function App(){
     return ()=> subscription.unsubscribe();
   },[]);
 
-  const lsKey=u=>k=>u?k+'_'+u.id:k;
-  const userReady=!!user;
   const userIdRef=useRef(null);
+  const lsKeyRef=useRef(k=>k);
 
   useEffect(()=>{
     if(!user)return;
     if(userIdRef.current===user.id)return;
     userIdRef.current=user.id;
-    const k=lsKey(user);
-    setVehicles(loadLS(k('mans_vehicles'),INIT_V));
-    setContrats(loadLS(k('mans_contrats'),[]));
-    setDepenses(loadLS(k('mans_depenses'),[]));
-    setProfil(loadLS(k('mans_profil'),INIT_PROFIL));
-    setRetours(loadLS(k('mans_retours'),{}));
+    lsKeyRef.current=k=>k+'_'+user.id;
+    const lk=lsKeyRef.current;
+    setVehicles(loadLS(lk('mans_vehicles'),INIT_V));
+    setContrats(loadLS(lk('mans_contrats'),[]));
+    setDepenses(loadLS(lk('mans_depenses'),[]));
+    setProfil(loadLS(lk('mans_profil'),INIT_PROFIL));
+    setRetours(loadLS(lk('mans_retours'),{}));
   },[user]);
 
-  useEffect(()=>{if(userReady)saveLS(lsKey(user)('mans_vehicles'),vehicles);},[vehicles,userReady]);
-  useEffect(()=>{if(userReady)saveLS(lsKey(user)('mans_contrats'),contrats);},[contrats,userReady]);
-  useEffect(()=>{if(userReady)saveLS(lsKey(user)('mans_depenses'),depenses);},[depenses,userReady]);
-  useEffect(()=>{if(userReady)saveLS(lsKey(user)('mans_profil'),profil);},[profil,userReady]);
-  useEffect(()=>{if(userReady)saveLS(lsKey(user)('mans_retours'),retours);},[retours,userReady]);
+  useEffect(()=>{if(userIdRef.current)saveLS(lsKeyRef.current('mans_vehicles'),vehicles);},[vehicles]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(userIdRef.current)saveLS(lsKeyRef.current('mans_contrats'),contrats);},[contrats]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(userIdRef.current)saveLS(lsKeyRef.current('mans_depenses'),depenses);},[depenses]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(userIdRef.current)saveLS(lsKeyRef.current('mans_profil'),profil);},[profil]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(userIdRef.current)saveLS(lsKeyRef.current('mans_retours'),retours);},[retours]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(()=>{
     if(form.dateDebut&&form.dateFin){

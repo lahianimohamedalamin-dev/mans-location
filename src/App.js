@@ -1,5 +1,18 @@
 import { supabase } from './supabase'; // eslint-disable-line
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+
+// --- Helpers localStorage par utilisateur ---
+function lsKey(userId, key){ return `ml_${userId}_${key}`; }
+function lsGet(userId, key, fallback){
+  try{
+    const raw = localStorage.getItem(lsKey(userId, key));
+    if(raw === null) return fallback;
+    return JSON.parse(raw);
+  } catch{ return fallback; }
+}
+function lsSet(userId, key, value){
+  try{ localStorage.setItem(lsKey(userId, key), JSON.stringify(value)); } catch{}
+}
 
 const DEF_FRAIS=[
   {id:1,label:"Rayure",montant:300},{id:2,label:"Jantes rayées",montant:300},
@@ -552,6 +565,7 @@ export default function App(){
   // --- TOUS LES HOOKS EN PREMIER, SANS EXCEPTION ---
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const[vehicles,setVehicles]=useState(INIT_V);
   const[contrats,setContrats]=useState([]);
   const[depenses,setDepenses]=useState([]);
@@ -579,6 +593,38 @@ export default function App(){
   const[lastContrat,setLastContrat]=useState(null);
   const[retourContratId,setRetourContratId]=useState(null);
   const[retours,setRetours]=useState({});
+
+  // --- Charger les données depuis localStorage quand l'utilisateur se connecte ---
+  const loadUserData = useCallback((uid)=>{
+    setVehicles(lsGet(uid, 'vehicles', INIT_V));
+    setContrats(lsGet(uid, 'contrats', []));
+    setDepenses(lsGet(uid, 'depenses', []));
+    setProfil(lsGet(uid, 'profil', INIT_PROFIL));
+    setRetours(lsGet(uid, 'retours', {}));
+    setDataLoaded(true);
+  },[]);
+
+  useEffect(()=>{
+    if(user) loadUserData(user.id);
+    else setDataLoaded(false);
+  },[user, loadUserData]);
+
+  // --- Sauvegarder automatiquement dans localStorage à chaque changement ---
+  useEffect(()=>{
+    if(user && dataLoaded) lsSet(user.id, 'vehicles', vehicles);
+  },[vehicles, user, dataLoaded]);
+  useEffect(()=>{
+    if(user && dataLoaded) lsSet(user.id, 'contrats', contrats);
+  },[contrats, user, dataLoaded]);
+  useEffect(()=>{
+    if(user && dataLoaded) lsSet(user.id, 'depenses', depenses);
+  },[depenses, user, dataLoaded]);
+  useEffect(()=>{
+    if(user && dataLoaded) lsSet(user.id, 'profil', profil);
+  },[profil, user, dataLoaded]);
+  useEffect(()=>{
+    if(user && dataLoaded) lsSet(user.id, 'retours', retours);
+  },[retours, user, dataLoaded]);
   const[tarifsVehicleId,setTarifsVehicleId]=useState(null);
   const[tarifsTemp,setTarifsTemp]=useState([]);
   const[ntarif,setNtarif]=useState({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});

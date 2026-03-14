@@ -615,6 +615,23 @@ function AppContent(){
   const[tarifsTemp,setTarifsTemp]=useState([]);
   const[ntarif,setNtarif]=useState({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});
   const[dataLoaded,setDataLoaded]=useState(false);
+  const activeUserIdRef=useRef(null);
+
+  const resetUserData=useCallback(()=>{
+    setVehicles([]);
+    setContrats([]);
+    setDepenses([]);
+    setRetours({});
+    setProfil(INIT_PROFIL);
+    setProfilForm(INIT_PROFIL);
+    setSelId(null);
+    setDocsId(null);
+    setContratModalId(null);
+    setLastContrat(null);
+    setRetourContratId(null);
+    setTarifsVehicleId(null);
+    setDataLoaded(false);
+  },[]);
 
   useEffect(()=>{
     const handleAuthRedirect = async()=>{
@@ -643,6 +660,7 @@ function AppContent(){
   },[]);
 
   const loadAllData=useCallback(async(uid)=>{
+    setDataLoaded(false);
     try{
       const[profRes,vehRes,conRes,depRes,retRes]=await Promise.all([
         supabase.from('profils').select('*').eq('user_id',uid).maybeSingle(),
@@ -651,10 +669,12 @@ function AppContent(){
         supabase.from('depenses').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('retours').select('*').eq('user_id',uid),
       ]);
-      if(profRes.data){
-        const p=profRes.data;
-        setProfil({nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||''});
-      }
+      if(activeUserIdRef.current!==uid) return;
+
+      const p=profRes.data||{};
+      setProfil({nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||''});
+      setProfilForm({nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||''});
+
       if(vehRes.data){
         setVehicles(vehRes.data.map(v=>({
           id:v.id,marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',
@@ -714,13 +734,19 @@ function AppContent(){
     }catch(e){
       console.error('Error loading data from Supabase:',e);
     }finally{
-      setDataLoaded(true);
+      if(activeUserIdRef.current===uid){
+        setDataLoaded(true);
+      }
     }
   },[]);
 
   useEffect(()=>{
-    if(user){loadAllData(user.id);}else{setDataLoaded(false);}
-  },[user,loadAllData]);
+    activeUserIdRef.current=user?.id||null;
+    resetUserData();
+    if(user){
+      loadAllData(user.id);
+    }
+  },[user,loadAllData,resetUserData]);
 
   const sel=selId?vehicles.find(v=>v.id===selId)||null:null;
 

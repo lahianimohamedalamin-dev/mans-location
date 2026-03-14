@@ -105,7 +105,6 @@ const CAR_BRANDS={
 };
 
 const CAR_COLORS=["Noir","Blanc","Gris","Argent","Bleu","Rouge","Vert","Beige","Marron","Orange","Jaune","Violet","Rose","Bordeaux","Bleu nuit","Gris anthracite","Blanc nacré","Noir métallisé","Bleu métallisé","Gris métallisé"];
-
 const CURRENT_YEAR=new Date().getFullYear();
 const CAR_YEARS=Array.from({length:30},(_,i)=>CURRENT_YEAR-i);
 
@@ -131,25 +130,43 @@ function dlFile(html,filename){
   setTimeout(()=>{URL.revokeObjectURL(u);document.body.removeChild(a);},1000);
 }
 
+// ─────────────────────────────────────────────
+// BUILD CONTRAT HTML
+// ─────────────────────────────────────────────
 function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   const nb=contrat.nbJours||1,total=contrat.totalCalc||0,pm=contrat.paiement;
   const frais=vehicle.frais||DEF_FRAIS,clauses=vehicle.clauses||DEF_CLAUSES;
-  const fraisRows=frais.map(f=>"<tr><td>"+f.label+"</td><td style='text-align:right;font-weight:bold'>"+f.montant+" \u20ac</td></tr>").join("");
+  const fraisRows=frais.map(f=>"<tr><td>"+f.label+"</td><td style='text-align:right;font-weight:bold'>"+f.montant+" €</td></tr>").join("");
   const clausesHtml=clauses.map((c,i)=>"<div class='cl'><span class='cl-t'>"+(i+6)+". "+c.titre+"</span><br>"+c.texte+"</div>").join("");
   const sL=sigL?"<img src='"+sigL+"' style='max-width:160px;height:60px;display:block;margin:0 auto;border-bottom:1px solid #333'>":"<div style='border-bottom:1px solid #333;height:60px;width:160px;margin:0 auto'></div>";
   const sLoc=sigLoc?"<img src='"+sigLoc+"' style='max-width:160px;height:60px;display:block;margin:0 auto;border-bottom:1px solid #333'>":"<div style='border-bottom:1px solid #333;height:60px;width:160px;margin:0 auto'></div>";
   const fuelPct=contrat.carburantDepart||0;
-  const fuelBar="<div style='margin:6px 0'><span style='font-size:10px;color:#555'>Carburant d\u00e9part : </span><span style='font-weight:bold'>"+fuelPct+"% \u2014 "+fuelLabel(fuelPct)+"</span><div style='background:#e5e7eb;border-radius:99px;height:10px;width:200px;margin-top:3px;overflow:hidden'><div style='width:"+fuelPct+"%;background:"+fuelColor(fuelPct)+";height:100%'></div></div></div>";
-  const extPropre=contrat.exterieurPropre===true?"\u2705 Oui":contrat.exterieurPropre===false?"\u274c Non":"\u2014";
-  const intPropre=contrat.interieurPropre===true?"\u2705 Oui":contrat.interieurPropre===false?"\u274c Non":"\u2014";
-  const etatHtml="<div style='display:flex;gap:16px;margin:4px 0'><span style='font-size:10px'><b>Ext\u00e9rieur propre :</b> "+extPropre+"</span><span style='font-size:10px'><b>Int\u00e9rieur propre :</b> "+intPropre+"</span></div>";
-  const kmRow=vehicle.kmInclus?"<div><span class='lbl'>Km inclus : </span><span class='val'>"+vehicle.kmInclus+" km</span> &nbsp; <span class='lbl'>Surplus : </span><span class='val'>"+(vehicle.prixKmSup||0)+" \u20ac/km</span></div>":"";
-  const cautionMode=contrat.cautionMode==="especes"?"Esp\u00e8ces":contrat.cautionMode==="virement"?"Virement bancaire":contrat.cautionMode==="emprunt"?"Emprunt bancaire":"Autre";
+  const fuelBar="<div style='margin:6px 0'><span style='font-size:10px;color:#555'>Carburant départ : </span><span style='font-weight:bold'>"+fuelPct+"% — "+fuelLabel(fuelPct)+"</span><div style='background:#e5e7eb;border-radius:99px;height:10px;width:200px;margin-top:3px;overflow:hidden'><div style='width:"+fuelPct+"%;background:"+fuelColor(fuelPct)+";height:100%'></div></div></div>";
+  const extPropre=contrat.exterieurPropre===true?"✅ Oui":contrat.exterieurPropre===false?"❌ Non":"—";
+  const intPropre=contrat.interieurPropre===true?"✅ Oui":contrat.interieurPropre===false?"❌ Non":"—";
+  const etatHtml="<div style='display:flex;gap:16px;margin:4px 0'><span style='font-size:10px'><b>Extérieur propre :</b> "+extPropre+"</span><span style='font-size:10px'><b>Intérieur propre :</b> "+intPropre+"</span></div>";
+  const kmRow=vehicle.kmInclus?"<div><span class='lbl'>Km inclus : </span><span class='val'>"+vehicle.kmInclus+" km</span> &nbsp; <span class='lbl'>Surplus : </span><span class='val'>"+(vehicle.prixKmSup||0)+" €/km</span></div>":"";
+  const cautionMode=contrat.cautionMode==="especes"?"Espèces":contrat.cautionMode==="virement"?"Virement bancaire":contrat.cautionMode==="emprunt"?"Emprunt bancaire":"Autre";
   const photosDepart=contrat.photosDepart||[];
-  const photosHtml=photosDepart.length>0?"<div style='margin-top:6px'><div style='font-size:10px;font-weight:bold;color:#555;margin-bottom:4px'>Photos d\u00e9part ("+photosDepart.length+")</div><div style='display:flex;flex-wrap:wrap;gap:6px'>"+photosDepart.map(p=>"<img src='"+p.data+"' style='width:120px;height:90px;object-fit:cover;border-radius:6px;border:1px solid #ddd'>").join("")+"</div></div>":"";
+  const photosHtml=photosDepart.length>0?"<div style='margin-top:6px'><div style='font-size:10px;font-weight:bold;color:#555;margin-bottom:4px'>Photos départ ("+photosDepart.length+")</div><div style='display:flex;flex-wrap:wrap;gap:6px'>"+photosDepart.map(p=>"<img src='"+p.data+"' style='width:120px;height:90px;object-fit:cover;border-radius:6px;border:1px solid #ddd'>").join("")+"</div></div>":"";
   const permisHtml=contrat.locPermis?"<div><span class='lbl'>Permis : </span><span class='val'>"+contrat.locPermis+"</span></div>":"";
-  const tarifHtml=contrat.tarifLabel?"<div><span class='lbl'>Tarif appliqu\u00e9 : </span><span class='val'>"+contrat.tarifLabel+"</span></div>":"";
-  const parts=[
+  const tarifHtml=contrat.tarifLabel?"<div><span class='lbl'>Tarif appliqué : </span><span class='val'>"+contrat.tarifLabel+"</span></div>":"";
+
+  // Documents locataire
+  const dl=contrat.docsLocataire||{};
+  let docsLocHtml="";
+  if(dl.cniRecto||dl.cniVerso||dl.justifDom||dl.photoAr){
+    docsLocHtml="<div style='margin-top:10px;padding:10px;background:#f8fafc;border-radius:8px;border:1px solid #e5e7eb'>";
+    docsLocHtml+="<div style='font-size:11px;font-weight:bold;color:#0a1940;margin-bottom:8px'>📎 Documents du locataire</div>";
+    docsLocHtml+="<div style='display:flex;flex-wrap:wrap;gap:10px'>";
+    if(dl.cniRecto) docsLocHtml+="<div style='text-align:center'><div style='font-size:9px;color:#555;margin-bottom:3px;font-weight:600'>CNI/Passeport — Recto</div><img src='"+dl.cniRecto+"' style='width:130px;height:90px;object-fit:cover;border-radius:6px;border:2px solid #2563eb'></div>";
+    if(dl.cniVerso) docsLocHtml+="<div style='text-align:center'><div style='font-size:9px;color:#555;margin-bottom:3px;font-weight:600'>CNI/Passeport — Verso</div><img src='"+dl.cniVerso+"' style='width:130px;height:90px;object-fit:cover;border-radius:6px;border:2px solid #2563eb'></div>";
+    if(dl.justifDom) docsLocHtml+="<div style='text-align:center'><div style='font-size:9px;color:#555;margin-bottom:3px;font-weight:600'>Justificatif de domicile</div><img src='"+dl.justifDom+"' style='width:130px;height:90px;object-fit:cover;border-radius:6px;border:2px solid #7c3aed'></div>";
+    if(dl.photoAr) docsLocHtml+="<div style='text-align:center'><div style='font-size:9px;color:#555;margin-bottom:3px;font-weight:600'>Photo arrière véhicule</div><img src='"+dl.photoAr+"' style='width:130px;height:90px;object-fit:cover;border-radius:6px;border:2px solid #16a34a'></div>";
+    docsLocHtml+="</div></div>";
+  }
+
+  return[
     "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Contrat "+contrat.locNom+"</title>",
     "<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:11px;color:#111}",
     ".header{background:#0a1940;color:#fff;padding:14px 20px;text-align:center}",
@@ -166,39 +183,173 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
     ".tot{background:#0a1940;color:#fff;padding:8px 14px;border-radius:6px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}",
     "@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>",
     "<div class='header'><h1>"+(profil.entreprise||"MAN'S LOCATION")+"</h1><p>LOCATION DE CITADINES EN IDF</p>",
-    "<p>SIRET : "+(profil.siret||profil.siren)+" | T\u00e9l : "+profil.tel+" | "+profil.adresse+"</p></div>",
-    "<div class='body'><div class='title'>Contrat de Location de V\u00e9hicule</div>",
-    "<div style='margin-bottom:8px'><div class='st'>Le Propri\u00e9taire (Loueur)</div>",
-    "<div class='row'><span><span class='lbl'>Nom : </span><span class='val'>"+profil.nom+"</span></span><span><span class='lbl'>T\u00e9l : </span><span class='val'>"+profil.tel+"</span></span></div>",
+    "<p>SIRET : "+(profil.siret||profil.siren)+" | Tél : "+profil.tel+" | "+profil.adresse+"</p></div>",
+    "<div class='body'><div class='title'>Contrat de Location de Véhicule</div>",
+    "<div style='margin-bottom:8px'><div class='st'>Le Propriétaire (Loueur)</div>",
+    "<div class='row'><span><span class='lbl'>Nom : </span><span class='val'>"+profil.nom+"</span></span><span><span class='lbl'>Tél : </span><span class='val'>"+profil.tel+"</span></span></div>",
     "<div><span class='lbl'>Adresse : </span><span class='val'>"+profil.adresse+"</span></div></div>",
     "<div style='margin-bottom:8px'><div class='st'>Le Locataire</div>",
-    "<div class='row'><span><span class='lbl'>Nom : </span><span class='val'>"+contrat.locNom.toUpperCase()+"</span></span><span><span class='lbl'>T\u00e9l : </span><span class='val'>"+contrat.locTel+"</span></span></div>",
+    "<div class='row'><span><span class='lbl'>Nom : </span><span class='val'>"+contrat.locNom.toUpperCase()+"</span></span><span><span class='lbl'>Tél : </span><span class='val'>"+contrat.locTel+"</span></span></div>",
     "<div><span class='lbl'>Adresse : </span><span class='val'>"+contrat.locAdresse+"</span></div>",
-    permisHtml+"</div><hr>",
-    "<div style='margin-bottom:8px'><div class='st'>1. V\u00e9hicule</div>",
-    "<div class='row'><span><span class='lbl'>Marque : </span><span class='val'>"+vehicle.marque+"</span></span><span><span class='lbl'>Mod\u00e8le : </span><span class='val'>"+vehicle.modele+"</span></span><span><span class='lbl'>Immat : </span><span class='val'>"+vehicle.immat+"</span></span></div>",
-    "<div class='row'><span><span class='lbl'>Couleur : </span><span class='val'>"+vehicle.couleur+"</span></span><span><span class='lbl'>Km d\u00e9part : </span><span class='val'>"+(contrat.kmDepart||vehicle.km)+" km</span></span></div>",
+    permisHtml,
+    docsLocHtml,
+    "</div><hr>",
+    "<div style='margin-bottom:8px'><div class='st'>1. Véhicule</div>",
+    "<div class='row'><span><span class='lbl'>Marque : </span><span class='val'>"+vehicle.marque+"</span></span><span><span class='lbl'>Modèle : </span><span class='val'>"+vehicle.modele+"</span></span><span><span class='lbl'>Immat : </span><span class='val'>"+vehicle.immat+"</span></span></div>",
+    "<div class='row'><span><span class='lbl'>Couleur : </span><span class='val'>"+vehicle.couleur+"</span></span><span><span class='lbl'>Km départ : </span><span class='val'>"+(contrat.kmDepart||vehicle.km)+" km</span></span></div>",
     kmRow+fuelBar+etatHtml+photosHtml+"</div>",
-    "<div style='margin-bottom:8px'><div class='st'>2. Dur\u00e9e &amp; Tarif</div>",
-    "<div class='row'><span><span class='lbl'>D\u00e9but : </span><span class='val'>"+contrat.dateDebut+" \u00e0 "+contrat.heureDebut+"</span></span><span><span class='lbl'>Fin : </span><span class='val'>"+contrat.dateFin+" \u00e0 "+contrat.heureFin+"</span></span><span><span class='lbl'>Dur\u00e9e : </span><span class='val'>"+nb+" jour(s)</span></span></div>",
-    tarifHtml+"<p style='margin-top:4px;font-size:9.5px;color:#555'>Tout retard = 20 \u20ac/heure.</p></div>",
+    "<div style='margin-bottom:8px'><div class='st'>2. Durée &amp; Tarif</div>",
+    "<div class='row'><span><span class='lbl'>Début : </span><span class='val'>"+contrat.dateDebut+" à "+contrat.heureDebut+"</span></span><span><span class='lbl'>Fin : </span><span class='val'>"+contrat.dateFin+" à "+contrat.heureFin+"</span></span><span><span class='lbl'>Durée : </span><span class='val'>"+nb+" jour(s)</span></span></div>",
+    tarifHtml+"<p style='margin-top:4px;font-size:9.5px;color:#555'>Tout retard = 20 €/heure.</p></div>",
     "<div style='margin-bottom:8px'><div class='st'>3. Paiement</div>",
-    "<div class='tot'><span>Total location</span><strong>"+total+" \u20ac</strong></div>",
-    "<div>["+(pm==="especes"?"X":" ")+"] Esp\u00e8ces &nbsp; ["+(pm==="virement"?"X":" ")+"] Virement &nbsp; ["+(pm==="autre"?"X":" ")+"] Autre</div></div>",
-    "<div style='margin-bottom:8px'><div class='st'>4. Caution \u2014 "+vehicle.caution+" \u20ac ("+cautionMode+")</div>",
-    "<p>Une caution de <strong>"+vehicle.caution+" \u20ac</strong> est vers\u00e9e avant remise des cl\u00e9s. <strong>Mode : "+cautionMode+"</strong></p>",
-    "<table class='ft'><tr style='background:#e8edf5;font-weight:bold'><td colspan='2'>Frais d\u00e9ductibles sur la caution</td></tr>"+fraisRows+"</table></div>",
-    "<div style='margin-bottom:8px'><div class='st'>5. Assurance et Responsabilit\u00e9</div>",
-    "<p>Le v\u00e9hicule est assur\u00e9 pour le pr\u00eat \u00e0 titre gratuit. Le Loueur d\u00e9cline toute responsabilit\u00e9.</p></div>",
-    "<div style='margin-bottom:8px'><div class='st'>Clauses Particuli\u00e8res</div>"+clausesHtml+"</div>",
-    "<hr><p style='font-size:10px;margin-bottom:12px'>Fait \u00e0 "+profil.ville+", le "+new Date().toLocaleDateString("fr-FR")+"</p>",
+    "<div class='tot'><span>Total location</span><strong>"+total+" €</strong></div>",
+    "<div>["+(pm==="especes"?"X":" ")+"] Espèces &nbsp; ["+(pm==="virement"?"X":" ")+"] Virement &nbsp; ["+(pm==="autre"?"X":" ")+"] Autre</div></div>",
+    "<div style='margin-bottom:8px'><div class='st'>4. Caution — "+vehicle.caution+" € ("+cautionMode+")</div>",
+    "<p>Une caution de <strong>"+vehicle.caution+" €</strong> est versée avant remise des clés. <strong>Mode : "+cautionMode+"</strong></p>",
+    "<table class='ft'><tr style='background:#e8edf5;font-weight:bold'><td colspan='2'>Frais déductibles sur la caution</td></tr>"+fraisRows+"</table></div>",
+    "<div style='margin-bottom:8px'><div class='st'>5. Assurance et Responsabilité</div>",
+    "<p>Le véhicule est assuré pour le prêt à titre gratuit. Le Loueur décline toute responsabilité.</p></div>",
+    "<div style='margin-bottom:8px'><div class='st'>Clauses Particulières</div>"+clausesHtml+"</div>",
+    "<hr><p style='font-size:10px;margin-bottom:12px'>Fait à "+profil.ville+", le "+new Date().toLocaleDateString("fr-FR")+"</p>",
     "<div class='sig-area'><div class='sig-box'><p>Signature du Loueur ("+profil.nom+")</p>"+sL+"</div>",
     "<div class='sig-box'><p>Signature du Locataire ("+contrat.locNom+")</p>"+sLoc+"</div></div>",
     "</div></body></html>"
-  ];
-  return parts.join("");
+  ].join("");
 }
 
+// ─────────────────────────────────────────────
+// BUILD PV RETOUR HTML
+// ─────────────────────────────────────────────
+function buildPVRetourHTML(contrat,vehicle,retourData,sigLoueur,sigLocataire,profil){
+  const d=retourData;
+  const caution=vehicle?.caution||0;
+  const total=(contrat.totalCalc||0)+(d.surplusKm||0)+(d.montantRetenu||0);
+  const fBar=pct=>"<div style='background:#e5e7eb;border-radius:99px;height:8px;width:120px;display:inline-block;vertical-align:middle;overflow:hidden;margin-left:6px'><div style='width:"+pct+"%;background:"+fuelColor(pct)+";height:100%'></div></div>";
+  const carroNOK=CARRO_ELEMENTS.filter(e=>d.carro&&d.carro[e.id]===false);
+  const carroRows=carroNOK.length>0
+    ?carroNOK.map(e=>
+        "<tr><td>"+e.label+"</td><td style='color:#dc2626;font-weight:700'>✗ Dégât</td>"
+        +"<td>"+(d.carroNotes&&d.carroNotes[e.id]?d.carroNotes[e.id]:"-")+"</td>"
+        +(d.carroPhotos&&d.carroPhotos[e.id]
+          ?"<td><img src='"+d.carroPhotos[e.id]+"' style='width:80px;height:60px;object-fit:cover;border-radius:4px'></td>"
+          :"<td>-</td>")
+        +"</tr>").join("")
+    :"<tr><td colspan='4' style='color:#16a34a;font-weight:600;text-align:center'>✅ Aucun dégât constaté</td></tr>";
+  const checksRows=RETOUR_CHECKS.map(c=>{
+    const val=d.checks&&d.checks[c.id];
+    return"<tr><td>"+c.icon+" "+c.label+"</td>"
+      +"<td style='font-weight:700;color:"+(val===true?"#16a34a":val===false?"#dc2626":"#6b7280")+"'>"
+      +(val===true?"✅ Oui":val===false?"❌ Non":"—")+"</td>"
+      +"<td>"+(d.notes&&d.notes[c.id]?d.notes[c.id]:"-")+"</td></tr>";
+  }).join("");
+  const sL=sigLoueur
+    ?"<img src='"+sigLoueur+"' style='max-width:160px;height:60px;display:block;margin:0 auto;border-bottom:1px solid #333'>"
+    :"<div style='border-bottom:1px solid #333;height:60px;width:160px;margin:0 auto'></div>";
+  const sLoc=sigLocataire
+    ?"<img src='"+sigLocataire+"' style='max-width:160px;height:60px;display:block;margin:0 auto;border-bottom:1px solid #333'>"
+    :"<div style='border-bottom:1px solid #333;height:60px;width:160px;margin:0 auto'></div>";
+  const kmParcourus=d.kmRetour?parseFloat(d.kmRetour)-parseFloat(contrat.kmDepart||vehicle?.km||0):null;
+
+  return`<!DOCTYPE html><html><head><meta charset='utf-8'><title>PV Retour — ${contrat.locNom}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:11px;color:#111}
+.hd{background:#0a1940;color:#fff;padding:14px 20px;text-align:center}
+.hd h1{font-size:20px;letter-spacing:2px;margin-bottom:4px}.hd p{font-size:9px;opacity:.8;margin:2px 0}
+.bd{padding:14px 20px}
+.title{text-align:center;font-size:15px;font-weight:bold;margin:10px 0 8px;text-transform:uppercase;border-bottom:3px solid #dc2626;padding-bottom:6px;color:#0a1940}
+.st{font-size:11px;font-weight:bold;background:#e8edf5;padding:4px 8px;margin-bottom:6px;border-left:3px solid #0a1940}
+.lbl{color:#555;font-size:10px}.val{font-weight:bold}
+hr{border:none;border-top:1px solid #ccc;margin:8px 0}
+table{width:100%;border-collapse:collapse;font-size:10px;margin-top:5px}
+table td,table th{border:1px solid #ddd;padding:4px 7px}
+table th{background:#e8edf5;font-weight:700}table tr:nth-child(even){background:#f9f9f9}
+.bilan{background:#0a1940;color:#fff;padding:10px 14px;border-radius:8px;margin:10px 0}
+.br{display:flex;justify-content:space-between;font-size:12px;padding:3px 0}
+.sig-area{display:flex;justify-content:space-between;margin-top:16px;gap:30px}
+.sig-box{flex:1;text-align:center}.sig-box p{font-size:10px;font-weight:bold;margin-bottom:6px}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+<div class='hd'><h1>${profil.entreprise||"MAN'S LOCATION"}</h1><p>LOCATION DE CITADINES EN IDF</p>
+<p>SIRET : ${profil.siret||profil.siren} | Tél : ${profil.tel} | ${profil.adresse}</p></div>
+<div class='bd'>
+<div class='title'>📋 Procès-Verbal de Retour de Véhicule</div>
+<div style='display:flex;gap:14px;margin-bottom:10px'>
+  <div style='flex:1;background:#f8fafc;border-radius:8px;padding:10px;border:1px solid #e5e7eb'>
+    <div class='st'>Loueur</div>
+    <div><span class='lbl'>Nom : </span><span class='val'>${profil.nom}</span></div>
+    <div><span class='lbl'>Tél : </span><span class='val'>${profil.tel}</span></div>
+  </div>
+  <div style='flex:1;background:#f8fafc;border-radius:8px;padding:10px;border:1px solid #e5e7eb'>
+    <div class='st'>Locataire</div>
+    <div><span class='lbl'>Nom : </span><span class='val'>${contrat.locNom.toUpperCase()}</span></div>
+    <div><span class='lbl'>Tél : </span><span class='val'>${contrat.locTel}</span></div>
+  </div>
+</div>
+<div style='margin-bottom:10px'>
+  <div class='st'>1. Véhicule & Dates</div>
+  <div><span class='lbl'>Véhicule : </span><span class='val'>${vehicle?.marque||""} ${vehicle?.modele||""} — ${vehicle?.immat||""} (${vehicle?.couleur||""})</span></div>
+  <div style='display:flex;gap:20px;margin-top:4px;flex-wrap:wrap'>
+    <div><span class='lbl'>Départ : </span><span class='val'>${contrat.dateDebut} à ${contrat.heureDebut}</span></div>
+    <div><span class='lbl'>Retour le : </span><span class='val'>${new Date(d.date||Date.now()).toLocaleDateString("fr-FR")}</span></div>
+    <div><span class='lbl'>Durée : </span><span class='val'>${contrat.nbJours} jour(s)</span></div>
+  </div>
+</div>
+<div style='margin-bottom:10px'>
+  <div class='st'>2. Kilométrage & Carburant</div>
+  <table>
+    <tr><th>Indicateur</th><th>Départ</th><th>Retour</th><th>Écart</th></tr>
+    <tr>
+      <td>Kilométrage</td>
+      <td>${contrat.kmDepart||vehicle?.km||"—"} km</td>
+      <td><b>${d.kmRetour||"—"} km</b></td>
+      <td style='font-weight:700;color:${(d.kmSup||0)>0?"#d97706":"#16a34a"}'>${kmParcourus!==null?kmParcourus+" km":"—"}</td>
+    </tr>
+    <tr>
+      <td>Carburant</td>
+      <td>${contrat.carburantDepart||100}% ${fBar(contrat.carburantDepart||100)}</td>
+      <td>${d.carburantRetour||0}% ${fBar(d.carburantRetour||0)}</td>
+      <td style='font-weight:700;color:${(d.carburantRetour||0)<(contrat.carburantDepart||100)?"#dc2626":"#16a34a"}'>${(d.carburantRetour||0)<(contrat.carburantDepart||100)?"⚠️ Manquant":"✅ OK"}</td>
+    </tr>
+  </table>
+  ${(d.kmSup||0)>0?"<div style='background:#fef3c7;border-radius:6px;padding:6px 10px;margin-top:6px;font-size:10px;color:#92400e'>⚠️ Km sup : "+d.kmSup+" km × "+(vehicle?.prixKmSup||0)+" €/km = <b>"+(d.surplusKm||0).toFixed(2)+" €</b></div>":""}
+</div>
+<div style='margin-bottom:10px'>
+  <div class='st'>3. État général</div>
+  <table><tr><th>Vérification</th><th>État</th><th>Observation</th></tr>${checksRows}</table>
+</div>
+<div style='margin-bottom:10px'>
+  <div class='st'>4. Carrosserie (${carroNOK.length} dégât${carroNOK.length>1?"s":""})</div>
+  <table><tr><th>Élément</th><th>État</th><th>Description</th><th>Photo</th></tr>${carroRows}</table>
+</div>
+<div style='margin-bottom:10px'>
+  <div class='st'>5. Caution — ${caution} €</div>
+  ${d.cautionRestituee
+    ?"<div style='color:#16a34a;font-weight:700;padding:6px 0'>✅ Restituée intégralement — "+caution+" €</div>"
+    :"<div style='color:#dc2626;font-weight:700;padding:4px 0'>❌ Retenue partielle — "+d.montantRetenu+" € retenus"+(d.raisonRetenue?" ("+d.raisonRetenue+")")+"</div>"
+     +"<div style='margin-top:4px'><span class='lbl'>Montant remboursé : </span><span class='val' style='color:#16a34a'>"+Math.max(0,caution-(d.montantRetenu||0))+" €</span></div>"}
+</div>
+<div class='bilan'>
+  <div style='font-weight:800;font-size:13px;margin-bottom:8px'>📊 Bilan financier du retour</div>
+  <div class='br'><span style='opacity:.7'>Location (${contrat.nbJours}j)</span><span style='font-weight:700'>${contrat.totalCalc||0} €</span></div>
+  ${(d.surplusKm||0)>0?"<div class='br'><span style='opacity:.7'>Km supplémentaires</span><span style='color:#fbbf24;font-weight:700'>+"+((d.surplusKm||0).toFixed(2))+" €</span></div>":""}
+  ${(d.montantRetenu||0)>0?"<div class='br'><span style='opacity:.7'>Retenue caution</span><span style='color:#fbbf24;font-weight:700'>+"+d.montantRetenu+" €</span></div>":""}
+  <div class='br' style='border-top:1px solid rgba(255,255,255,.2);margin-top:4px;padding-top:6px'>
+    <span style='font-weight:800'>Total encaissé</span>
+    <span style='font-size:16px;font-weight:900;color:#4ade80'>${total.toFixed(2)} €</span>
+  </div>
+</div>
+<hr>
+<p style='font-size:10px;margin-bottom:14px'>Fait à ${profil.ville}, le ${new Date().toLocaleDateString("fr-FR")} — Les deux parties reconnaissent l'exactitude du présent procès-verbal de retour.</p>
+<div class='sig-area'>
+  <div class='sig-box'><p>Signature du Loueur (${profil.nom})</p>${sL}</div>
+  <div class='sig-box'><p>Signature du Locataire (${contrat.locNom})</p>${sLoc}</div>
+</div>
+</div></body></html>`;
+}
+
+// ─────────────────────────────────────────────
+// COMPOSANTS
+// ─────────────────────────────────────────────
 function FuelGauge({value,onChange,readOnly}){
   const pct=parseInt(value)||0;
   const col=fuelColor(pct);
@@ -259,14 +410,8 @@ function PhotosDepart({photos,setPhotos}){
     r.onload=ev=>setPhotos(p=>[...p,{id:Date.now(),label,data:ev.target.result,name:file.name}]);
     r.readAsDataURL(file);
   }
-  function pickFile(label){
-    const i=document.createElement("input");i.type="file";i.accept="image/*";
-    i.onchange=e=>addPhoto(label,e.target.files[0]);i.click();
-  }
-  function pickCamera(label){
-    const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";
-    i.onchange=e=>addPhoto(label,e.target.files[0]);i.click();
-  }
+  function pickFile(label){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>addPhoto(label,e.target.files[0]);i.click();}
+  function pickCamera(label){const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>addPhoto(label,e.target.files[0]);i.click();}
   function removePhoto(id){setPhotos(p=>p.filter(x=>x.id!==id));}
   return(
     <div>
@@ -274,13 +419,13 @@ function PhotosDepart({photos,setPhotos}){
         {labels.map(lb=>(
           <div key={lb} style={{display:"flex",flexDirection:"column",gap:4}}>
             <div style={{fontSize:10,fontWeight:600,color:"#6b7280",textAlign:"center"}}>{lb}</div>
-            <button onClick={()=>pickFile(lb)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:4,background:"#1e3a8a",color:"white",borderRadius:8,padding:"6px 0",fontSize:10,fontWeight:700,cursor:"pointer",border:"none"}}>📁</button>
+            <button onClick={()=>pickFile(lb)} style={{background:"#1e3a8a",color:"white",borderRadius:8,padding:"6px 0",fontSize:10,fontWeight:700,cursor:"pointer",border:"none"}}>📁</button>
             <button onClick={()=>pickCamera(lb)} style={{background:"#7c3aed",color:"white",border:"none",borderRadius:8,padding:"5px 0",fontSize:10,fontWeight:700,cursor:"pointer"}}>📷</button>
           </div>
         ))}
       </div>
-      {photos.length>0?(
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))",gap:8}}>
+      {photos.length>0
+        ?<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(100px,1fr))",gap:8}}>
           {photos.map(p=>(
             <div key={p.id} style={{position:"relative",borderRadius:9,overflow:"hidden",border:"2px solid #e5e7eb"}}>
               <img src={p.data} alt={p.label} style={{width:"100%",height:80,objectFit:"cover",display:"block"}}/>
@@ -289,16 +434,63 @@ function PhotosDepart({photos,setPhotos}){
             </div>
           ))}
         </div>
-      ):(
-        <div style={{textAlign:"center",color:"#9ca3af",fontSize:12,padding:12,background:"#f9fafb",borderRadius:8,border:"1px dashed #d1d5db"}}>
-          Aucune photo — utilisez les boutons ci-dessus
-        </div>
-      )}
+        :<div style={{textAlign:"center",color:"#9ca3af",fontSize:12,padding:12,background:"#f9fafb",borderRadius:8,border:"1px dashed #d1d5db"}}>Aucune photo</div>
+      }
     </div>
   );
 }
 
-function RetourModal({contrat,vehicle,onClose,onSave}){
+// ─── NOUVEAU : Documents locataire ───────────────────────────────────────────
+function DocsLocataire({docs,setDocs}){
+  function pickImg(key,capture=false){
+    const i=document.createElement("input");
+    i.type="file";i.accept="image/*";
+    if(capture)i.capture="environment";
+    i.onchange=e=>{
+      const f=e.target.files[0];if(!f)return;
+      const r=new FileReader();
+      r.onload=ev=>setDocs(d=>({...d,[key]:ev.target.result}));
+      r.readAsDataURL(f);
+    };
+    i.click();
+  }
+  function removeImg(key){setDocs(d=>{const n={...d};delete n[key];return n;});}
+
+  const ITEMS=[
+    {key:"cniRecto",  label:"CNI / Passeport — Recto",    color:"#2563eb",icon:"🪪"},
+    {key:"cniVerso",  label:"CNI / Passeport — Verso",    color:"#2563eb",icon:"🪪"},
+    {key:"justifDom", label:"Justificatif de domicile",   color:"#7c3aed",icon:"🏠"},
+    {key:"photoAr",   label:"Photo arrière du véhicule",  color:"#16a34a",icon:"🚗"},
+  ];
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {ITEMS.map(({key,label,color,icon})=>(
+        <div key={key} style={{borderRadius:10,border:`2px solid ${docs[key]?color:"#e5e7eb"}`,background:docs[key]?"#f8fafc":"white",overflow:"hidden"}}>
+          <div style={{padding:"8px 12px",display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:18}}>{icon}</span>
+            <span style={{flex:1,fontWeight:600,fontSize:12,color:docs[key]?color:"#374151"}}>{label}</span>
+            {docs[key]
+              ?<button onClick={()=>removeImg(key)} style={{padding:"3px 8px",background:"#fef2f2",color:"#ef4444",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}>✕ Retirer</button>
+              :<div style={{display:"flex",gap:6}}>
+                <button onClick={()=>pickImg(key,false)} style={{padding:"5px 10px",background:"#1e3a8a",color:"white",border:"none",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer"}}>📁 Galerie</button>
+                <button onClick={()=>pickImg(key,true)}  style={{padding:"5px 10px",background:"#7c3aed",color:"white",border:"none",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer"}}>📷 Photo</button>
+              </div>
+            }
+          </div>
+          {docs[key]&&(
+            <div style={{padding:"0 12px 10px"}}>
+              <img src={docs[key]} alt={label} style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:8,border:`2px solid ${color}`}}/>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── RETOUR MODAL (avec onglet Signatures + PV PDF) ──────────────────────────
+function RetourModal({contrat,vehicle,profil,onClose,onSave}){
   const initC={};RETOUR_CHECKS.forEach(c=>{initC[c.id]=null;});
   const initCar={};CARRO_ELEMENTS.forEach(e=>{initCar[e.id]=null;});
   const[checks,setChecks]=useState(initC);
@@ -313,6 +505,9 @@ function RetourModal({contrat,vehicle,onClose,onSave}){
   const[kmRetour,setKmRetour]=useState("");
   const[carburantRetour,setCarburantRetour]=useState(contrat.carburantDepart||100);
   const[tab,setTab]=useState("km");
+  const[sigRetourLoueur,setSigRetourLoueur]=useState(null);
+  const[sigRetourLocataire,setSigRetourLocataire]=useState(null);
+
   const caution=vehicle?.caution||0;
   const retenu=parseFloat(montantRetenu)||0;
   const kmDep=parseFloat(contrat.kmDepart||vehicle?.km||0);
@@ -332,36 +527,54 @@ function RetourModal({contrat,vehicle,onClose,onSave}){
     r.onload=ev=>setter(p=>({...p,[id]:ev.target.result}));
     r.readAsDataURL(file);
   }
-  function pickFile(id,setter){
-    const i=document.createElement("input");i.type="file";i.accept="image/*";
-    i.onchange=e=>handlePhoto(id,e.target.files[0],setter);i.click();
-  }
-  function pickCamera(id,setter){
-    const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";
-    i.onchange=e=>handlePhoto(id,e.target.files[0],setter);i.click();
-  }
+  function pickFile(id,setter){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>handlePhoto(id,e.target.files[0],setter);i.click();}
+  function pickCamera(id,setter){const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>handlePhoto(id,e.target.files[0],setter);i.click();}
 
   function save(){
     if(cautionRestituee===null){alert("Précisez si la caution est restituée.");return;}
-    onSave({checks,carro,carroPhotos,carroNotes,photos,notes,cautionRestituee,montantRetenu:retenu,raisonRetenue,rembourse:cautionRestituee?caution:Math.max(0,caution-retenu),kmRetour,kmSup,surplusKm,carburantRetour,date:new Date().toISOString()});
+    const retourData={
+      checks,carro,carroPhotos,carroNotes,photos,notes,
+      cautionRestituee,montantRetenu:retenu,raisonRetenue,
+      rembourse:cautionRestituee?caution:Math.max(0,caution-retenu),
+      kmRetour,kmSup,surplusKm,carburantRetour,
+      date:new Date().toISOString(),
+      sigRetourLoueur,sigRetourLocataire
+    };
+    onSave(retourData);
+    // Génération automatique du PV PDF
+    const pvHtml=buildPVRetourHTML(contrat,vehicle,retourData,sigRetourLoueur,sigRetourLocataire,profil);
+    dlFile(pvHtml,`PV_Retour_${contrat.locNom.replace(/\s+/g,"_")}_${new Date().toLocaleDateString("fr-FR").replace(/\//g,"-")}.html`);
   }
 
-  const TABS=[["km","📏 Km"],["carro","🚗 Carrosserie"],["checks","✅ État"],["caution","🔒 Caution"]];
+  const TABS=[
+    ["km","📏 Km"],
+    ["carro","🚗 Carrosserie"],
+    ["checks","✅ État"],
+    ["caution","🔒 Caution"],
+    ["sig","✍️ Signatures"],
+  ];
 
   return(
     <div onClick={e=>{if(e.target===e.currentTarget)onClose();}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.65)",display:"flex",alignItems:"center",justifyContent:"center",padding:12}}>
       <div style={{background:"#f8fafc",borderRadius:18,width:"100%",maxWidth:640,maxHeight:"93vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
         <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",padding:"13px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div><div style={{color:"white",fontWeight:800,fontSize:15}}>🔄 Retour — {contrat.locNom}</div>
-          <div style={{color:"rgba(255,255,255,.65)",fontSize:11}}>{vehicle?.marque} {vehicle?.modele} · {vehicle?.immat}</div></div>
+          <div>
+            <div style={{color:"white",fontWeight:800,fontSize:15}}>🔄 Retour — {contrat.locNom}</div>
+            <div style={{color:"rgba(255,255,255,.65)",fontSize:11}}>{vehicle?.marque} {vehicle?.modele} · {vehicle?.immat}</div>
+          </div>
           <button onClick={onClose} style={{fontSize:22,background:"none",border:"none",cursor:"pointer",color:"white"}}>×</button>
         </div>
-        <div style={{display:"flex",background:"white",borderBottom:"1px solid #e5e7eb"}}>
+
+        {/* Tabs */}
+        <div style={{display:"flex",background:"white",borderBottom:"1px solid #e5e7eb",overflowX:"auto"}}>
           {TABS.map(([id,lb])=>(
-            <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"9px 4px",fontSize:11,fontWeight:tab===id?700:400,color:tab===id?"#2563eb":"#6b7280",background:"none",border:"none",borderBottom:tab===id?"2px solid #2563eb":"2px solid transparent",cursor:"pointer"}}>{lb}</button>
+            <button key={id} onClick={()=>setTab(id)} style={{flexShrink:0,padding:"9px 10px",fontSize:10,fontWeight:tab===id?700:400,color:tab===id?"#2563eb":"#6b7280",background:"none",border:"none",borderBottom:tab===id?"2px solid #2563eb":"2px solid transparent",cursor:"pointer"}}>{lb}</button>
           ))}
         </div>
+
         <div style={{flex:1,overflowY:"auto",padding:14}}>
+
+          {/* ── TAB KM ── */}
           {tab==="km"&&(
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
               <div style={{background:"white",borderRadius:12,padding:14,border:"1px solid #e5e7eb"}}>
@@ -386,6 +599,8 @@ function RetourModal({contrat,vehicle,onClose,onSave}){
               {surplusKm>0&&<div style={{background:"#fef3c7",borderRadius:10,padding:12,border:"1px solid #fde68a",fontSize:12,color:"#92400e",fontWeight:600}}>⚠️ {kmSup} km × {prixKmSup} €/km = <strong>{surplusKm.toFixed(2)} €</strong> à facturer</div>}
             </div>
           )}
+
+          {/* ── TAB CARRO ── */}
           {tab==="carro"&&(
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
@@ -411,7 +626,7 @@ function RetourModal({contrat,vehicle,onClose,onSave}){
                           <div style={{padding:"0 10px 10px",borderTop:"1px solid #fecaca"}}>
                             <input style={{...IS,marginTop:8,marginBottom:6,background:"white"}} placeholder="Décrire le dégât..." value={carroNotes[el.id]||""} onChange={e=>setCarroNotes(n=>({...n,[el.id]:e.target.value}))}/>
                             <div style={{display:"flex",gap:6}}>
-                              <button onClick={()=>pickFile(el.id,setCarroPhotos)} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"#1e3a8a",color:"white",borderRadius:7,padding:"6px 0",fontSize:11,fontWeight:700,cursor:"pointer",border:"none"}}>📁 Photo</button>
+                              <button onClick={()=>pickFile(el.id,setCarroPhotos)} style={{flex:1,background:"#1e3a8a",color:"white",borderRadius:7,padding:"6px 0",fontSize:11,fontWeight:700,cursor:"pointer",border:"none"}}>📁 Photo</button>
                               <button onClick={()=>pickCamera(el.id,setCarroPhotos)} style={{flex:1,background:"#7c3aed",color:"white",border:"none",borderRadius:7,padding:"6px 0",fontSize:11,fontWeight:700,cursor:"pointer"}}>📷 Caméra</button>
                             </div>
                             {carroPhotos[el.id]&&<div style={{marginTop:7,position:"relative",display:"inline-block"}}><img src={carroPhotos[el.id]} alt="" style={{maxWidth:"100%",maxHeight:120,borderRadius:7,border:"2px solid #fca5a5"}}/><button onClick={()=>setCarroPhotos(p=>{const n={...p};delete n[el.id];return n;})} style={{position:"absolute",top:3,right:3,background:"#ef4444",color:"white",border:"none",borderRadius:"50%",width:20,height:20,fontSize:11,cursor:"pointer",fontWeight:700}}>×</button></div>}
@@ -424,6 +639,8 @@ function RetourModal({contrat,vehicle,onClose,onSave}){
               ))}
             </div>
           )}
+
+          {/* ── TAB CHECKS ── */}
           {tab==="checks"&&(
             <div>
               <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>✅ Vérifications générales</div>
@@ -443,7 +660,7 @@ function RetourModal({contrat,vehicle,onClose,onSave}){
                       <div style={{padding:"0 12px 12px",borderTop:"1px solid #fecaca"}}>
                         <input style={{...IS,marginTop:8,marginBottom:6,background:"white"}} placeholder="Décrire..." value={notes[chk.id]||""} onChange={e=>setNotes(n=>({...n,[chk.id]:e.target.value}))}/>
                         <div style={{display:"flex",gap:7}}>
-                          <button onClick={()=>pickFile(chk.id,setPhotos)} style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:5,background:"#1e3a8a",color:"white",borderRadius:8,padding:"7px 0",fontSize:11,fontWeight:700,cursor:"pointer",border:"none"}}>📁 Galerie</button>
+                          <button onClick={()=>pickFile(chk.id,setPhotos)} style={{flex:1,background:"#1e3a8a",color:"white",borderRadius:8,padding:"7px 0",fontSize:11,fontWeight:700,cursor:"pointer",border:"none"}}>📁 Galerie</button>
                           <button onClick={()=>pickCamera(chk.id,setPhotos)} style={{flex:1,background:"#7c3aed",color:"white",border:"none",borderRadius:8,padding:"7px 0",fontSize:11,fontWeight:700,cursor:"pointer"}}>📷 Photo</button>
                         </div>
                         {photos[chk.id]&&<div style={{marginTop:8,position:"relative",display:"inline-block"}}><img src={photos[chk.id]} alt="" style={{maxWidth:"100%",maxHeight:140,borderRadius:8,border:"2px solid #fca5a5"}}/><button onClick={()=>setPhotos(p=>{const n={...p};delete n[chk.id];return n;})} style={{position:"absolute",top:4,right:4,background:"#ef4444",color:"white",border:"none",borderRadius:"50%",width:22,height:22,fontSize:12,cursor:"pointer",fontWeight:700}}>×</button></div>}
@@ -454,6 +671,8 @@ function RetourModal({contrat,vehicle,onClose,onSave}){
               })}
             </div>
           )}
+
+          {/* ── TAB CAUTION ── */}
           {tab==="caution"&&(
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
               {surplusKm>0&&<div style={{background:"#fef3c7",borderRadius:10,padding:10,border:"1px solid #fde68a",fontSize:12,color:"#92400e",fontWeight:600}}>⚠️ Km en trop : +{surplusKm.toFixed(2)} € à facturer</div>}
@@ -488,9 +707,37 @@ function RetourModal({contrat,vehicle,onClose,onSave}){
               )}
             </div>
           )}
+
+          {/* ── TAB SIGNATURES ── */}
+          {tab==="sig"&&(
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              <div style={{background:"#eff6ff",borderRadius:12,padding:12,border:"1px solid #bfdbfe",textAlign:"center"}}>
+                <div style={{fontSize:13,fontWeight:700,color:"#1e3a8a",marginBottom:4}}>✍️ Signatures du procès-verbal</div>
+                <div style={{fontSize:11,color:"#6b7280"}}>Les deux parties signent pour valider le retour.</div>
+                <div style={{fontSize:10,color:"#9ca3af",marginTop:4}}>Le PV PDF sera généré automatiquement à la validation.</div>
+              </div>
+              <div style={{background:"white",borderRadius:12,padding:14,border:"1px solid #e5e7eb"}}>
+                <SigPad label="✍️ Signature du Loueur" onSave={setSigRetourLoueur}/>
+              </div>
+              <div style={{background:"white",borderRadius:12,padding:14,border:"1px solid #e5e7eb"}}>
+                <SigPad label="✍️ Signature du Locataire" onSave={setSigRetourLocataire}/>
+              </div>
+              {sigRetourLoueur&&sigRetourLocataire&&(
+                <div style={{background:"#f0fdf4",borderRadius:10,padding:10,border:"1px solid #bbf7d0",textAlign:"center",fontSize:12,color:"#16a34a",fontWeight:700}}>
+                  ✅ Les deux signatures sont enregistrées — prêt à valider !
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
+
+        {/* Footer */}
         <div style={{padding:"12px 16px",borderTop:"1px solid #e5e7eb",display:"flex",gap:8,background:"white"}}>
-          <button onClick={save} disabled={cautionRestituee===null} style={{flex:1,background:cautionRestituee!==null?"#16a34a":"#9ca3af",color:"white",border:"none",borderRadius:10,padding:12,fontSize:13,fontWeight:700,cursor:cautionRestituee!==null?"pointer":"not-allowed"}}>✅ Valider le retour</button>
+          <button onClick={save} disabled={cautionRestituee===null}
+            style={{flex:1,background:cautionRestituee!==null?"#16a34a":"#9ca3af",color:"white",border:"none",borderRadius:10,padding:12,fontSize:13,fontWeight:700,cursor:cautionRestituee!==null?"pointer":"not-allowed"}}>
+            ✅ Valider le retour {sigRetourLoueur&&sigRetourLocataire?"+ 📄 PV PDF":""}
+          </button>
           <button onClick={onClose} style={{padding:"12px 16px",background:"#e5e7eb",border:"none",borderRadius:10,fontSize:13,cursor:"pointer"}}>Annuler</button>
         </div>
       </div>
@@ -529,7 +776,7 @@ function ContratModal({vehicle,onClose,onSave}){
               <div style={{display:"flex",gap:8}}>
                 <input style={{...IS,flex:1}} placeholder="Libellé" value={nf.label} onChange={e=>setNf(x=>({...x,label:e.target.value}))}/>
                 <input type="number" style={{...IS,width:80}} placeholder="Montant" value={nf.montant} onChange={e=>setNf(x=>({...x,montant:e.target.value}))}/>
-                <button onClick={()=>{if(!nf.label||!nf.montant)return;setFrais(x=>[...x,{id:Date.now(),label:nf.label,montant:parseFloat(nf.montant)}]);setNf({label:"",montant:""}); }} style={{background:"#1d4ed8",color:"white",border:"none",borderRadius:7,padding:"6px 11px",fontWeight:700,cursor:"pointer"}}>+</button>
+                <button onClick={()=>{if(!nf.label||!nf.montant)return;setFrais(x=>[...x,{id:Date.now(),label:nf.label,montant:parseFloat(nf.montant)}]);setNf({label:"",montant:""});}} style={{background:"#1d4ed8",color:"white",border:"none",borderRadius:7,padding:"6px 11px",fontWeight:700,cursor:"pointer"}}>+</button>
               </div>
             </div>
           </div>}
@@ -545,7 +792,7 @@ function ContratModal({vehicle,onClose,onSave}){
             <div style={{background:"#eff6ff",borderRadius:10,padding:12,border:"1px solid #bfdbfe"}}>
               <input style={{...IS,marginBottom:6}} placeholder="Titre" value={nc.titre} onChange={e=>setNc(x=>({...x,titre:e.target.value}))}/>
               <textarea style={{...IS,resize:"vertical",minHeight:50,fontFamily:"inherit"}} placeholder="Texte..." value={nc.texte} onChange={e=>setNc(x=>({...x,texte:e.target.value}))}/>
-              <button onClick={()=>{if(!nc.titre||!nc.texte)return;setClauses(x=>[...x,{id:Date.now(),titre:nc.titre,texte:nc.texte}]);setNc({titre:"",texte:""});}} style={{marginTop:8,background:"#1d4ed8",color:"white",border:"none",borderRadius:7,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
+              <button onClick={()=>{if(!nc.titre||!nc.texte)return;setClauses(x=>[...x,{id:Date.now(),titre:nc.titre,texte:nc.texte}]);setNc({titre:"",texte:""}); }} style={{marginTop:8,background:"#1d4ed8",color:"white",border:"none",borderRadius:7,padding:"6px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
             </div>
           </div>}
         </div>
@@ -582,6 +829,9 @@ function calcTarifAuto(vehicle,nbJours,heuresLoc){
   return{prix:(vehicle.tarif||0)*nbJours,label:`Standard — ${vehicle.tarif} €/j × ${nbJours}j`};
 }
 
+// ─────────────────────────────────────────────
+// APP CONTENT
+// ─────────────────────────────────────────────
 function AppContent(){
   const[user,setUser]=useState(null);
   const[vehicles,setVehicles]=useState(INIT_V);
@@ -593,6 +843,7 @@ function AppContent(){
   const FORM0={locNom:"",locAdresse:"",locTel:"",locEmail:"",locPermis:"",dateDebut:"",heureDebut:"10:00",dateFin:"",heureFin:"10:00",paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null};
   const[form,setForm]=useState(FORM0);
   const[photosDepart,setPhotosDepart]=useState([]);
+  const[docsLocataire,setDocsLocataire]=useState({});  // ← NOUVEAU
   const[touched,setTouched]=useState({});
   const[sigL,setSigL]=useState(null);
   const[sigLoc,setSigLoc]=useState(null);
@@ -618,43 +869,23 @@ function AppContent(){
   const activeUserIdRef=useRef(null);
 
   const resetUserData=useCallback(()=>{
-    setVehicles([]);
-    setContrats([]);
-    setDepenses([]);
-    setRetours({});
-    setProfil(INIT_PROFIL);
-    setProfilForm(INIT_PROFIL);
-    setSelId(null);
-    setDocsId(null);
-    setContratModalId(null);
-    setLastContrat(null);
-    setRetourContratId(null);
-    setTarifsVehicleId(null);
+    setVehicles([]);setContrats([]);setDepenses([]);setRetours({});
+    setProfil(INIT_PROFIL);setProfilForm(INIT_PROFIL);
+    setSelId(null);setDocsId(null);setContratModalId(null);
+    setLastContrat(null);setRetourContratId(null);setTarifsVehicleId(null);
     setDataLoaded(false);
   },[]);
 
   useEffect(()=>{
-    const handleAuthRedirect = async()=>{
+    const handleAuthRedirect=async()=>{
       try{
         const url=new URL(window.location.href);
         const code=url.searchParams.get("code");
-        if(code){
-          await supabase.auth.exchangeCodeForSession(code);
-          window.history.replaceState({},document.title,url.pathname);
-          return;
-        }
-        if(window.location.hash.includes("access_token=")||window.location.hash.includes("error=")){
-          window.history.replaceState({},document.title,url.pathname);
-        }
-      }catch(err){
-        console.error("Erreur de redirection auth:",err);
-      }
+        if(code){await supabase.auth.exchangeCodeForSession(code);window.history.replaceState({},document.title,url.pathname);return;}
+        if(window.location.hash.includes("access_token=")||window.location.hash.includes("error=")){window.history.replaceState({},document.title,url.pathname);}
+      }catch(err){console.error("Erreur de redirection auth:",err);}
     };
-
-    handleAuthRedirect().then(()=>{
-      supabase.auth.getSession().then(({data:{session}})=>setUser(session?.user||null));
-    });
-
+    handleAuthRedirect().then(()=>{supabase.auth.getSession().then(({data:{session}})=>setUser(session?.user||null));});
     const{data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>setUser(session?.user||null));
     return()=>subscription.unsubscribe();
   },[]);
@@ -669,87 +900,21 @@ function AppContent(){
         supabase.from('depenses').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('retours').select('*').eq('user_id',uid),
       ]);
-      if(activeUserIdRef.current!==uid) return;
-
+      if(activeUserIdRef.current!==uid)return;
       const p=profRes.data||{};
       setProfil({nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||''});
       setProfilForm({nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||''});
-
-      if(vehRes.data){
-        setVehicles(vehRes.data.map(v=>({
-          id:v.id,marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',
-          annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,
-          kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,
-          docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),
-          clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),
-          tarifsSpeciaux:v.tarifs_speciaux||[]
-        })));
-      }
-      if(conRes.data){
-        setContrats(conRes.data.map(c=>({
-          id:c.id,locNom:c.loc_nom||'',locAdresse:c.loc_adresse||'',locTel:c.loc_tel||'',
-          locEmail:c.loc_email||'',locPermis:c.loc_permis||'',
-          dateDebut:c.date_debut||'',heureDebut:c.heure_debut||'10:00',
-          dateFin:c.date_fin||'',heureFin:c.heure_fin||'10:00',
-          paiement:c.paiement||'especes',cautionMode:c.caution_mode||'especes',
-          kmDepart:c.km_depart||'',nbJours:c.nb_jours||1,heuresLoc:c.heures_loc||24,
-          carburantDepart:c.carburant_depart??100,
-          exterieurPropre:c.exterieur_propre,interieurPropre:c.interieur_propre,
-          vehicleId:c.vehicle_id,vehicleLabel:c.vehicle_label||'',immat:c.immat||'',
-          sigL:c.sig_l||null,sigLoc:c.sig_loc||null,
-          totalCalc:c.total_calc||0,tarifLabel:c.tarif_label||'',
-          photosDepart:c.photos_depart||[],
-          fraisSnap:c.frais_snap||[],clausesSnap:c.clauses_snap||[],
-          kmInclus:c.km_inclus,prixKmSup:c.prix_km_sup
-        })));
-      }
-      if(depRes.data){
-        setDepenses(depRes.data.map(d=>({
-          id:d.id,label:d.label||'',montant:d.montant||0,
-          categorie:d.categorie||'Carburant',date:d.date||'',vehicleId:d.vehicle_id||''
-        })));
-      }
-      if(retRes.data){
-        const rMap={};
-        retRes.data.forEach(r=>{rMap[r.contrat_id]={
-          id:r.id,
-          kmRetour:r.km_retour||'',
-          carburantRetour:r.carburant_retour??100,
-          montantRetenu:r.montant_retenu||0,
-          raisonRetenue:r.raison_retenue||'',
-          rembourse:r.rembourse||0,
-          kmSup:r.km_sup||0,
-          surplusKm:r.surplus_km||0,
-          cautionRestituee:r.caution_restituee,
-          checks:r.checks||{},
-          carro:r.carro||{},
-          carroPhotos:r.carro_photos||{},
-          carroNotes:r.carro_notes||{},
-          photos:r.photos||{},
-          notes:r.notes||{},
-          date:r.date||''
-        };});
-        setRetours(rMap);
-      }
-    }catch(e){
-      console.error('Error loading data from Supabase:',e);
-    }finally{
-      if(activeUserIdRef.current===uid){
-        setDataLoaded(true);
-      }
-    }
+      if(vehRes.data){setVehicles(vehRes.data.map(v=>({id:v.id,marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[]})));}
+      if(conRes.data){setContrats(conRes.data.map(c=>({id:c.id,locNom:c.loc_nom||'',locAdresse:c.loc_adresse||'',locTel:c.loc_tel||'',locEmail:c.loc_email||'',locPermis:c.loc_permis||'',dateDebut:c.date_debut||'',heureDebut:c.heure_debut||'10:00',dateFin:c.date_fin||'',heureFin:c.heure_fin||'10:00',paiement:c.paiement||'especes',cautionMode:c.caution_mode||'especes',kmDepart:c.km_depart||'',nbJours:c.nb_jours||1,heuresLoc:c.heures_loc||24,carburantDepart:c.carburant_depart??100,exterieurPropre:c.exterieur_propre,interieurPropre:c.interieur_propre,vehicleId:c.vehicle_id,vehicleLabel:c.vehicle_label||'',immat:c.immat||'',sigL:c.sig_l||null,sigLoc:c.sig_loc||null,totalCalc:c.total_calc||0,tarifLabel:c.tarif_label||'',photosDepart:c.photos_depart||[],docsLocataire:c.docs_locataire||{},fraisSnap:c.frais_snap||[],clausesSnap:c.clauses_snap||[],kmInclus:c.km_inclus,prixKmSup:c.prix_km_sup})));}
+      if(depRes.data){setDepenses(depRes.data.map(d=>({id:d.id,label:d.label||'',montant:d.montant||0,categorie:d.categorie||'Carburant',date:d.date||'',vehicleId:d.vehicle_id||''})));}
+      if(retRes.data){const rMap={};retRes.data.forEach(r=>{rMap[r.contrat_id]={id:r.id,kmRetour:r.km_retour||'',carburantRetour:r.carburant_retour??100,montantRetenu:r.montant_retenu||0,raisonRetenue:r.raison_retenue||'',rembourse:r.rembourse||0,kmSup:r.km_sup||0,surplusKm:r.surplus_km||0,cautionRestituee:r.caution_restituee,checks:r.checks||{},carro:r.carro||{},carroPhotos:r.carro_photos||{},carroNotes:r.carro_notes||{},photos:r.photos||{},notes:r.notes||{},date:r.date||''};});setRetours(rMap);}
+    }catch(e){console.error('Error loading data:',e);}
+    finally{if(activeUserIdRef.current===uid)setDataLoaded(true);}
   },[]);
 
-  useEffect(()=>{
-    activeUserIdRef.current=user?.id||null;
-    resetUserData();
-    if(user){
-      loadAllData(user.id);
-    }
-  },[user,loadAllData,resetUserData]);
+  useEffect(()=>{activeUserIdRef.current=user?.id||null;resetUserData();if(user)loadAllData(user.id);},[user,loadAllData,resetUserData]);
 
   const sel=selId?vehicles.find(v=>v.id===selId)||null:null;
-
   function toast_(msg,type="success"){setToast({msg,type});setTimeout(()=>setToast(null),3500);}
 
   function calcJ(d1,h1,d2,h2){
@@ -769,7 +934,6 @@ function AppContent(){
 
   const loues=contrats.filter(c=>new Date(c.dateFin)>=new Date()).map(c=>c.vehicleId);
   const statut=id=>loues.includes(id)?"loué":"disponible";
-
   const now=new Date(),mM=now.getMonth(),mA=now.getFullYear();
   const caT=contrats.reduce((s,c)=>s+(c.totalCalc||0),0);
   const caM=contrats.filter(c=>{const d=new Date(c.dateDebut);return d.getMonth()===mM&&d.getFullYear()===mA;}).reduce((s,c)=>s+(c.totalCalc||0),0);
@@ -777,12 +941,8 @@ function AppContent(){
   const totalRetenues=Object.values(retours).reduce((s,r)=>s+(r.montantRetenu||0),0);
   const totalSurplusKm=Object.values(retours).reduce((s,r)=>s+(r.surplusKm||0),0);
   const bT=caT+totalRetenues+totalSurplusKm-dT;
-  const cautionsNonRendues=contrats.filter(c=>!retours[c.id]).reduce((s,c)=>{
-    const v=vehicles.find(x=>x.id===c.vehicleId);
-    return s+(v?v.caution:0);
-  },0);
+  const cautionsNonRendues=contrats.filter(c=>!retours[c.id]).reduce((s,c)=>{const v=vehicles.find(x=>x.id===c.vehicleId);return s+(v?v.caution:0);},0);
   const tarifAuto=sel?calcTarifAuto(sel,form.nbJours,form.heuresLoc):{prix:0,label:"—"};
-
   const req=["locNom","locAdresse","locTel","dateDebut","dateFin"];
   const inv=k=>touched[k]&&!form[k];
 
@@ -791,14 +951,18 @@ function AppContent(){
     if(!sel||miss.length>0){const t={};req.forEach(k=>t[k]=true);setTouched(t);toast_("Remplissez tous les champs obligatoires","error");return;}
     const ta=calcTarifAuto(sel,form.nbJours,form.heuresLoc);
     const c={id:Date.now(),...form,vehicleId:sel.id,vehicleLabel:sel.marque+" "+sel.modele,immat:sel.immat,sigL,sigLoc,
-      totalCalc:ta.prix,tarifLabel:ta.label,photosDepart:[...photosDepart],
-      fraisSnap:(sel.frais||DEF_FRAIS).map(f=>({...f})),clausesSnap:(sel.clauses||DEF_CLAUSES).map(cl=>({...cl})),
+      totalCalc:ta.prix,tarifLabel:ta.label,
+      photosDepart:[...photosDepart],
+      docsLocataire:{...docsLocataire},   // ← NOUVEAU
+      fraisSnap:(sel.frais||DEF_FRAIS).map(f=>({...f})),
+      clausesSnap:(sel.clauses||DEF_CLAUSES).map(cl=>({...cl})),
       kmInclus:sel.kmInclus,prixKmSup:sel.prixKmSup};
     setContrats(p=>[c,...p]);
     const html=buildContratHTML(c,sel,sigL,sigLoc,profil);
     setLastContrat({contrat:c,vehicle:sel,html});
     toast_("✅ Contrat créé !");
-    setForm(FORM0);setTouched({});setSelId(null);setSigL(null);setSigLoc(null);setPhotosDepart([]);
+    setForm(FORM0);setTouched({});setSelId(null);setSigL(null);setSigLoc(null);
+    setPhotosDepart([]);setDocsLocataire({});   // ← NOUVEAU reset
     if(user){
       const{data:ins,error:err}=await supabase.from('contrats').insert([{
         user_id:user.id,loc_nom:c.locNom,loc_adresse:c.locAdresse,loc_tel:c.locTel,
@@ -809,7 +973,9 @@ function AppContent(){
         exterieur_propre:c.exterieurPropre,interieur_propre:c.interieurPropre,
         vehicle_id:c.vehicleId,vehicle_label:c.vehicleLabel,immat:c.immat,
         sig_l:c.sigL,sig_loc:c.sigLoc,total_calc:c.totalCalc,tarif_label:c.tarifLabel,
-        photos_depart:c.photosDepart,frais_snap:c.fraisSnap,clauses_snap:c.clausesSnap,
+        photos_depart:c.photosDepart,
+        docs_locataire:c.docsLocataire,  // ← NOUVEAU
+        frais_snap:c.fraisSnap,clauses_snap:c.clausesSnap,
         km_inclus:c.kmInclus,prix_km_sup:c.prixKmSup
       }]).select().single();
       if(!err&&ins){setContrats(p=>p.map(x=>x.id===c.id?{...x,id:ins.id}:x));}
@@ -826,10 +992,9 @@ function AppContent(){
   async function saveRetour(contratId,data){
     setRetours(r=>({...r,[contratId]:data}));
     const ct=contrats.find(c=>c.id===contratId);
-    if(ct&&data.kmRetour){
-      setVehicles(vs=>vs.map(v=>v.id===ct.vehicleId?{...v,km:parseFloat(data.kmRetour)}:v));
-    }
-    toast_("✅ Retour enregistré !");setRetourContratId(null);
+    if(ct&&data.kmRetour){setVehicles(vs=>vs.map(v=>v.id===ct.vehicleId?{...v,km:parseFloat(data.kmRetour)}:v));}
+    toast_("✅ Retour enregistré + PV PDF généré !");
+    setRetourContratId(null);
     if(user){
       const{error:err}=await supabase.from('retours').insert([{
         user_id:user.id,contrat_id:contratId,
@@ -843,9 +1008,7 @@ function AppContent(){
         date:data.date||new Date().toISOString()
       }]);
       if(err)console.error('Error saving retour:',err);
-      if(ct&&data.kmRetour){
-        await supabase.from('vehicules').update({km:parseFloat(data.kmRetour)}).eq('id',ct.vehicleId).eq('user_id',user.id);
-      }
+      if(ct&&data.kmRetour){await supabase.from('vehicules').update({km:parseFloat(data.kmRetour)}).eq('id',ct.vehicleId).eq('user_id',user.id);}
     }
   }
 
@@ -854,30 +1017,12 @@ function AppContent(){
     const base={...vForm,km:+vForm.km,tarif:+vForm.tarif,caution:+vForm.caution||1000,kmInclus:+vForm.kmInclus||0,prixKmSup:+vForm.prixKmSup||0};
     if(editV){
       setVehicles(vs=>vs.map(x=>x.id===editV.id?{...x,...base}:x));toast_("Mis à jour");
-      if(user){
-        const{error:err}=await supabase.from('vehicules').update({
-          marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,
-          annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,
-                  km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite
-                }).eq('id',editV.id).eq('user_id',user.id);
-        if(err)console.error('Error updating vehicle:',err);
-      }
+      if(user){const{error:err}=await supabase.from('vehicules').update({marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite}).eq('id',editV.id).eq('user_id',user.id);if(err)console.error(err);}
     }else{
       const localId=Date.now();
       const newV={id:localId,...base,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[]};
       setVehicles(vs=>[...vs,newV]);toast_("Véhicule ajouté !");
-      if(user){
-        const{data:ins,error:err}=await supabase.from('vehicules').insert([{
-          user_id:user.id,marque:base.marque,modele:base.modele,immat:base.immat,
-          couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,
-          caution:base.caution,          km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,
-                    km_illimite:base.kmIllimite,docs:[],
-          frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),
-          tarifs_speciaux:[]
-        }]).select().single();
-        if(!err&&ins){setVehicles(vs=>vs.map(x=>x.id===localId?{...x,id:ins.id}:x));}
-        if(err)console.error('Error adding vehicle:',err);
-      }
+      if(user){const{data:ins,error:err}=await supabase.from('vehicules').insert([{user_id:user.id,marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifs_speciaux:[]}]).select().single();if(!err&&ins)setVehicles(vs=>vs.map(x=>x.id===localId?{...x,id:ins.id}:x));if(err)console.error(err);}
     }
     setVForm({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false});setShowAddV(false);setEditV(null);
   }
@@ -887,10 +1032,7 @@ function AppContent(){
     if(!tarifsVehicleId)return;
     setVehicles(vs=>vs.map(v=>v.id===tarifsVehicleId?{...v,tarifsSpeciaux:[...tarifsTemp]}:v));
     setTarifsVehicleId(null);toast_("Tarifs enregistrés !");
-    if(user){
-      const{error:err}=await supabase.from('vehicules').update({tarifs_speciaux:[...tarifsTemp]}).eq('id',tarifsVehicleId).eq('user_id',user.id);
-      if(err)console.error('Error saving tarifs:',err);
-    }
+    if(user){const{error:err}=await supabase.from('vehicules').update({tarifs_speciaux:[...tarifsTemp]}).eq('id',tarifsVehicleId).eq('user_id',user.id);if(err)console.error(err);}
   }
   const tarifsVehicle=tarifsVehicleId?vehicles.find(v=>v.id===tarifsVehicleId):null;
 
@@ -963,40 +1105,33 @@ function AppContent(){
     );
   }
 
-  // Docs: pick file helper
   function pickDocFile(e){
-    const f=e.target.files[0];
-    if(!f)return;
+    const f=e.target.files[0];if(!f)return;
     const r=new FileReader();
     r.onload=ev=>setNewDoc(d=>({...d,file:f.name,fileData:ev.target.result}));
     r.readAsDataURL(f);
   }
 
-  if(!user) return <AuthPage/>;
-  if(!dataLoaded) return(
+  if(!user)return <AuthPage/>;
+  if(!dataLoaded)return(
     <div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"#f1f5f9"}}>
-      <div style={{textAlign:"center"}}>
-        <div style={{fontSize:36,marginBottom:12}}>⏳</div>
-        <p style={{color:"#6b7280",fontSize:14}}>Chargement des données...</p>
-      </div>
+      <div style={{textAlign:"center"}}><div style={{fontSize:36,marginBottom:12}}>⏳</div><p style={{color:"#6b7280",fontSize:14}}>Chargement...</p></div>
     </div>
   );
 
   const profilVide=!profil.nom&&!profil.entreprise&&!profil.tel;
-  if(profilVide) return(
+  if(profilVide)return(
     <div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"#f1f5f9",padding:16}}>
       <div style={{background:"white",borderRadius:16,padding:"32px 28px",width:"100%",maxWidth:480,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
         <h1 style={{textAlign:"center",marginBottom:6,fontSize:20,fontWeight:800}}>Bienvenue sur MAN'S LOCATION</h1>
         <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:13}}>Remplissez vos informations pour commencer</p>
-        {[["nom","Nom complet *"],["entreprise","Nom de l'entreprise *"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["tel","T\u00e9l\u00e9phone *"],["whatsapp","WhatsApp"],["snap","Snapchat"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
+        {[["nom","Nom complet *"],["entreprise","Nom de l'entreprise *"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["tel","Téléphone *"],["whatsapp","WhatsApp"],["snap","Snapchat"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
           <div key={k} style={{marginBottom:10}}>
             <label style={{fontSize:11,fontWeight:600,color:"#6b7280",display:"block",marginBottom:3}}>{l}</label>
             <input placeholder={l.replace(" *","")} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:13,boxSizing:"border-box"}} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/>
           </div>
         ))}
-        <button onClick={async()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel){return;}setProfil({...profilForm});if(user){const{error:err}=await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});if(err)console.error('Error saving profile:',err);}}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>
-          Commencer
-        </button>
+        <button onClick={async()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel)return;setProfil({...profilForm});if(user){await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});}}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>Commencer</button>
         <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
       </div>
     </div>
@@ -1025,8 +1160,10 @@ function AppContent(){
       {toast&&<div style={{position:"fixed",top:14,right:14,zIndex:10000,padding:"10px 16px",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,.15)",color:"white",fontSize:12,fontWeight:600,background:toast.type==="error"?"#ef4444":"#16a34a",maxWidth:320}}>{toast.msg}</div>}
 
       {/* MODALS */}
-      {contratModalId&&contratV&&<ContratModal vehicle={contratV} onClose={()=>setContratModalId(null)} onSave={async(fr,cl)=>{setVehicles(vs=>vs.map(v=>v.id===contratModalId?{...v,frais:fr,clauses:cl}:v));setContratModalId(null);toast_("Mis à jour !");if(user){const{error:err}=await supabase.from('vehicules').update({frais:fr,clauses:cl}).eq('id',contratModalId).eq('user_id',user.id);if(err)console.error('Error updating frais/clauses:',err);}}}/>}
-      {retourContratId&&retourContrat&&<RetourModal contrat={retourContrat} vehicle={retourVehicle} onClose={()=>setRetourContratId(null)} onSave={data=>saveRetour(retourContratId,data)}/>}
+      {contratModalId&&contratV&&<ContratModal vehicle={contratV} onClose={()=>setContratModalId(null)} onSave={async(fr,cl)=>{setVehicles(vs=>vs.map(v=>v.id===contratModalId?{...v,frais:fr,clauses:cl}:v));setContratModalId(null);toast_("Mis à jour !");if(user){await supabase.from('vehicules').update({frais:fr,clauses:cl}).eq('id',contratModalId).eq('user_id',user.id);}}}/>}
+
+      {/* ← profil passé au RetourModal */}
+      {retourContratId&&retourContrat&&<RetourModal contrat={retourContrat} vehicle={retourVehicle} profil={profil} onClose={()=>setRetourContratId(null)} onSave={data=>saveRetour(retourContratId,data)}/>}
 
       {/* Modal tarifs */}
       {tarifsVehicle&&(
@@ -1036,9 +1173,7 @@ function AppContent(){
               <div><b style={{fontSize:14,color:"white"}}>💰 Tarifs spéciaux</b><div style={{fontSize:11,color:"rgba(255,255,255,.6)"}}>{tarifsVehicle.marque} {tarifsVehicle.modele} · Standard : {tarifsVehicle.tarif} €/j</div></div>
               <button onClick={()=>setTarifsVehicleId(null)} style={{fontSize:22,background:"none",border:"none",cursor:"pointer",color:"white"}}>×</button>
             </div>
-            <div style={{background:"#fff7ed",padding:"8px 14px",fontSize:11,color:"#92400e",borderBottom:"1px solid #fed7aa"}}>
-              💡 Tarifs appliqués <b>automatiquement</b> selon la durée de location.
-            </div>
+            <div style={{background:"#fff7ed",padding:"8px 14px",fontSize:11,color:"#92400e",borderBottom:"1px solid #fed7aa"}}>💡 Tarifs appliqués <b>automatiquement</b> selon la durée.</div>
             <div style={{flex:1,overflowY:"auto",padding:14}}>
               {tarifsTemp.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:20,fontSize:13}}>Aucun tarif spécial</div>}
               {tarifsTemp.map(t=>(
@@ -1057,11 +1192,7 @@ function AppContent(){
                   <div><label style={LBL}>Prix (€)</label><input type="number" style={Inp()} placeholder="ex: 130" value={ntarif.prix} onChange={e=>setNtarif(x=>({...x,prix:e.target.value}))}/></div>
                   <div><label style={LBL}>Unité</label><select style={Inp()} value={ntarif.unite} onChange={e=>setNtarif(x=>({...x,unite:e.target.value}))}><option value="forfait">Forfait total</option><option value="jour">Par jour</option></select></div>
                 </div>
-                <button onClick={()=>{
-                  if(!ntarif.prix||parseFloat(ntarif.prix)<=0){toast_("Entrez un prix valide","error");return;}
-                  setTarifsTemp(ts=>[...ts,{id:Date.now(),...ntarif,label:ntarif.label||ntarif.type}]);
-                  setNtarif({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});
-                }} style={{width:"100%",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
+                <button onClick={()=>{if(!ntarif.prix||parseFloat(ntarif.prix)<=0){toast_("Prix invalide","error");return;}setTarifsTemp(ts=>[...ts,{id:Date.now(),...ntarif,label:ntarif.label||ntarif.type}]);setNtarif({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});}} style={{width:"100%",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
               </div>
             </div>
             <div style={{padding:"12px 16px",borderTop:"1px solid #e5e7eb",display:"flex",gap:8,background:"white"}}>
@@ -1072,7 +1203,7 @@ function AppContent(){
         </div>
       )}
 
-      {/* Modal docs */}
+      {/* Modal docs véhicule */}
       {docsId&&docsV&&(
         <div style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
           <div style={{background:"white",borderRadius:18,width:"100%",maxWidth:600,maxHeight:"88vh",display:"flex",flexDirection:"column"}}>
@@ -1088,7 +1219,7 @@ function AppContent(){
                   <div><label style={LBL}>Expiration</label><input type="date" style={Inp()} value={newDoc.expiration} onChange={e=>setNewDoc(d=>({...d,expiration:e.target.value}))}/></div>
                   <div><label style={LBL}>Fichier</label><input type="file" accept=".pdf,image/*" style={{width:"100%",fontSize:11}} onChange={pickDocFile}/></div>
                 </div>
-                <button onClick={async()=>{if(!newDoc.nom){toast_("Donnez un nom","error");return;}const docEntry={id:Date.now(),...newDoc};const updatedDocs=[...(docsV.docs||[]),docEntry];setVehicles(vs=>vs.map(v=>v.id===docsId?{...v,docs:updatedDocs}:v));setNewDoc({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});toast_("Document ajouté !");if(user){const{error:err}=await supabase.from('vehicules').update({docs:updatedDocs}).eq('id',docsId).eq('user_id',user.id);if(err)console.error('Error adding doc:',err);}}} style={{marginTop:8,background:"#2563eb",color:"white",border:"none",borderRadius:7,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+                <button onClick={async()=>{if(!newDoc.nom){toast_("Donnez un nom","error");return;}const docEntry={id:Date.now(),...newDoc};const updatedDocs=[...(docsV.docs||[]),docEntry];setVehicles(vs=>vs.map(v=>v.id===docsId?{...v,docs:updatedDocs}:v));setNewDoc({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});toast_("Document ajouté !");if(user){await supabase.from('vehicules').update({docs:updatedDocs}).eq('id',docsId).eq('user_id',user.id);}}} style={{marginTop:8,background:"#2563eb",color:"white",border:"none",borderRadius:7,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
               </div>
               {(!docsV.docs||docsV.docs.length===0)
                 ?<div style={{textAlign:"center",color:"#9ca3af",padding:24}}><div style={{fontSize:32}}>📂</div><p>Aucun document</p></div>
@@ -1100,7 +1231,7 @@ function AppContent(){
                     </div>
                     <div style={{display:"flex",gap:5}}>
                       {doc.fileData&&<button onClick={()=>{const a=document.createElement("a");a.href=doc.fileData;a.download=doc.file||doc.nom;a.click();}} style={{padding:"3px 7px",background:"#dbeafe",color:"#1d4ed8",border:"none",borderRadius:5,cursor:"pointer",fontSize:11}}>⬇️</button>}
-                      <button onClick={async()=>{const updatedDocs=(docsV.docs||[]).filter(d=>d.id!==doc.id);setVehicles(vs=>vs.map(v=>v.id===docsId?{...v,docs:updatedDocs}:v));toast_("Supprimé");if(user){const{error:err}=await supabase.from('vehicules').update({docs:updatedDocs}).eq('id',docsId).eq('user_id',user.id);if(err)console.error('Error deleting doc:',err);}}} style={{padding:"3px 7px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:11}}>🗑️</button>
+                      <button onClick={async()=>{const updatedDocs=(docsV.docs||[]).filter(d=>d.id!==doc.id);setVehicles(vs=>vs.map(v=>v.id===docsId?{...v,docs:updatedDocs}:v));toast_("Supprimé");if(user)await supabase.from('vehicules').update({docs:updatedDocs}).eq('id',docsId).eq('user_id',user.id);}} style={{padding:"3px 7px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:11}}>🗑️</button>
                     </div>
                   </div>);
                 })
@@ -1112,7 +1243,7 @@ function AppContent(){
 
       <div style={{maxWidth:1100,margin:"0 auto",width:"100%",padding:"16px 12px"}}>
 
-        {/* DASHBOARD */}
+        {/* ── DASHBOARD ── */}
         {page==="dashboard"&&(
           <div>
             <div style={{marginBottom:16}}>
@@ -1173,7 +1304,7 @@ function AppContent(){
           </div>
         )}
 
-        {/* VEHICULES */}
+        {/* ── VEHICULES ── */}
         {page==="vehicles"&&(
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -1219,7 +1350,7 @@ function AppContent(){
                       <button onClick={()=>setContratModalId(v.id)} style={{flex:1,padding:"6px 0",background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📄 Contrat</button>
                       <button onClick={()=>setDocsId(v.id)} style={{flex:1,padding:"6px 0",background:"#f0fdf4",color:"#16a34a",border:"1px solid #bbf7d0",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📁 Docs</button>
                       <button onClick={()=>{setEditV(v);setVForm({marque:v.marque,modele:v.modele,immat:v.immat,couleur:v.couleur||"",annee:v.annee||"",km:v.km,tarif:v.tarif,caution:v.caution,kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0,kmIllimite:v.kmIllimite||false});setShowAddV(true);}} style={{padding:"6px 10px",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
-                      <button onClick={async()=>{if(window.confirm("Supprimer ?")){setVehicles(vs=>vs.filter(x=>x.id!==v.id));if(user){const{error:err}=await supabase.from('vehicules').delete().eq('id',v.id).eq('user_id',user.id);if(err)console.error('Error deleting vehicle:',err);}}}} style={{padding:"6px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:11,cursor:"pointer"}}>🗑️</button>
+                      <button onClick={async()=>{if(window.confirm("Supprimer ?")){setVehicles(vs=>vs.filter(x=>x.id!==v.id));if(user)await supabase.from('vehicules').delete().eq('id',v.id).eq('user_id',user.id);}}} style={{padding:"6px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:11,cursor:"pointer"}}>🗑️</button>
                     </div>
                   </div>
                 </div>
@@ -1228,10 +1359,12 @@ function AppContent(){
           </div>
         )}
 
-        {/* NOUVEAU CONTRAT */}
+        {/* ── NOUVEAU CONTRAT ── */}
         {page==="nouveau"&&(
           <div style={{maxWidth:680,margin:"0 auto"}}>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>📝 Nouveau contrat</h1>
+
+            {/* Choix véhicule */}
             <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
               <h3 style={{fontWeight:700,fontSize:13,marginBottom:10}}>🚗 Véhicule</h3>
               <div style={{display:"flex",flexDirection:"column",gap:7}}>
@@ -1246,11 +1379,13 @@ function AppContent(){
 
             {sel&&(
               <>
+                {/* Tarif auto */}
                 <div style={{background:"#1e3a8a",borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div><div style={{color:"rgba(255,255,255,.7)",fontSize:10}}>Tarif calculé automatiquement</div><div style={{color:"white",fontSize:11,marginTop:2}}>{tarifAuto.label}</div></div>
                   <div style={{color:"#4ade80",fontWeight:900,fontSize:22}}>{tarifAuto.prix} €</div>
                 </div>
 
+                {/* Locataire */}
                 <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>👤 Locataire</h3>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -1262,6 +1397,16 @@ function AppContent(){
                   </div>
                 </div>
 
+                {/* ── NOUVEAU : Documents locataire ── */}
+                <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+                  <h3 style={{fontWeight:700,fontSize:13,marginBottom:4}}>📎 Documents du locataire</h3>
+                  <p style={{fontSize:11,color:"#6b7280",marginBottom:12}}>
+                    CNI/Passeport (recto + verso) · Justificatif de domicile · Photo arrière véhicule — inclus dans le PDF
+                  </p>
+                  <DocsLocataire docs={docsLocataire} setDocs={setDocsLocataire}/>
+                </div>
+
+                {/* Durée */}
                 <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>📅 Durée</h3>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -1275,6 +1420,7 @@ function AppContent(){
                   </div>
                 </div>
 
+                {/* État départ */}
                 <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>🔍 État au départ</h3>
                   <div style={{marginBottom:12}}>
@@ -1291,12 +1437,14 @@ function AppContent(){
                   </div>
                 </div>
 
+                {/* Photos départ */}
                 <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:4}}>📸 Photos du véhicule au départ</h3>
-                  <p style={{fontSize:11,color:"#6b7280",marginBottom:12}}>{photosDepart.length} photo{photosDepart.length>1?"s":""} ajoutée{photosDepart.length>1?"s":""} — incluses dans le contrat PDF</p>
+                  <p style={{fontSize:11,color:"#6b7280",marginBottom:12}}>{photosDepart.length} photo{photosDepart.length>1?"s":""} — incluses dans le contrat PDF</p>
                   <PhotosDepart photos={photosDepart} setPhotos={setPhotosDepart}/>
                 </div>
 
+                {/* Paiement */}
                 <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>💳 Paiement & Caution</h3>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -1313,6 +1461,7 @@ function AppContent(){
                   </div>
                 </div>
 
+                {/* Signatures */}
                 <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>✍️ Signatures</h3>
                   <div style={{display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center"}}>
@@ -1339,124 +1488,59 @@ function AppContent(){
           </div>
         )}
 
-        {/* PLANNING */}
+        {/* ── PLANNING ── */}
         {page==="planning"&&(
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>📅 Planning</h1>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
                 <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()-1);setPlanMonth(new Date(d));}} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>◀</button>
-                <span style={{fontWeight:700,fontSize:13,minWidth:130,textAlign:"center",textTransform:"capitalize"}}>
-                  {planMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}
-                </span>
+                <span style={{fontWeight:700,fontSize:13,minWidth:130,textAlign:"center",textTransform:"capitalize"}}>{planMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</span>
                 <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()+1);setPlanMonth(new Date(d));}} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>▶</button>
               </div>
             </div>
-
-            {contrats.length===0 && (
-              <div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}>
-                <div style={{fontSize:36,marginBottom:8}}>📅</div>
-                <p>Aucun contrat — créez-en un pour voir le planning.</p>
-              </div>
-            )}
-
             {vehicles.map(v=>{
               const vContrats=contrats.filter(c=>c.vehicleId===v.id);
               return(
                 <div key={v.id} style={{background:"white",borderRadius:14,marginBottom:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #e5e7eb"}}>
-                  {/* En-tête véhicule */}
                   <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div>
-                      <span style={{color:"white",fontWeight:800,fontSize:13}}>{v.marque} {v.modele}</span>
-                      <span style={{color:"rgba(255,255,255,.6)",fontSize:11,marginLeft:10}}>{v.immat}</span>
-                    </div>
+                    <div><span style={{color:"white",fontWeight:800,fontSize:13}}>{v.marque} {v.modele}</span><span style={{color:"rgba(255,255,255,.6)",fontSize:11,marginLeft:10}}>{v.immat}</span></div>
                     <Badge s={statut(v.id)}/>
                   </div>
-
-                  {/* Grille des jours */}
                   <div style={{overflowX:"auto"}}>
                     <div style={{display:"flex",minWidth:days.length*28+130}}>
-                      {/* Colonne label */}
                       <div style={{width:130,flexShrink:0}}/>
-                      {/* Numéros de jours */}
-                      {days.map(d=>{
-                        const isToday=d.toDateString()===new Date().toDateString();
-                        const isWE=d.getDay()===0||d.getDay()===6;
-                        return(
-                          <div key={d.getTime()} style={{width:28,flexShrink:0,textAlign:"center",padding:"5px 0",fontSize:10,fontWeight:isToday?800:400,color:isToday?"#2563eb":isWE?"#9ca3af":"#6b7280",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:"1px solid #f0f0f0"}}>
-                            {d.getDate()}
-                          </div>
-                        );
-                      })}
+                      {days.map(d=>{const isToday=d.toDateString()===new Date().toDateString();const isWE=d.getDay()===0||d.getDay()===6;return(<div key={d.getTime()} style={{width:28,flexShrink:0,textAlign:"center",padding:"5px 0",fontSize:10,fontWeight:isToday?800:400,color:isToday?"#2563eb":isWE?"#9ca3af":"#6b7280",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:"1px solid #f0f0f0"}}>{d.getDate()}</div>);})}
                     </div>
-
-                    {/* Ligne des jours de la semaine */}
                     <div style={{display:"flex",minWidth:days.length*28+130,borderBottom:"1px solid #e5e7eb"}}>
                       <div style={{width:130,flexShrink:0,padding:"2px 8px",fontSize:9,color:"#9ca3af",display:"flex",alignItems:"center"}}>Sem.</div>
-                      {days.map(d=>{
-                        const isWE=d.getDay()===0||d.getDay()===6;
-                        const labels=["D","L","M","M","J","V","S"];
-                        return(
-                          <div key={d.getTime()} style={{width:28,flexShrink:0,textAlign:"center",fontSize:9,padding:"2px 0",color:isWE?"#d97706":"#9ca3af",background:isWE?"#fffbeb":"white",borderLeft:"1px solid #f0f0f0"}}>
-                            {labels[d.getDay()]}
-                          </div>
-                        );
-                      })}
+                      {days.map(d=>{const isWE=d.getDay()===0||d.getDay()===6;const labels=["D","L","M","M","J","V","S"];return(<div key={d.getTime()} style={{width:28,flexShrink:0,textAlign:"center",fontSize:9,padding:"2px 0",color:isWE?"#d97706":"#9ca3af",background:isWE?"#fffbeb":"white",borderLeft:"1px solid #f0f0f0"}}>{labels[d.getDay()]}</div>);})}
                     </div>
-
-                    {/* Ligne disponibilité */}
                     <div style={{display:"flex",minWidth:days.length*28+130,padding:"4px 0"}}>
-                      <div style={{width:130,flexShrink:0,padding:"0 8px",fontSize:10,fontWeight:600,color:"#374151",display:"flex",alignItems:"center"}}>
-                        Disponibilité
-                      </div>
-                      {days.map(d=>{
-                        const b=isBooked(v.id,d);
-                        const isToday=d.toDateString()===new Date().toDateString();
-                        return(
-                          <div key={d.getTime()} style={{width:28,flexShrink:0,height:28,display:"flex",alignItems:"center",justifyContent:"center",background:b?"#dbeafe":isToday?"#eff6ff":"white",borderLeft:"1px solid #f0f0f0"}}>
-                            {b
-                              ? <div style={{width:20,height:20,borderRadius:4,background:"#2563eb"}}/>
-                              : <div style={{width:20,height:20,borderRadius:4,background:"#dcfce7"}}/>
-                            }
-                          </div>
-                        );
-                      })}
+                      <div style={{width:130,flexShrink:0,padding:"0 8px",fontSize:10,fontWeight:600,color:"#374151",display:"flex",alignItems:"center"}}>Disponibilité</div>
+                      {days.map(d=>{const b=isBooked(v.id,d);const isToday=d.toDateString()===new Date().toDateString();return(<div key={d.getTime()} style={{width:28,flexShrink:0,height:28,display:"flex",alignItems:"center",justifyContent:"center",background:b?"#dbeafe":isToday?"#eff6ff":"white",borderLeft:"1px solid #f0f0f0"}}><div style={{width:20,height:20,borderRadius:4,background:b?"#2563eb":"#dcfce7"}}/></div>);})}
                     </div>
                   </div>
-
-                  {/* Liste des contrats du mois */}
-                  {vContrats.length>0 && (
+                  {vContrats.length>0&&(
                     <div style={{padding:"8px 12px",borderTop:"1px solid #f0f0f0",display:"flex",flexWrap:"wrap",gap:6}}>
                       {vContrats.map(c=>{
-                        const dStart=new Date(c.dateDebut),dEnd=new Date(c.dateFin);
-                        const mStart=dStart.getMonth(),mEnd=dEnd.getMonth(),y=planMonth.getMonth();
-                        const inMonth=mStart===y||mEnd===y;
-                        if(!inMonth)return null;
-                        return(
-                          <div key={c.id} style={{background:"#eff6ff",borderRadius:8,padding:"4px 10px",fontSize:11,border:"1px solid #bfdbfe"}}>
-                            <span style={{fontWeight:700,color:"#1e3a8a"}}>{c.locNom}</span>
-                            <span style={{color:"#6b7280",marginLeft:6}}>{c.dateDebut} → {c.dateFin}</span>
-                            <span style={{marginLeft:6,fontWeight:700,color:"#2563eb"}}>{c.totalCalc} €</span>
-                          </div>
-                        );
+                        const mStart=new Date(c.dateDebut).getMonth(),mEnd=new Date(c.dateFin).getMonth(),y=planMonth.getMonth();
+                        if(mStart!==y&&mEnd!==y)return null;
+                        return(<div key={c.id} style={{background:"#eff6ff",borderRadius:8,padding:"4px 10px",fontSize:11,border:"1px solid #bfdbfe"}}><span style={{fontWeight:700,color:"#1e3a8a"}}>{c.locNom}</span><span style={{color:"#6b7280",marginLeft:6}}>{c.dateDebut} → {c.dateFin}</span><span style={{marginLeft:6,fontWeight:700,color:"#2563eb"}}>{c.totalCalc} €</span></div>);
                       })}
                     </div>
                   )}
                 </div>
               );
             })}
-
-            {/* Légende */}
             <div style={{display:"flex",gap:16,padding:"10px 4px",fontSize:11,color:"#6b7280"}}>
-              <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:16,height:16,borderRadius:3,background:"#2563eb"}}/> Loué</div>
-              <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:16,height:16,borderRadius:3,background:"#dcfce7",border:"1px solid #bbf7d0"}}/> Disponible</div>
-              <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:16,height:16,borderRadius:3,background:"#eff6ff",border:"1px solid #bfdbfe"}}/> Aujourd'hui</div>
-              <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:16,height:16,borderRadius:3,background:"#fffbeb",border:"1px solid #fde68a"}}/> Week-end</div>
+              <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:16,height:16,borderRadius:3,background:"#2563eb"}}/>Loué</div>
+              <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:16,height:16,borderRadius:3,background:"#dcfce7",border:"1px solid #bbf7d0"}}/>Disponible</div>
             </div>
           </div>
         )}
 
-        {/* CONTRATS */}
+        {/* ── CONTRATS ── */}
         {page==="contrats"&&(
           <div>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>📋 Contrats ({contrats.length})</h1>
@@ -1464,6 +1548,8 @@ function AppContent(){
               ?<div style={{textAlign:"center",color:"#9ca3af",padding:40}}><div style={{fontSize:40}}>📋</div><p>Aucun contrat</p></div>
               :contrats.map(c=>{
                 const r=retours[c.id];
+                const dl=c.docsLocataire||{};
+                const nbDocs=[dl.cniRecto,dl.cniVerso,dl.justifDom,dl.photoAr].filter(Boolean).length;
                 return(
                   <div key={c.id} style={{background:"white",borderRadius:14,padding:14,marginBottom:10,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #e5e7eb"}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
@@ -1473,10 +1559,9 @@ function AppContent(){
                         <div style={{fontSize:11,color:"#6b7280"}}>{c.dateDebut} → {c.dateFin} · {c.nbJours}j</div>
                         {c.tarifLabel&&<div style={{fontSize:10,color:"#9ca3af",marginTop:2}}>{c.tarifLabel}</div>}
                         <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
-                          <span style={{fontSize:10,background:fuelColor(c.carburantDepart||100)==="#16a34a"?"#f0fdf4":fuelColor(c.carburantDepart||100)==="#d97706"?"#fff7ed":"#fef2f2",color:fuelColor(c.carburantDepart||100),borderRadius:6,padding:"2px 7px",fontWeight:600}}>⛽ {c.carburantDepart||100}%</span>
-                          {c.exterieurPropre!==null&&<span style={{fontSize:10,background:c.exterieurPropre?"#f0fdf4":"#fef2f2",color:c.exterieurPropre?"#16a34a":"#dc2626",borderRadius:6,padding:"2px 7px",fontWeight:600}}>🚿 {c.exterieurPropre?"OK":"NON"}</span>}
-                          {c.interieurPropre!==null&&<span style={{fontSize:10,background:c.interieurPropre?"#f0fdf4":"#fef2f2",color:c.interieurPropre?"#16a34a":"#dc2626",borderRadius:6,padding:"2px 7px",fontWeight:600}}>🧹 {c.interieurPropre?"OK":"NON"}</span>}
-                          {(c.photosDepart||[]).length>0&&<span style={{fontSize:10,background:"#f5f3ff",color:"#7c3aed",borderRadius:6,padding:"2px 7px",fontWeight:600}}>📸 {c.photosDepart.length} photo{c.photosDepart.length>1?"s":""}</span>}
+                          <span style={{fontSize:10,background:"#eff6ff",color:"#2563eb",borderRadius:6,padding:"2px 7px",fontWeight:600}}>⛽ {c.carburantDepart||100}%</span>
+                          {nbDocs>0&&<span style={{fontSize:10,background:"#f5f3ff",color:"#7c3aed",borderRadius:6,padding:"2px 7px",fontWeight:600}}>📎 {nbDocs} doc{nbDocs>1?"s":""}</span>}
+                          {(c.photosDepart||[]).length>0&&<span style={{fontSize:10,background:"#f0fdf4",color:"#16a34a",borderRadius:6,padding:"2px 7px",fontWeight:600}}>📸 {c.photosDepart.length} photo{c.photosDepart.length>1?"s":""}</span>}
                         </div>
                       </div>
                       <div style={{textAlign:"right"}}>
@@ -1487,7 +1572,7 @@ function AppContent(){
                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                       <button onClick={()=>rePrint(c)} style={{padding:"5px 10px",background:"#eff6ff",color:"#2563eb",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>⬇️ PDF</button>
                       {!r&&<button onClick={()=>setRetourContratId(c.id)} style={{padding:"5px 10px",background:"#f0fdf4",color:"#16a34a",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>🔄 Retour</button>}
-                      <button onClick={async()=>{if(window.confirm("Supprimer ?")){setContrats(cs=>cs.filter(x=>x.id!==c.id));if(user){const{error:err}=await supabase.from('contrats').delete().eq('id',c.id).eq('user_id',user.id);if(err)console.error('Error deleting contrat:',err);}}}} style={{padding:"5px 10px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:7,fontSize:11,cursor:"pointer"}}>🗑️</button>
+                      <button onClick={async()=>{if(window.confirm("Supprimer ?")){setContrats(cs=>cs.filter(x=>x.id!==c.id));if(user)await supabase.from('contrats').delete().eq('id',c.id).eq('user_id',user.id);}}} style={{padding:"5px 10px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:7,fontSize:11,cursor:"pointer"}}>🗑️</button>
                     </div>
                   </div>
                 );
@@ -1496,7 +1581,7 @@ function AppContent(){
           </div>
         )}
 
-        {/* RETOURS */}
+        {/* ── RETOURS ── */}
         {page==="retours"&&(
           <div>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>🔄 Retours</h1>
@@ -1527,6 +1612,7 @@ function AppContent(){
                             {r.surplusKm>0&&<span style={{fontSize:10,background:"#fef3c7",color:"#d97706",borderRadius:6,padding:"2px 7px",fontWeight:600}}>+{r.surplusKm.toFixed(0)}€ km</span>}
                             {r.montantRetenu>0&&<span style={{fontSize:10,background:"#fef2f2",color:"#dc2626",borderRadius:6,padding:"2px 7px",fontWeight:600}}>🔒 -{r.montantRetenu}€</span>}
                             {r.cautionRestituee&&<span style={{fontSize:10,background:"#f0fdf4",color:"#16a34a",borderRadius:6,padding:"2px 7px",fontWeight:600}}>✅ Caution OK</span>}
+                            {r.sigRetourLoueur&&r.sigRetourLocataire&&<span style={{fontSize:10,background:"#f5f3ff",color:"#7c3aed",borderRadius:6,padding:"2px 7px",fontWeight:600}}>✍️ PV signé</span>}
                           </div>
                         </div>
                         <div style={{textAlign:"right"}}>
@@ -1543,7 +1629,7 @@ function AppContent(){
           </div>
         )}
 
-        {/* FINANCES */}
+        {/* ── FINANCES ── */}
         {page==="finances"&&(
           <div>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>💰 Finances</h1>
@@ -1567,7 +1653,7 @@ function AppContent(){
                     <div><label style={LBL}>Date</label><input type="date" style={Inp()} value={dForm.date} onChange={e=>setDForm(f=>({...f,date:e.target.value}))}/></div>
                     <div><label style={LBL}>Véhicule</label><select style={Inp()} value={dForm.vehicleId} onChange={e=>setDForm(f=>({...f,vehicleId:e.target.value}))}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele}</option>)}</select></div>
                   </div>
-                  <button onClick={async()=>{if(!dForm.label||!dForm.montant){toast_("Remplissez libellé et montant","error");return;}const localId=Date.now();const newDep={id:localId,...dForm};setDepenses(d=>[newDep,...d]);setDForm({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});setShowAddD(false);toast_("Dépense ajoutée");if(user){const{data:ins,error:err}=await supabase.from('depenses').insert([{user_id:user.id,label:newDep.label,montant:parseFloat(newDep.montant),categorie:newDep.categorie,date:newDep.date,vehicle_id:newDep.vehicleId||null}]).select().single();if(!err&&ins){setDepenses(ds=>ds.map(x=>x.id===localId?{...x,id:ins.id}:x));}if(err)console.error('Error adding depense:',err);}}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+                  <button onClick={async()=>{if(!dForm.label||!dForm.montant){toast_("Remplissez libellé et montant","error");return;}const localId=Date.now();const newDep={id:localId,...dForm};setDepenses(d=>[newDep,...d]);setDForm({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});setShowAddD(false);toast_("Dépense ajoutée");if(user){const{data:ins,error:err}=await supabase.from('depenses').insert([{user_id:user.id,label:newDep.label,montant:parseFloat(newDep.montant),categorie:newDep.categorie,date:newDep.date,vehicle_id:newDep.vehicleId||null}]).select().single();if(!err&&ins)setDepenses(ds=>ds.map(x=>x.id===localId?{...x,id:ins.id}:x));}}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
                 </div>
               )}
               {depenses.length===0
@@ -1575,7 +1661,7 @@ function AppContent(){
                 :depenses.map(d=>(
                   <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px",borderRadius:8,background:"#f9fafb",marginBottom:5}}>
                     <div><div style={{fontWeight:600,fontSize:12}}>{d.label}</div><div style={{fontSize:10,color:"#9ca3af"}}>{d.categorie} · {d.date}</div></div>
-                    <div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontWeight:700,color:"#ef4444"}}>-{d.montant} €</span><button onClick={async()=>{setDepenses(ds=>ds.filter(x=>x.id!==d.id));if(user){const{error:err}=await supabase.from('depenses').delete().eq('id',d.id).eq('user_id',user.id);if(err)console.error('Error deleting depense:',err);}}} style={{padding:"2px 6px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:10}}>🗑️</button></div>
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontWeight:700,color:"#ef4444"}}>-{d.montant} €</span><button onClick={async()=>{setDepenses(ds=>ds.filter(x=>x.id!==d.id));if(user)await supabase.from('depenses').delete().eq('id',d.id).eq('user_id',user.id);}} style={{padding:"2px 6px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:10}}>🗑️</button></div>
                   </div>
                 ))
               }
@@ -1583,7 +1669,7 @@ function AppContent(){
           </div>
         )}
 
-        {/* PROFIL */}
+        {/* ── PROFIL ── */}
         {page==="profil"&&(
           <div style={{maxWidth:520,margin:"0 auto"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -1595,7 +1681,7 @@ function AppContent(){
                 {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["tel","Téléphone"],["whatsapp","WhatsApp"],["snap","Snapchat"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
                   <div key={k} style={{marginBottom:10}}><label style={LBL}>{l}</label><input style={Inp()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>
                 ))}
-                <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user){const{error:err}=await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});if(err)console.error('Error updating profile:',err);}}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Enregistrer</button>
+                <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user)await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Enregistrer</button>
                 <button onClick={()=>supabase.auth.signOut()} style={{marginTop:10,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
               </div>
             ):(
@@ -1622,80 +1708,62 @@ function AppContent(){
   );
 }
 
+// ─────────────────────────────────────────────
+// AUTH PAGE
+// ─────────────────────────────────────────────
 function AuthPage(){
-  const [mode, setMode] = useState("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const[mode,setMode]=useState("login");
+  const[email,setEmail]=useState("");
+  const[password,setPassword]=useState("");
+  const[showPassword,setShowPassword]=useState(false);
+  const[loading,setLoading]=useState(false);
+  const[error,setError]=useState("");
+  const[success,setSuccess]=useState("");
 
   async function handleSubmit(){
-    setLoading(true); setError(""); setSuccess("");
+    setLoading(true);setError("");setSuccess("");
     if(mode==="forgot"){
-      const {error:err} = await supabase.auth.resetPasswordForEmail(email);
-      if(err){
-        setError(err.message);
-      } else {
-        setSuccess("Un email de réinitialisation a été envoyé. Vérifiez votre boîte mail.");
-      }
-      setLoading(false);
-      return;
+      const{error:err}=await supabase.auth.resetPasswordForEmail(email);
+      if(err)setError(err.message);else setSuccess("Email de réinitialisation envoyé.");
+      setLoading(false);return;
     }
     let result;
-    if(mode==="login"){
-      result = await supabase.auth.signInWithPassword({email, password});
-    } else {
-      result = await supabase.auth.signUp({email, password, options:{emailRedirectTo: window.location.origin}});
-    }
-    if(result.error){
-      setError(result.error.message);
-    } else if(mode==="signup"){
-      setSuccess("Compte créé ! Vérifiez votre email pour confirmer votre inscription.");
-    }
+    if(mode==="login")result=await supabase.auth.signInWithPassword({email,password});
+    else result=await supabase.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin}});
+    if(result.error)setError(result.error.message);
+    else if(mode==="signup")setSuccess("Compte créé ! Vérifiez votre email.");
     setLoading(false);
   }
 
   return(
     <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"#f1f5f9"}}>
       <div style={{background:"white",borderRadius:16,padding:"40px 32px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
-        <h1 style={{textAlign:"center",marginBottom:8,fontSize:22,fontWeight:700}}>{"\ud83d\ude97"} MAN'S LOCATION</h1>
+        <h1 style={{textAlign:"center",marginBottom:8,fontSize:22,fontWeight:700}}>🚗 MAN'S LOCATION</h1>
         <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:14}}>Accès réservé aux professionnels</p>
-        {mode!=="forgot" && (
-        <div style={{display:"flex",marginBottom:24,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
-          {["login","signup"].map(m=>(
-            <button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600}}>
-              {m==="login"?"Connexion":"Inscription"}
-            </button>
-          ))}
-        </div>
+        {mode!=="forgot"&&(
+          <div style={{display:"flex",marginBottom:24,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
+            {["login","signup"].map(m=>(
+              <button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600}}>
+                {m==="login"?"Connexion":"Inscription"}
+              </button>
+            ))}
+          </div>
         )}
-        {mode==="forgot" && (
-          <p style={{textAlign:"center",color:"#374151",marginBottom:20,fontSize:14}}>Entrez votre email pour recevoir un lien de réinitialisation.</p>
-        )}
+        {mode==="forgot"&&<p style={{textAlign:"center",color:"#374151",marginBottom:20,fontSize:14}}>Entrez votre email pour recevoir un lien de réinitialisation.</p>}
         <input placeholder="Email professionnel" value={email} onChange={e=>setEmail(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
-        {mode!=="forgot" && (
-        <div style={{position:"relative",marginBottom:16}}>
-          <input placeholder="Mot de passe" type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} style={{width:"100%",padding:"10px 12px",paddingRight:40,border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
-          <span onClick={()=>setShowPassword(!showPassword)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:18,color:"#6b7280",userSelect:"none"}}>{showPassword?"\ud83d\ude48":"\ud83d\udc41\ufe0f"}</span>
-        </div>
+        {mode!=="forgot"&&(
+          <div style={{position:"relative",marginBottom:16}}>
+            <input placeholder="Mot de passe" type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} style={{width:"100%",padding:"10px 12px",paddingRight:40,border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
+            <span onClick={()=>setShowPassword(!showPassword)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:18,color:"#6b7280",userSelect:"none"}}>{showPassword?"🙈":"👁️"}</span>
+          </div>
         )}
-        {error && <p style={{color:"red",fontSize:13,marginBottom:12}}>{error}</p>}
-        {success && <p style={{color:"#16a34a",fontSize:13,marginBottom:12}}>{success}</p>}
+        {error&&<p style={{color:"red",fontSize:13,marginBottom:12}}>{error}</p>}
+        {success&&<p style={{color:"#16a34a",fontSize:13,marginBottom:12}}>{success}</p>}
         <button onClick={handleSubmit} disabled={loading} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:"pointer"}}>
           {loading?"...":(mode==="login"?"Se connecter":mode==="signup"?"Créer mon compte":"Envoyer le lien")}
         </button>
-        {mode==="login" && (
-          <p style={{textAlign:"center",marginTop:14,fontSize:13}}>
-            <span onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Mot de passe oublié ?</span>
-          </p>
-        )}
-        {mode==="forgot" && (
-          <p style={{textAlign:"center",marginTop:14,fontSize:13}}>
-            <span onClick={()=>{setMode("login");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Retour à la connexion</span>
-          </p>
-        )}
+        {mode==="login"&&<p style={{textAlign:"center",marginTop:14,fontSize:13}}><span onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Mot de passe oublié ?</span></p>}
+        {mode==="forgot"&&<p style={{textAlign:"center",marginTop:14,fontSize:13}}><span onClick={()=>{setMode("login");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Retour à la connexion</span></p>}
       </div>
     </div>
   );
@@ -1703,4 +1771,4 @@ function AuthPage(){
 
 export default function App(){
   return <AppContent/>;
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+}

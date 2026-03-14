@@ -800,7 +800,7 @@ function AppContent(){
         <button onClick={()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel){return;}setProfil({...profilForm});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>
           Commencer
         </button>
-        <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>D\u00e9connexion</button>
+        <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
       </div>
     </div>
   );
@@ -1439,7 +1439,7 @@ function AuthPage(){
       if(err){
         setError(err.message);
       } else {
-        setSuccess("Un email de r\u00e9initialisation a \u00e9t\u00e9 envoy\u00e9. V\u00e9rifiez votre bo\u00eete mail.");
+        setSuccess("Un email de réinitialisation a été envoyé. Vérifiez votre boîte mail.");
       }
       setLoading(false);
       return;
@@ -1453,7 +1453,7 @@ function AuthPage(){
     if(result.error){
       setError(result.error.message);
     } else if(mode==="signup"){
-      setSuccess("Compte cr\u00e9\u00e9 ! V\u00e9rifiez votre email pour confirmer votre inscription.");
+      setSuccess("Compte créé ! Vérifiez votre email pour confirmer votre inscription.");
     }
     setLoading(false);
   }
@@ -1461,8 +1461,8 @@ function AuthPage(){
   return(
     <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"#f1f5f9"}}>
       <div style={{background:"white",borderRadius:16,padding:"40px 32px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
-        <h1 style={{textAlign:"center",marginBottom:8,fontSize:22,fontWeight:700}}>\ud83d\ude97 MAN'S LOCATION</h1>
-        <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:14}}>Acc\u00e8s r\u00e9serv\u00e9 aux professionnels</p>
+        <h1 style={{textAlign:"center",marginBottom:8,fontSize:22,fontWeight:700}}>{"\ud83d\ude97"} MAN'S LOCATION</h1>
+        <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:14}}>Accès réservé aux professionnels</p>
         {mode!=="forgot" && (
         <div style={{display:"flex",marginBottom:24,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
           {["login","signup"].map(m=>(
@@ -1473,7 +1473,7 @@ function AuthPage(){
         </div>
         )}
         {mode==="forgot" && (
-          <p style={{textAlign:"center",color:"#374151",marginBottom:20,fontSize:14}}>Entrez votre email pour recevoir un lien de r\u00e9initialisation.</p>
+          <p style={{textAlign:"center",color:"#374151",marginBottom:20,fontSize:14}}>Entrez votre email pour recevoir un lien de réinitialisation.</p>
         )}
         <input placeholder="Email professionnel" value={email} onChange={e=>setEmail(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
         {mode!=="forgot" && (
@@ -1485,16 +1485,16 @@ function AuthPage(){
         {error && <p style={{color:"red",fontSize:13,marginBottom:12}}>{error}</p>}
         {success && <p style={{color:"#16a34a",fontSize:13,marginBottom:12}}>{success}</p>}
         <button onClick={handleSubmit} disabled={loading} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:"pointer"}}>
-          {loading?"...":(mode==="login"?"Se connecter":mode==="signup"?"Cr\u00e9er mon compte":"Envoyer le lien")}
+          {loading?"...":(mode==="login"?"Se connecter":mode==="signup"?"Créer mon compte":"Envoyer le lien")}
         </button>
         {mode==="login" && (
           <p style={{textAlign:"center",marginTop:14,fontSize:13}}>
-            <span onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Mot de passe oubli\u00e9 ?</span>
+            <span onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Mot de passe oublié ?</span>
           </p>
         )}
         {mode==="forgot" && (
           <p style={{textAlign:"center",marginTop:14,fontSize:13}}>
-            <span onClick={()=>{setMode("login");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Retour \u00e0 la connexion</span>
+            <span onClick={()=>{setMode("login");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Retour à la connexion</span>
           </p>
         )}
       </div>
@@ -1504,4 +1504,4 @@ function AuthPage(){
 
 export default function App(){
   return <AppContent/>;
-}                                
+}                                                                

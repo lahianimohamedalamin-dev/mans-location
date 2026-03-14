@@ -1,7 +1,5 @@
 import { supabase } from './supabase';
 import { useState, useEffect, useRef } from "react";
-import { AppProvider, useAppContext } from './contexts/AppContext';
-import FuelGauge from './components/FuelGauge';
 
 const DEF_FRAIS=[
   {id:1,label:"Rayure",montant:300},{id:2,label:"Jantes rayées",montant:300},
@@ -111,9 +109,6 @@ const CAR_COLORS=["Noir","Blanc","Gris","Argent","Bleu","Rouge","Vert","Beige","
 const CURRENT_YEAR=new Date().getFullYear();
 const CAR_YEARS=Array.from({length:30},(_,i)=>CURRENT_YEAR-i);
 
-function loadLS(key,def){try{const v=localStorage.getItem(key);return v?JSON.parse(v):def;}catch(e){return def;}}
-function saveLS(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}}
-
 function fuelLabel(pct){
   if(pct>=100)return"Plein";
   if(pct>=75)return"3/4";
@@ -204,9 +199,33 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   return parts.join("");
 }
 
-// FuelGauge déplacé vers src/components/FuelGauge.jsx
-// Utilisez <FuelGauge value={...} onChange={...} readOnly={...} />
-
+function FuelGauge({value,onChange,readOnly}){
+  const pct=parseInt(value)||0;
+  const col=fuelColor(pct);
+  const steps=[0,25,50,75,100];
+  return(
+    <div style={{userSelect:"none"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+        <span style={{fontSize:18}}>⛽</span>
+        <div style={{flex:1,background:"#e5e7eb",borderRadius:99,height:14,overflow:"hidden"}}>
+          <div style={{width:pct+"%",background:col,height:"100%",borderRadius:99,transition:"width .2s"}}/>
+        </div>
+        <span style={{fontSize:13,fontWeight:800,color:col,minWidth:40,textAlign:"right"}}>{pct}%</span>
+        <span style={{fontSize:11,color:"#6b7280",minWidth:50}}>{fuelLabel(pct)}</span>
+      </div>
+      {!readOnly&&(
+        <div style={{display:"flex",gap:4}}>
+          {steps.map(s=>(
+            <button key={s} onClick={()=>onChange(s)}
+              style={{flex:1,padding:"5px 0",borderRadius:7,border:`2px solid ${pct===s?col:"#e5e7eb"}`,background:pct===s?col:"white",color:pct===s?"white":"#374151",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+              {s===0?"Vide":s===100?"Plein":s+"%"}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SigPad({label,onSave}){
   const ref=useRef(null),drawing=useRef(false);
@@ -563,8 +582,8 @@ function calcTarifAuto(vehicle,nbJours,heuresLoc){
   return{prix:(vehicle.tarif||0)*nbJours,label:`Standard — ${vehicle.tarif} €/j × ${nbJours}j`};
 }
 
-<<<<<<< HEAD
-export default function App(){
+function AppContent(){
+  const[user,setUser]=useState(null);
   const[vehicles,setVehicles]=useState(INIT_V);
   const[contrats,setContrats]=useState([]);
   const[depenses,setDepenses]=useState([]);
@@ -577,7 +596,7 @@ export default function App(){
   const[touched,setTouched]=useState({});
   const[sigL,setSigL]=useState(null);
   const[sigLoc,setSigLoc]=useState(null);
-  const[vForm,setVForm]=useState({marque:"",modele:"",immat:"",couleur:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:""});
+  const[vForm,setVForm]=useState({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false});
   const[showAddV,setShowAddV]=useState(false);
   const[editV,setEditV]=useState(null);
   const[toast,setToast]=useState(null);
@@ -596,6 +615,12 @@ export default function App(){
   const[tarifsTemp,setTarifsTemp]=useState([]);
   const[ntarif,setNtarif]=useState({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});
 
+  useEffect(()=>{
+    supabase.auth.getSession().then(({data:{session}})=>setUser(session?.user||null));
+    const{data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>setUser(session?.user||null));
+    return()=>subscription.unsubscribe();
+  },[]);
+
   const sel=selId?vehicles.find(v=>v.id===selId)||null:null;
 
   function toast_(msg,type="success"){setToast({msg,type});setTimeout(()=>setToast(null),3500);}
@@ -607,40 +632,6 @@ export default function App(){
     if(diff<=0)return{jours:1,heures:24};
     return{jours:Math.max(1,Math.ceil(diff/86400000)),heures:Math.ceil(diff/3600000)};
   }
-=======
-function AppContent() {
-  const { state, saveHelpers } = useAppContext();
-  const { vehicles, contrats, depenses, profil, user } = state;
-  const [page,setPage]=useState("dashboard");
-  const [selId,setSelId]=useState(null);
-  const [form,setForm]=useState(FORM0);
-  const [photosDepart,setPhotosDepart]=useState([]);
-  const [touched,setTouched]=useState({});
-  const [sigL,setSigL]=useState(null);
-  const [sigLoc,setSigLoc]=useState(null);
-  const [vForm,setVForm]=useState({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false});
-  const [showAddV,setShowAddV]=useState(false);
-  const [editV,setEditV]=useState(null);
-  const [toast,setToast]=useState(null);
-  const [planMonth,setPlanMonth]=useState(new Date());
-  const [dForm,setDForm]=useState({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});
-  const [showAddD,setShowAddD]=useState(false);
-  const [profilEdit,setProfilEdit]=useState(false);
-  const [profilForm,setProfilForm]=useState(INIT_PROFIL);
-  const [docsId,setDocsId]=useState(null);
-  const [contratModalId,setContratModalId]=useState(null);
-  const [newDoc,setNewDoc]=useState({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});
-  const [lastContrat,setLastContrat]=useState(null);
-  const [retourContratId,setRetourContratId]=useState(null);
-  const [tarifsVehicleId,setTarifsVehicleId]=useState(null);
-  const [tarifsTemp,setTarifsTemp]=useState([]);
-  const [ntarif,setNtarif]=useState({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});
-
-
-
-
-
->>>>>>> d008e74b47c1280846c01c6d0cce25cdcc32547a
 
   useEffect(()=>{
     if(form.dateDebut&&form.dateFin){
@@ -649,35 +640,6 @@ function AppContent() {
     }
   },[form.dateDebut,form.dateFin,form.heureDebut,form.heureFin]);
 
-<<<<<<< HEAD
-=======
-  // --- RETURNS CONDITIONNELS APRÈS TOUS LES HOOKS ---
-  if(!user) return <AuthPage/>;
-
-  // Onboarding : si le profil n'est pas rempli, afficher le formulaire d'inscription des données
-  const profilVide=!profil.nom&&!profil.entreprise&&!profil.tel;
-  if(profilVide) return(
-    <div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"#f1f5f9",padding:16}}>
-      <div style={{background:"white",borderRadius:16,padding:"32px 28px",width:"100%",maxWidth:480,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
-        <h1 style={{textAlign:"center",marginBottom:6,fontSize:20,fontWeight:800}}>Bienvenue sur MAN'S LOCATION</h1>
-        <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:13}}>Remplissez vos informations pour commencer</p>
-        {[["nom","Nom complet *"],["entreprise","Nom de l'entreprise *"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["tel","Téléphone *"],["whatsapp","WhatsApp"],["snap","Snapchat"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
-          <div key={k} style={{marginBottom:10}}>
-            <label style={{fontSize:11,fontWeight:600,color:"#6b7280",display:"block",marginBottom:3}}>{l}</label>
-            <input placeholder={l.replace(" *","")} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:13,boxSizing:"border-box"}} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/>
-          </div>
-        ))}
-        <button onClick={()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel){return;}setProfil({...profilForm});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>
-          Commencer
-        </button>
-        <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
-      </div>
-    </div>
-  );
-
-  const sel=selId?state.vehicles.find(v=>v.id===selId)||null:null;
-
->>>>>>> d008e74b47c1280846c01c6d0cce25cdcc32547a
   const loues=contrats.filter(c=>new Date(c.dateFin)>=new Date()).map(c=>c.vehicleId);
   const statut=id=>loues.includes(id)?"loué":"disponible";
 
@@ -720,16 +682,16 @@ function AppContent() {
 
   function saveRetour(contratId,data){
     setRetours(r=>({...r,[contratId]:data}));
-    if(data.kmRetour){
-      const ct=contrats.find(x=>x.id===contratId);
-      if(ct)setVehicles(vs=>vs.map(v=>v.id===ct.vehicleId?{...v,km:parseFloat(data.kmRetour)}:v));
+    const ct=contrats.find(c=>c.id===contratId);
+    if(ct&&data.kmRetour){
+      setVehicles(vs=>vs.map(v=>v.id===ct.vehicleId?{...v,km:parseFloat(data.kmRetour)}:v));
     }
     toast_("✅ Retour enregistré !");setRetourContratId(null);
   }
 
   function addV(){
     if(!vForm.marque||!vForm.modele||!vForm.immat){toast_("Champs manquants","error");return;}
-    const base={...vForm,km:+vForm.km,tarif:+vForm.tarif,caution:+vForm.caution||1000,kmInclus:vForm.kmIllimite?999999:+vForm.kmInclus||0,prixKmSup:vForm.kmIllimite?0:+vForm.prixKmSup||0,annee:vForm.annee||""};  
+    const base={...vForm,km:+vForm.km,tarif:+vForm.tarif,caution:+vForm.caution||1000,kmInclus:+vForm.kmInclus||0,prixKmSup:+vForm.prixKmSup||0};
     if(editV){setVehicles(vs=>vs.map(x=>x.id===editV.id?{...x,...base}:x));toast_("Mis à jour");}
     else{setVehicles(vs=>[...vs,{id:Date.now(),...base,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[]}]);toast_("Véhicule ajouté !");}
     setVForm({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false});setShowAddV(false);setEditV(null);
@@ -821,24 +783,31 @@ function AppContent() {
     r.readAsDataURL(f);
   }
 
-<<<<<<< HEAD
+  if(!user) return <AuthPage/>;
+
+  const profilVide=!profil.nom&&!profil.entreprise&&!profil.tel;
+  if(profilVide) return(
+    <div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"#f1f5f9",padding:16}}>
+      <div style={{background:"white",borderRadius:16,padding:"32px 28px",width:"100%",maxWidth:480,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
+        <h1 style={{textAlign:"center",marginBottom:6,fontSize:20,fontWeight:800}}>Bienvenue sur MAN'S LOCATION</h1>
+        <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:13}}>Remplissez vos informations pour commencer</p>
+        {[["nom","Nom complet *"],["entreprise","Nom de l'entreprise *"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["tel","T\u00e9l\u00e9phone *"],["whatsapp","WhatsApp"],["snap","Snapchat"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
+          <div key={k} style={{marginBottom:10}}>
+            <label style={{fontSize:11,fontWeight:600,color:"#6b7280",display:"block",marginBottom:3}}>{l}</label>
+            <input placeholder={l.replace(" *","")} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:13,boxSizing:"border-box"}} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/>
+          </div>
+        ))}
+        <button onClick={()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel){return;}setProfil({...profilForm});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>
+          Commencer
+        </button>
+        <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
+      </div>
+    </div>
+  );
+
   return(
     <div style={{minHeight:"100vh",background:"#f0f4f8"}}>
       {/* NAV */}
-=======
-}
-
-export default function App() {
-  return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
-  );
-}
-
-function AppContent() {
-
->>>>>>> d008e74b47c1280846c01c6d0cce25cdcc32547a
       <nav style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",boxShadow:"0 2px 12px rgba(0,0,0,.3)",position:"sticky",top:0,zIndex:100}}>
         <div style={{maxWidth:1100,margin:"0 auto",padding:"0 10px",height:50,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
@@ -1020,18 +989,10 @@ function AppContent() {
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
                   <div><label style={LBL}>Marque *</label><select style={Inp()} value={vForm.marque} onChange={e=>setVForm(f=>({...f,marque:e.target.value,modele:""}))}><option value="">-- Choisir --</option>{Object.keys(CAR_BRANDS).sort().map(b=><option key={b} value={b}>{b}</option>)}</select></div>
                   <div><label style={LBL}>Modèle *</label><select style={Inp()} value={vForm.modele} onChange={e=>setVForm(f=>({...f,modele:e.target.value}))} disabled={!vForm.marque}><option value="">-- Choisir --</option>{(CAR_BRANDS[vForm.marque]||[]).map(m=><option key={m} value={m}>{m}</option>)}</select></div>
-                  <div><label style={LBL}>Immatriculation *</label><input style={Inp()} placeholder="AA-123-BB" value={vForm.immat} onChange={e=>setVForm(f=>({...f,immat:e.target.value}))}/></div>
+                  <div><label style={LBL}>Immatriculation *</label><input style={Inp()} value={vForm.immat} onChange={e=>setVForm(f=>({...f,immat:e.target.value}))}/></div>
                   <div><label style={LBL}>Couleur</label><select style={Inp()} value={vForm.couleur} onChange={e=>setVForm(f=>({...f,couleur:e.target.value}))}><option value="">-- Choisir --</option>{CAR_COLORS.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
                   <div><label style={LBL}>Année</label><select style={Inp()} value={vForm.annee} onChange={e=>setVForm(f=>({...f,annee:e.target.value}))}><option value="">-- Choisir --</option>{CAR_YEARS.map(y=><option key={y} value={y}>{y}</option>)}</select></div>
-                  {[["km","Km actuel"],["tarif","Tarif €/j"],["caution","Caution €"]].map(([k,l])=>(<div key={k}><label style={LBL}>{l}</label><input type="number" style={Inp()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:e.target.value}))}/></div>))}
-                  <div style={{gridColumn:"span 2"}}>
-                    <label style={{...LBL,display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
-                      <input type="checkbox" checked={vForm.kmIllimite} onChange={e=>setVForm(f=>({...f,kmIllimite:e.target.checked}))} style={{width:16,height:16,accentColor:"#2563eb"}}/>
-                      <span style={{fontSize:12,fontWeight:700,color:vForm.kmIllimite?"#2563eb":"#6b7280"}}>∞ Kilométrage illimité</span>
-                    </label>
-                  </div>
-                  {!vForm.kmIllimite&&<><div><label style={LBL}>Km inclus/loc</label><input type="number" style={Inp()} value={vForm.kmInclus} onChange={e=>setVForm(f=>({...f,kmInclus:e.target.value}))}/></div>
-                  <div><label style={LBL}>Prix km sup €</label><input type="number" style={Inp()} value={vForm.prixKmSup} onChange={e=>setVForm(f=>({...f,prixKmSup:e.target.value}))}/></div></>}
+                  {[["km","Km actuel"],["tarif","Tarif €/j"],["caution","Caution €"],["kmInclus","Km inclus/loc"],["prixKmSup","Prix km sup €"]].map(([k,l])=>(<div key={k}><label style={LBL}>{l}</label><input type="number" style={Inp()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:e.target.value}))}/></div>))}
                 </div>
                 <div style={{display:"flex",gap:8,marginTop:12}}>
                   <button onClick={addV} style={{background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>{editV?"Mettre à jour":"Ajouter"}</button>
@@ -1043,12 +1004,12 @@ function AppContent() {
               {vehicles.map(v=>(
                 <div key={v.id} style={{background:"white",borderRadius:16,boxShadow:"0 2px 10px rgba(0,0,0,.08)",overflow:"hidden",border:"1px solid #e5e7eb"}}>
                   <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div><div style={{color:"white",fontWeight:800,fontSize:15}}>{v.marque} {v.modele}{v.annee?" "+v.annee:""}</div><div style={{color:"rgba(255,255,255,.6)",fontSize:11}}>{v.immat} · {v.couleur}</div></div>
+                    <div><div style={{color:"white",fontWeight:800,fontSize:15}}>{v.marque} {v.modele}</div><div style={{color:"rgba(255,255,255,.6)",fontSize:11}}>{v.immat} · {v.couleur}</div></div>
                     <Badge s={statut(v.id)}/>
                   </div>
                   <div style={{padding:14}}>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-                      {[["💰 Tarif",v.tarif+" €/j"],["🔒 Caution",v.caution+" €"],["📏 Km inclus",v.kmInclus>=999999?"∞ Illimité":v.kmInclus+" km"],["⚡ Km sup",v.kmInclus>=999999?"—":v.prixKmSup+" €/km"],["🛣️ Km actuel",(v.km||0).toLocaleString()+" km"]].map(([l,val])=>(<div key={l} style={{background:"#f8fafc",borderRadius:8,padding:"7px 10px"}}><div style={{fontSize:9,color:"#9ca3af"}}>{l}</div><div style={{fontWeight:700,fontSize:12}}>{val}</div></div>))}
+                      {[["💰 Tarif",v.tarif+" €/j"],["🔒 Caution",v.caution+" €"],["📏 Km inclus",v.kmInclus+" km"],["⚡ Km sup",v.prixKmSup+" €/km"],["🛣️ Km actuel",(v.km||0).toLocaleString()+" km"]].map(([l,val])=>(<div key={l} style={{background:"#f8fafc",borderRadius:8,padding:"7px 10px"}}><div style={{fontSize:9,color:"#9ca3af"}}>{l}</div><div style={{fontWeight:700,fontSize:12}}>{val}</div></div>))}
                     </div>
                     {(v.tarifsSpeciaux||[]).length>0&&(
                       <div style={{background:"#fff7ed",borderRadius:8,padding:"6px 10px",marginBottom:10,border:"1px solid #fed7aa"}}>
@@ -1060,7 +1021,7 @@ function AppContent() {
                       <button onClick={()=>openTarifs(v)} style={{flex:1,padding:"6px 0",background:"#fff7ed",color:"#d97706",border:"1px solid #fed7aa",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>💰 Tarifs</button>
                       <button onClick={()=>setContratModalId(v.id)} style={{flex:1,padding:"6px 0",background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📄 Contrat</button>
                       <button onClick={()=>setDocsId(v.id)} style={{flex:1,padding:"6px 0",background:"#f0fdf4",color:"#16a34a",border:"1px solid #bbf7d0",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📁 Docs</button>
-                      <button onClick={()=>{setEditV(v);setVForm({marque:v.marque,modele:v.modele,immat:v.immat,couleur:v.couleur||"",annee:v.annee||"",km:v.km,tarif:v.tarif,caution:v.caution,kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0,kmIllimite:v.kmInclus>=999999});setShowAddV(true);}} style={{padding:"6px 10px",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
+                      <button onClick={()=>{setEditV(v);setVForm({marque:v.marque,modele:v.modele,immat:v.immat,couleur:v.couleur||"",annee:v.annee||"",km:v.km,tarif:v.tarif,caution:v.caution,kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0,kmIllimite:v.kmIllimite||false});setShowAddV(true);}} style={{padding:"6px 10px",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
                       <button onClick={()=>{if(window.confirm("Supprimer ?"))setVehicles(vs=>vs.filter(x=>x.id!==v.id));}} style={{padding:"6px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:11,cursor:"pointer"}}>🗑️</button>
                     </div>
                   </div>
@@ -1155,35 +1116,6 @@ function AppContent() {
                   </div>
                 </div>
 
-                <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
-                  <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>📄 Documents du locataire</h3>
-                  <p style={{fontSize:11,color:"#6b7280",marginBottom:12}}>Prenez en photo ou importez les documents du locataire</p>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
-                    {[["docPermis","Permis","🪪"],["docJustificatif","Justificatif domicile","🏠"],["docCNI","CNI","🆔"]].map(([k,label,icon])=>(
-                      <div key={k} style={{border:"2px dashed "+(form[k]?"#16a34a":"#d1d5db"),borderRadius:12,padding:12,textAlign:"center",background:form[k]?"#f0fdf4":"#fafafa",position:"relative"}}>
-                        <div style={{fontSize:28,marginBottom:4}}>{icon}</div>
-                        <div style={{fontSize:11,fontWeight:600,color:"#374151",marginBottom:6}}>{label}</div>
-                        {form[k]?(
-                          <div>
-                            <img src={form[k]} alt={label} style={{width:"100%",maxHeight:80,objectFit:"cover",borderRadius:6,marginBottom:6}}/>
-                            <button onClick={()=>setForm(f=>({...f,[k]:null}))} style={{fontSize:10,color:"#dc2626",background:"#fef2f2",border:"none",borderRadius:6,padding:"3px 8px",cursor:"pointer"}}>Supprimer</button>
-                          </div>
-                        ):(
-                          <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                            <label style={{fontSize:10,color:"#2563eb",cursor:"pointer",background:"#eff6ff",borderRadius:6,padding:"5px 8px",fontWeight:600}}>
-                              📁 Fichier
-                              <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setForm(fm=>({...fm,[k]:ev.target.result}));r.readAsDataURL(f);}}/>
-                            </label>
-                            <label style={{fontSize:10,color:"#2563eb",cursor:"pointer",background:"#eff6ff",borderRadius:6,padding:"5px 8px",fontWeight:600}}>
-                              📷 Photo
-                              <input type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setForm(fm=>({...fm,[k]:ev.target.result}));r.readAsDataURL(f);}}/>
-                            </label>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
                 <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>✍️ Signatures</h3>
                   <div style={{display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center"}}>
@@ -1463,16 +1395,8 @@ function AppContent() {
             </div>
             {profilEdit?(
               <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
-<<<<<<< HEAD
-                {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["tel","Téléphone"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
-                  <div key={k} style={{marginBottom:10}}>
-                    <label style={LBL}>{l}</label>
-                    <input style={Inp()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/>
-                  </div>
-=======
                 {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["tel","Téléphone"],["whatsapp","WhatsApp"],["snap","Snapchat"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
                   <div key={k} style={{marginBottom:10}}><label style={LBL}>{l}</label><input style={Inp()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>
->>>>>>> d008e74b47c1280846c01c6d0cce25cdcc32547a
                 ))}
                 <button onClick={()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Enregistrer</button>
               </div>
@@ -1497,9 +1421,6 @@ function AppContent() {
       </div>
     </div>
   );
-<<<<<<< HEAD
-}  
-=======
 }
 
 function AuthPage(){
@@ -1540,7 +1461,7 @@ function AuthPage(){
   return(
     <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"#f1f5f9"}}>
       <div style={{background:"white",borderRadius:16,padding:"40px 32px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
-        <h1 style={{textAlign:"center",marginBottom:8,fontSize:22,fontWeight:700}}>🚗 MAN'S LOCATION</h1>
+        <h1 style={{textAlign:"center",marginBottom:8,fontSize:22,fontWeight:700}}>{"\ud83d\ude97"} MAN'S LOCATION</h1>
         <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:14}}>Accès réservé aux professionnels</p>
         {mode!=="forgot" && (
         <div style={{display:"flex",marginBottom:24,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
@@ -1558,7 +1479,7 @@ function AuthPage(){
         {mode!=="forgot" && (
         <div style={{position:"relative",marginBottom:16}}>
           <input placeholder="Mot de passe" type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} style={{width:"100%",padding:"10px 12px",paddingRight:40,border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
-          <span onClick={()=>setShowPassword(!showPassword)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:18,color:"#6b7280",userSelect:"none"}}>{showPassword?"🙈":"👁️"}</span>
+          <span onClick={()=>setShowPassword(!showPassword)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:18,color:"#6b7280",userSelect:"none"}}>{showPassword?"\ud83d\ude48":"\ud83d\udc41\ufe0f"}</span>
         </div>
         )}
         {error && <p style={{color:"red",fontSize:13,marginBottom:12}}>{error}</p>}
@@ -1580,4 +1501,7 @@ function AuthPage(){
     </div>
   );
 }
->>>>>>> d008e74b47c1280846c01c6d0cce25cdcc32547a
+
+export default function App(){
+  return <AppContent/>;
+}                                                                

@@ -71,6 +71,7 @@ const TARIFS_PRESETS=[
 
 const INIT_V=[];
 const INIT_PROFIL={nom:"",entreprise:"",siren:"",siret:"",kbis:"",tel:"",whatsapp:"",snap:"",email:"",adresse:"",ville:"",iban:""};
+const INIT_AMENDE_FORM={vehicleId:"",dateInfraction:"",heureInfraction:"",montant:"",reference:"",notes:""};
 
 const CAR_BRANDS={
   "Renault":["Clio","Megane","Captur","Kadjar","Scenic","Twingo","Arkana","Austral","Zoe","Kangoo","Trafic","Master"],
@@ -603,6 +604,9 @@ function AppContent(){
   const[planMonth,setPlanMonth]=useState(new Date());
   const[dForm,setDForm]=useState({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});
   const[showAddD,setShowAddD]=useState(false);
+  const[amendes,setAmendes]=useState([]);
+  const[showAddA,setShowAddA]=useState(false);
+  const[amendeForm,setAmendeForm]=useState(INIT_AMENDE_FORM);
   const[profilEdit,setProfilEdit]=useState(false);
   const[profilForm,setProfilForm]=useState(INIT_PROFIL);
   const[docsId,setDocsId]=useState(null);
@@ -615,26 +619,70 @@ function AppContent(){
   const[tarifsTemp,setTarifsTemp]=useState([]);
   const[ntarif,setNtarif]=useState({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});
   const[dataLoaded,setDataLoaded]=useState(false);
+  const activeUserIdRef=useRef(null);
+
+  const resetUserData=useCallback(()=>{
+    setVehicles([]);
+    setContrats([]);
+    setDepenses([]);
+    setAmendes([]);
+    setRetours({});
+    setProfil(INIT_PROFIL);
+    setProfilForm(INIT_PROFIL);
+    setSelId(null);
+    setDocsId(null);
+    setContratModalId(null);
+    setLastContrat(null);
+    setRetourContratId(null);
+    setTarifsVehicleId(null);
+    setShowAddA(false);
+    setAmendeForm(INIT_AMENDE_FORM);
+    setDataLoaded(false);
+  },[]);
 
   useEffect(()=>{
-    supabase.auth.getSession().then(({data:{session}})=>setUser(session?.user||null));
+    const handleAuthRedirect = async()=>{
+      try{
+        const url=new URL(window.location.href);
+        const code=url.searchParams.get("code");
+        if(code){
+          await supabase.auth.exchangeCodeForSession(code);
+          window.history.replaceState({},document.title,url.pathname);
+          return;
+        }
+        if(window.location.hash.includes("access_token=")||window.location.hash.includes("error=")){
+          window.history.replaceState({},document.title,url.pathname);
+        }
+      }catch(err){
+        console.error("Erreur de redirection auth:",err);
+      }
+    };
+
+    handleAuthRedirect().then(()=>{
+      supabase.auth.getSession().then(({data:{session}})=>setUser(session?.user||null));
+    });
+
     const{data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>setUser(session?.user||null));
     return()=>subscription.unsubscribe();
   },[]);
 
   const loadAllData=useCallback(async(uid)=>{
+    setDataLoaded(false);
     try{
-      const[profRes,vehRes,conRes,depRes,retRes]=await Promise.all([
+      const[profRes,vehRes,conRes,depRes,retRes,amRes]=await Promise.all([
         supabase.from('profils').select('*').eq('user_id',uid).maybeSingle(),
         supabase.from('vehicules').select('*').eq('user_id',uid),
         supabase.from('contrats').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('depenses').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('retours').select('*').eq('user_id',uid),
+        supabase.from('amendes').select('*').eq('user_id',uid).order('date_infraction',{ascending:false}),
       ]);
-      if(profRes.data){
-        const p=profRes.data;
-        setProfil({nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||''});
-      }
+      if(activeUserIdRef.current!==uid) return;
+
+      const p=profRes.data||{};
+      setProfil({nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||''});
+      setProfilForm({nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||''});
+
       if(vehRes.data){
         setVehicles(vehRes.data.map(v=>({
           id:v.id,marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',
@@ -669,6 +717,26 @@ function AppContent(){
           categorie:d.categorie||'Carburant',date:d.date||'',vehicleId:d.vehicle_id||''
         })));
       }
+      if(amRes.error){
+        console.warn('Table amendes indisponible ou erreur de chargement:',amRes.error.message);
+      }else if(amRes.data){
+        setAmendes(amRes.data.map(a=>({
+          id:a.id,
+          vehicleId:a.vehicle_id||'',
+          vehicleLabel:a.vehicle_label||'',
+          contratId:a.contrat_id||null,
+          dateInfraction:a.date_infraction||'',
+          heureInfraction:a.heure_infraction||'',
+          montant:a.montant||0,
+          reference:a.reference||'',
+          notes:a.notes||'',
+          locNom:a.loc_nom||'',
+          locTel:a.loc_tel||'',
+          locEmail:a.loc_email||'',
+          locPermis:a.loc_permis||'',
+          statut:a.statut||'À traiter'
+        })));
+      }
       if(retRes.data){
         const rMap={};
         retRes.data.forEach(r=>{rMap[r.contrat_id]={
@@ -694,13 +762,19 @@ function AppContent(){
     }catch(e){
       console.error('Error loading data from Supabase:',e);
     }finally{
-      setDataLoaded(true);
+      if(activeUserIdRef.current===uid){
+        setDataLoaded(true);
+      }
     }
   },[]);
 
   useEffect(()=>{
-    if(user){loadAllData(user.id);}else{setDataLoaded(false);}
-  },[user,loadAllData]);
+    activeUserIdRef.current=user?.id||null;
+    resetUserData();
+    if(user){
+      loadAllData(user.id);
+    }
+  },[user,loadAllData,resetUserData]);
 
   const sel=selId?vehicles.find(v=>v.id===selId)||null:null;
 
@@ -803,6 +877,85 @@ function AppContent(){
     }
   }
 
+  function findContratByInfraction(vehicleId,dateInfraction,heureInfraction){
+    if(!vehicleId||!dateInfraction) return null;
+    const time=(heureInfraction||"00:00").slice(0,5);
+    const infractionAt=new Date(`${dateInfraction}T${time}`);
+    if(Number.isNaN(infractionAt.getTime())) return null;
+    return contrats.find(c=>{
+      if(c.vehicleId!==vehicleId) return false;
+      const start=new Date(`${c.dateDebut}T${(c.heureDebut||"00:00").slice(0,5)}`);
+      const end=new Date(`${c.dateFin}T${(c.heureFin||"23:59").slice(0,5)}`);
+      return infractionAt>=start&&infractionAt<=end;
+    })||null;
+  }
+
+  async function addAmende(){
+    if(!amendeForm.vehicleId||!amendeForm.dateInfraction||!amendeForm.heureInfraction){
+      toast_("Sélectionnez véhicule + date + heure de l'infraction","error");
+      return;
+    }
+    const ct=findContratByInfraction(amendeForm.vehicleId,amendeForm.dateInfraction,amendeForm.heureInfraction);
+    if(!ct){
+      toast_("Aucun locataire identifié pour ce créneau","error");
+      return;
+    }
+    const v=vehicles.find(x=>x.id===amendeForm.vehicleId);
+    const localId=Date.now();
+    const newAmende={
+      id:localId,
+      vehicleId:amendeForm.vehicleId,
+      vehicleLabel:v?`${v.marque} ${v.modele} · ${v.immat}`:ct.vehicleLabel,
+      contratId:ct.id,
+      dateInfraction:amendeForm.dateInfraction,
+      heureInfraction:amendeForm.heureInfraction,
+      montant:parseFloat(amendeForm.montant||0),
+      reference:amendeForm.reference||"",
+      notes:amendeForm.notes||"",
+      locNom:ct.locNom||"",
+      locTel:ct.locTel||"",
+      locEmail:ct.locEmail||"",
+      locPermis:ct.locPermis||"",
+      statut:"Locataire identifié"
+    };
+    setAmendes(a=>[newAmende,...a]);
+    setAmendeForm(INIT_AMENDE_FORM);
+    setShowAddA(false);
+    toast_("Amende enregistrée, locataire identifié ✅");
+
+    if(user){
+      const {data:ins,error:err}=await supabase.from('amendes').insert([{
+        user_id:user.id,
+        vehicle_id:newAmende.vehicleId,
+        vehicle_label:newAmende.vehicleLabel,
+        contrat_id:newAmende.contratId,
+        date_infraction:newAmende.dateInfraction,
+        heure_infraction:newAmende.heureInfraction,
+        montant:newAmende.montant,
+        reference:newAmende.reference,
+        notes:newAmende.notes,
+        loc_nom:newAmende.locNom,
+        loc_tel:newAmende.locTel,
+        loc_email:newAmende.locEmail,
+        loc_permis:newAmende.locPermis,
+        statut:newAmende.statut
+      }]).select().single();
+      if(err){
+        console.error('Error adding amende:',err);
+      }else if(ins){
+        setAmendes(list=>list.map(x=>x.id===localId?{...x,id:ins.id}:x));
+      }
+    }
+  }
+
+  async function deleteAmende(amendeId){
+    setAmendes(list=>list.filter(a=>a.id!==amendeId));
+    if(user){
+      const {error:err}=await supabase.from('amendes').delete().eq('id',amendeId).eq('user_id',user.id);
+      if(err) console.error('Error deleting amende:',err);
+    }
+  }
+
   async function addV(){
     if(!vForm.marque||!vForm.modele||!vForm.immat){toast_("Champs manquants","error");return;}
     const base={...vForm,km:+vForm.km,tarif:+vForm.tarif,caution:+vForm.caution||1000,kmInclus:+vForm.kmInclus||0,prixKmSup:+vForm.prixKmSup||0};
@@ -867,6 +1020,7 @@ function AppContent(){
   const contratV=vehicles.find(v=>v.id===contratModalId);
   const retourContrat=contrats.find(c=>c.id===retourContratId);
   const retourVehicle=retourContrat?vehicles.find(v=>v.id===retourContrat.vehicleId):null;
+  const amendeContratIdentifie=findContratByInfraction(amendeForm.vehicleId,amendeForm.dateInfraction,amendeForm.heureInfraction);
 
   const Inp=(ex={})=>({width:"100%",border:"1px solid #d1d5db",borderRadius:8,padding:"7px 10px",fontSize:12,boxSizing:"border-box",...ex});
   const LBL={fontSize:11,fontWeight:600,color:"#6b7280",display:"block",marginBottom:3};
@@ -877,6 +1031,7 @@ function AppContent(){
     {id:"nouveau",icon:"📝",label:"Contrat"},
     {id:"planning",icon:"📅",label:"Planning"},
     {id:"contrats",icon:"📋",label:"Contrats"},
+    {id:"amendes",icon:"🚨",label:"Amendes"},
     {id:"retours",icon:"🔄",label:"Retours"},
     {id:"finances",icon:"💰",label:"Finances"},
     {id:"profil",icon:"👤",label:"Profil"},
@@ -1440,6 +1595,7 @@ function AppContent(){
                     </div>
                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                       <button onClick={()=>rePrint(c)} style={{padding:"5px 10px",background:"#eff6ff",color:"#2563eb",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>⬇️ PDF</button>
+                      <button onClick={()=>{setPage("amendes");setShowAddA(true);setAmendeForm(f=>({...f,vehicleId:c.vehicleId,dateInfraction:new Date().toISOString().slice(0,10),heureInfraction:new Date().toTimeString().slice(0,5)}));}} style={{padding:"5px 10px",background:"#fff7ed",color:"#b45309",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>🚨 Amende</button>
                       {!r&&<button onClick={()=>setRetourContratId(c.id)} style={{padding:"5px 10px",background:"#f0fdf4",color:"#16a34a",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>🔄 Retour</button>}
                       <button onClick={async()=>{if(window.confirm("Supprimer ?")){setContrats(cs=>cs.filter(x=>x.id!==c.id));if(user){const{error:err}=await supabase.from('contrats').delete().eq('id',c.id).eq('user_id',user.id);if(err)console.error('Error deleting contrat:',err);}}}} style={{padding:"5px 10px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:7,fontSize:11,cursor:"pointer"}}>🗑️</button>
                     </div>
@@ -1447,6 +1603,98 @@ function AppContent(){
                 );
               })
             }
+          </div>
+        )}
+
+        {/* AMENDES */}
+        {page==="amendes"&&(
+          <div>
+            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>🚨 Gestion des amendes ({amendes.length})</h1>
+            <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:12,padding:12,marginBottom:14,color:"#9a3412",fontSize:12}}>
+              <b>Véhicule + date et heure de l'infraction = locataire identifié.</b> Permis et coordonnées sont récupérés depuis le contrat pour contacter le client et contester.
+            </div>
+
+            <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <h2 style={{fontWeight:700,fontSize:14}}>Nouvelle amende</h2>
+                <button onClick={()=>setShowAddA(v=>!v)} style={{background:"#b45309",color:"white",border:"none",borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>{showAddA?"Annuler":"+ Ajouter"}</button>
+              </div>
+
+              {showAddA&&(
+                <div style={{background:"#fffbeb",borderRadius:10,padding:12,border:"1px solid #fde68a"}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:8,marginBottom:8}}>
+                    <div>
+                      <label style={LBL}>Véhicule *</label>
+                      <select style={Inp()} value={amendeForm.vehicleId} onChange={e=>setAmendeForm(f=>({...f,vehicleId:e.target.value}))}>
+                        <option value="">Choisir</option>
+                        {vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele} · {v.immat}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={LBL}>Date infraction *</label>
+                      <input type="date" style={Inp()} value={amendeForm.dateInfraction} onChange={e=>setAmendeForm(f=>({...f,dateInfraction:e.target.value}))}/>
+                    </div>
+                    <div>
+                      <label style={LBL}>Heure infraction *</label>
+                      <input type="time" style={Inp()} value={amendeForm.heureInfraction} onChange={e=>setAmendeForm(f=>({...f,heureInfraction:e.target.value}))}/>
+                    </div>
+                    <div>
+                      <label style={LBL}>Montant (€)</label>
+                      <input type="number" style={Inp()} value={amendeForm.montant} onChange={e=>setAmendeForm(f=>({...f,montant:e.target.value}))}/>
+                    </div>
+                    <div>
+                      <label style={LBL}>Référence</label>
+                      <input style={Inp()} value={amendeForm.reference} onChange={e=>setAmendeForm(f=>({...f,reference:e.target.value}))}/>
+                    </div>
+                    <div style={{gridColumn:"1 / -1"}}>
+                      <label style={LBL}>Notes</label>
+                      <textarea rows={2} style={Inp({resize:"vertical"})} value={amendeForm.notes} onChange={e=>setAmendeForm(f=>({...f,notes:e.target.value}))}/>
+                    </div>
+                  </div>
+
+                  <div style={{background:"white",border:"1px dashed #fdba74",borderRadius:10,padding:10,marginBottom:10}}>
+                    {amendeContratIdentifie?(
+                      <div style={{fontSize:12,color:"#92400e"}}>
+                        <div style={{fontWeight:800,marginBottom:4}}>✅ Locataire identifié automatiquement</div>
+                        <div><b>{amendeContratIdentifie.locNom}</b> · {amendeContratIdentifie.locTel||"Téléphone non renseigné"}</div>
+                        <div>{amendeContratIdentifie.locEmail||"Email non renseigné"} {amendeContratIdentifie.locPermis?`· Permis: ${amendeContratIdentifie.locPermis}`:""}</div>
+                        <div style={{fontSize:11,color:"#b45309",marginTop:4}}>Contrat: {amendeContratIdentifie.vehicleLabel} ({amendeContratIdentifie.dateDebut} {amendeContratIdentifie.heureDebut} → {amendeContratIdentifie.dateFin} {amendeContratIdentifie.heureFin})</div>
+                      </div>
+                    ):(
+                      <div style={{fontSize:12,color:"#9ca3af"}}>Aucun contrat trouvé pour ce créneau.</div>
+                    )}
+                  </div>
+
+                  <button onClick={addAmende} style={{background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Enregistrer l'amende</button>
+                </div>
+              )}
+            </div>
+
+            <div style={{background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+              <h2 style={{fontWeight:700,fontSize:14,marginBottom:10}}>Amendes enregistrées</h2>
+              {amendes.length===0?(
+                <p style={{fontSize:12,color:"#9ca3af",textAlign:"center",padding:16}}>Aucune amende pour le moment.</p>
+              ):(
+                amendes.map(a=>(
+                  <div key={a.id} style={{padding:10,borderRadius:10,border:"1px solid #e5e7eb",marginBottom:8,background:"#fafafa"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"flex-start"}}>
+                      <div>
+                        <div style={{fontWeight:700,fontSize:13}}>{a.vehicleLabel||"Véhicule"}</div>
+                        <div style={{fontSize:11,color:"#6b7280"}}>Infraction: {a.dateInfraction} à {a.heureInfraction} {a.reference?`· Réf ${a.reference}`:""}</div>
+                        <div style={{fontSize:11,color:"#6b7280"}}>Locataire: <b>{a.locNom||"Non identifié"}</b> {a.locPermis?`· Permis: ${a.locPermis}`:""}</div>
+                        <div style={{fontSize:11,color:"#6b7280"}}>Contact: {a.locTel||"—"} {a.locEmail?`· ${a.locEmail}`:""}</div>
+                        {a.notes&&<div style={{fontSize:11,color:"#6b7280",marginTop:3}}>Note: {a.notes}</div>}
+                      </div>
+                      <div style={{textAlign:"right",minWidth:100}}>
+                        <div style={{fontWeight:800,color:"#b45309"}}>{(a.montant||0)} €</div>
+                        <div style={{fontSize:10,marginTop:2,color:"#16a34a",fontWeight:700}}>{a.statut||"Locataire identifié"}</div>
+                        <button onClick={()=>deleteAmende(a.id)} style={{marginTop:8,padding:"4px 8px",fontSize:10,border:"none",borderRadius:6,background:"#fef2f2",color:"#dc2626",cursor:"pointer"}}>🗑️</button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
 
@@ -1550,6 +1798,7 @@ function AppContent(){
                   <div key={k} style={{marginBottom:10}}><label style={LBL}>{l}</label><input style={Inp()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>
                 ))}
                 <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user){const{error:err}=await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});if(err)console.error('Error updating profile:',err);}}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Enregistrer</button>
+                <button onClick={()=>supabase.auth.signOut()} style={{marginTop:10,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
               </div>
             ):(
               <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
@@ -1564,6 +1813,7 @@ function AppContent(){
                     <span style={{fontSize:12,fontWeight:600}}>{v}</span>
                   </div>
                 ))}
+                <button onClick={()=>supabase.auth.signOut()} style={{marginTop:14,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
               </div>
             )}
           </div>

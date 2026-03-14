@@ -150,6 +150,16 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   const photosHtml=photosDepart.length>0?"<div style='margin-top:6px'><div style='font-size:10px;font-weight:bold;color:#555;margin-bottom:4px'>Photos d\u00e9part ("+photosDepart.length+")</div><div style='display:flex;flex-wrap:wrap;gap:6px'>"+photosDepart.map(p=>"<img src='"+p.data+"' style='width:120px;height:90px;object-fit:cover;border-radius:6px;border:1px solid #ddd'>").join("")+"</div></div>":"";
   const permisHtml=contrat.locPermis?"<div><span class='lbl'>Permis : </span><span class='val'>"+contrat.locPermis+"</span></div>":"";
   const tarifHtml=contrat.tarifLabel?"<div><span class='lbl'>Tarif appliqu\u00e9 : </span><span class='val'>"+contrat.tarifLabel+"</span></div>":"";
+  const ownerMeta=[["SIREN",profil.siren],["SIRET",profil.siret],["KBIS",profil.kbis],["Email",profil.email],["IBAN",profil.iban]].filter(([,v])=>v);
+  const ownerMetaHeader=ownerMeta.length?"<p>"+ownerMeta.map(([l,v])=>l+" : "+v).join(" | ")+"</p>":"";
+  const ownerContactLine=[profil.tel?"T\u00e9l : "+profil.tel:"",profil.adresse?"Adresse : "+profil.adresse:""]
+    .filter(Boolean).join(" | ");
+  const ownerContactHeader=ownerContactLine?"<p>"+ownerContactLine+"</p>":"";
+  const ownerTelRow=profil.tel?"<span><span class='lbl'>T\u00e9l : </span><span class='val'>"+profil.tel+"</span></span>":"";
+  const ownerAdresseRow=profil.adresse?"<div><span class='lbl'>Adresse : </span><span class='val'>"+profil.adresse+"</span></div>":"";
+  const ownerMetaSection=ownerMeta.length
+    ?"<div style='margin-top:4px;font-size:10px;color:#374151'>"+ownerMeta.map(([l,v])=>"<div><span class='lbl'>"+l+" : </span><span class='val'>"+v+"</span></div>").join("")+"</div>"
+    :"";
   const parts=[
     "<!DOCTYPE html><html><head><meta charset='utf-8'><title>Contrat "+contrat.locNom+"</title>",
     "<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:11px;color:#111}",
@@ -167,11 +177,11 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
     ".tot{background:#0a1940;color:#fff;padding:8px 14px;border-radius:6px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}",
     "@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>",
     "<div class='header'><h1>"+(profil.entreprise||"MAN'S LOCATION")+"</h1><p>LOCATION DE CITADINES EN IDF</p>",
-    "<p>SIRET : "+(profil.siret||profil.siren)+" | T\u00e9l : "+profil.tel+" | "+profil.adresse+"</p></div>",
+    ownerMetaHeader+ownerContactHeader+"</div>",
     "<div class='body'><div class='title'>Contrat de Location de V\u00e9hicule</div>",
     "<div style='margin-bottom:8px'><div class='st'>Le Propri\u00e9taire (Loueur)</div>",
-    "<div class='row'><span><span class='lbl'>Nom : </span><span class='val'>"+profil.nom+"</span></span><span><span class='lbl'>T\u00e9l : </span><span class='val'>"+profil.tel+"</span></span></div>",
-    "<div><span class='lbl'>Adresse : </span><span class='val'>"+profil.adresse+"</span></div></div>",
+    "<div class='row'><span><span class='lbl'>Nom : </span><span class='val'>"+profil.nom+"</span></span>"+ownerTelRow+"</div>",
+    ownerAdresseRow+ownerMetaSection+"</div>",
     "<div style='margin-bottom:8px'><div class='st'>Le Locataire</div>",
     "<div class='row'><span><span class='lbl'>Nom : </span><span class='val'>"+contrat.locNom.toUpperCase()+"</span></span><span><span class='lbl'>T\u00e9l : </span><span class='val'>"+contrat.locTel+"</span></span></div>",
     "<div><span class='lbl'>Adresse : </span><span class='val'>"+contrat.locAdresse+"</span></div>",

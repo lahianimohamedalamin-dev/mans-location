@@ -166,7 +166,7 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
     ".tot{background:#0a1940;color:#fff;padding:8px 14px;border-radius:6px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}",
     "@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>",
     "<div class='header'><h1>"+(profil.entreprise||"MAN'S LOCATION")+"</h1><p>LOCATION DE CITADINES EN IDF</p>",
-    "<p>SIREN : "+profil.siren+" | T\u00e9l : "+profil.tel+" | "+profil.adresse+"</p></div>",
+    "<p>SIRET : "+(profil.siret||profil.siren)+" | T\u00e9l : "+profil.tel+" | "+profil.adresse+"</p></div>",
     "<div class='body'><div class='title'>Contrat de Location de V\u00e9hicule</div>",
     "<div style='margin-bottom:8px'><div class='st'>Le Propri\u00e9taire (Loueur)</div>",
     "<div class='row'><span><span class='lbl'>Nom : </span><span class='val'>"+profil.nom+"</span></span><span><span class='lbl'>T\u00e9l : </span><span class='val'>"+profil.tel+"</span></span></div>",
@@ -680,7 +680,14 @@ function AppContent(){
     dlFile(html,`Contrat_${c.locNom.replace(/\s+/g,"_")}_${c.dateDebut}.html`);
   }
 
-  function saveRetour(contratId,data){setRetours(r=>({...r,[contratId]:data}));toast_("✅ Retour enregistré !");setRetourContratId(null);}
+  function saveRetour(contratId,data){
+    setRetours(r=>({...r,[contratId]:data}));
+    const ct=contrats.find(c=>c.id===contratId);
+    if(ct&&data.kmRetour){
+      setVehicles(vs=>vs.map(v=>v.id===ct.vehicleId?{...v,km:parseFloat(data.kmRetour)}:v));
+    }
+    toast_("✅ Retour enregistré !");setRetourContratId(null);
+  }
 
   function addV(){
     if(!vForm.marque||!vForm.modele||!vForm.immat){toast_("Champs manquants","error");return;}
@@ -1014,7 +1021,7 @@ function AppContent(){
                       <button onClick={()=>openTarifs(v)} style={{flex:1,padding:"6px 0",background:"#fff7ed",color:"#d97706",border:"1px solid #fed7aa",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>💰 Tarifs</button>
                       <button onClick={()=>setContratModalId(v.id)} style={{flex:1,padding:"6px 0",background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📄 Contrat</button>
                       <button onClick={()=>setDocsId(v.id)} style={{flex:1,padding:"6px 0",background:"#f0fdf4",color:"#16a34a",border:"1px solid #bbf7d0",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📁 Docs</button>
-                      <button onClick={()=>{setEditV(v);setVForm({marque:v.marque,modele:v.modele,immat:v.immat,couleur:v.couleur||"",km:v.km,tarif:v.tarif,caution:v.caution,kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0});setShowAddV(true);}} style={{padding:"6px 10px",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
+                      <button onClick={()=>{setEditV(v);setVForm({marque:v.marque,modele:v.modele,immat:v.immat,couleur:v.couleur||"",annee:v.annee||"",km:v.km,tarif:v.tarif,caution:v.caution,kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0,kmIllimite:v.kmIllimite||false});setShowAddV(true);}} style={{padding:"6px 10px",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
                       <button onClick={()=>{if(window.confirm("Supprimer ?"))setVehicles(vs=>vs.filter(x=>x.id!==v.id));}} style={{padding:"6px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:11,cursor:"pointer"}}>🗑️</button>
                     </div>
                   </div>
@@ -1497,4 +1504,4 @@ function AuthPage(){
 
 export default function App(){
   return <AppContent/>;
-}                
+}                                

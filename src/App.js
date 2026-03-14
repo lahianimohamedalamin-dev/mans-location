@@ -1565,6 +1565,9 @@ function AppContent(){
                   </div>
                 ))}
               </div>
+<button onClick={()=>supabase.auth.signOut()} style={{width:"100%",marginTop:16,padding:"12px",background:"#ef4444",color:"white",border:"none",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+  🚪 Déconnexion
+</button>
             )}
           </div>
         )}

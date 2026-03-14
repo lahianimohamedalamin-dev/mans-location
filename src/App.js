@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 const DEF_FRAIS=[
   {id:1,label:"Rayure",montant:300},{id:2,label:"Jantes rayées",montant:300},
@@ -614,12 +614,79 @@ function AppContent(){
   const[tarifsVehicleId,setTarifsVehicleId]=useState(null);
   const[tarifsTemp,setTarifsTemp]=useState([]);
   const[ntarif,setNtarif]=useState({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});
+  const[dataLoaded,setDataLoaded]=useState(false);
 
   useEffect(()=>{
     supabase.auth.getSession().then(({data:{session}})=>setUser(session?.user||null));
     const{data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>setUser(session?.user||null));
     return()=>subscription.unsubscribe();
   },[]);
+
+  const loadAllData=useCallback(async(uid)=>{
+    try{
+      const[profRes,vehRes,conRes,depRes,retRes]=await Promise.all([
+        supabase.from('profiles').select('*').eq('user_id',uid).maybeSingle(),
+        supabase.from('vehicles').select('*').eq('user_id',uid),
+        supabase.from('contrats').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
+        supabase.from('depenses').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
+        supabase.from('retours').select('*').eq('user_id',uid),
+      ]);
+      if(profRes.data){
+        const p=profRes.data;
+        setProfil({nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||''});
+      }
+      if(vehRes.data){
+        setVehicles(vehRes.data.map(v=>({
+          id:v.id,marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',
+          annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,
+          kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0,kmIllimite:v.km_illimite||false,
+          docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),
+          clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),
+          tarifsSpeciaux:v.tarifs_speciaux||[]
+        })));
+      }
+      if(conRes.data){
+        setContrats(conRes.data.map(c=>({
+          id:c.id,locNom:c.loc_nom||'',locAdresse:c.loc_adresse||'',locTel:c.loc_tel||'',
+          locEmail:c.loc_email||'',locPermis:c.loc_permis||'',
+          dateDebut:c.date_debut||'',heureDebut:c.heure_debut||'10:00',
+          dateFin:c.date_fin||'',heureFin:c.heure_fin||'10:00',
+          paiement:c.paiement||'especes',cautionMode:c.caution_mode||'especes',
+          kmDepart:c.km_depart||'',nbJours:c.nb_jours||1,heuresLoc:c.heures_loc||24,
+          carburantDepart:c.carburant_depart??100,
+          exterieurPropre:c.exterieur_propre,interieurPropre:c.interieur_propre,
+          vehicleId:c.vehicle_id,vehicleLabel:c.vehicle_label||'',immat:c.immat||'',
+          sigL:c.sig_l||null,sigLoc:c.sig_loc||null,
+          totalCalc:c.total_calc||0,tarifLabel:c.tarif_label||'',
+          photosDepart:c.photos_depart||[],
+          fraisSnap:c.frais_snap||[],clausesSnap:c.clauses_snap||[],
+          kmInclus:c.km_inclus,prixKmSup:c.prix_km_sup
+        })));
+      }
+      if(depRes.data){
+        setDepenses(depRes.data.map(d=>({
+          id:d.id,label:d.label||'',montant:d.montant||0,
+          categorie:d.categorie||'Carburant',date:d.date||'',vehicleId:d.vehicle_id||''
+        })));
+      }
+      if(retRes.data){
+        const rMap={};
+        retRes.data.forEach(r=>{rMap[r.contrat_id]={
+          ...r.data,
+          id:r.id
+        };});
+        setRetours(rMap);
+      }
+    }catch(e){
+      console.error('Error loading data from Supabase:',e);
+    }finally{
+      setDataLoaded(true);
+    }
+  },[]);
+
+  useEffect(()=>{
+    if(user){loadAllData(user.id);}else{setDataLoaded(false);}
+  },[user,loadAllData]);
 
   const sel=selId?vehicles.find(v=>v.id===selId)||null:null;
 
@@ -659,7 +726,7 @@ function AppContent(){
   const req=["locNom","locAdresse","locTel","dateDebut","dateFin"];
   const inv=k=>touched[k]&&!form[k];
 
-  function saveContrat(){
+  async function saveContrat(){
     const miss=req.filter(k=>!form[k]);
     if(!sel||miss.length>0){const t={};req.forEach(k=>t[k]=true);setTouched(t);toast_("Remplissez tous les champs obligatoires","error");return;}
     const ta=calcTarifAuto(sel,form.nbJours,form.heuresLoc);
@@ -672,6 +739,22 @@ function AppContent(){
     setLastContrat({contrat:c,vehicle:sel,html});
     toast_("✅ Contrat créé !");
     setForm(FORM0);setTouched({});setSelId(null);setSigL(null);setSigLoc(null);setPhotosDepart([]);
+    if(user){
+      const{data:ins,error:err}=await supabase.from('contrats').insert([{
+        user_id:user.id,loc_nom:c.locNom,loc_adresse:c.locAdresse,loc_tel:c.locTel,
+        loc_email:c.locEmail,loc_permis:c.locPermis,
+        date_debut:c.dateDebut,heure_debut:c.heureDebut,date_fin:c.dateFin,heure_fin:c.heureFin,
+        paiement:c.paiement,caution_mode:c.cautionMode,km_depart:c.kmDepart,
+        nb_jours:c.nbJours,heures_loc:c.heuresLoc,carburant_depart:c.carburantDepart,
+        exterieur_propre:c.exterieurPropre,interieur_propre:c.interieurPropre,
+        vehicle_id:c.vehicleId,vehicle_label:c.vehicleLabel,immat:c.immat,
+        sig_l:c.sigL,sig_loc:c.sigLoc,total_calc:c.totalCalc,tarif_label:c.tarifLabel,
+        photos_depart:c.photosDepart,frais_snap:c.fraisSnap,clauses_snap:c.clausesSnap,
+        km_inclus:c.kmInclus,prix_km_sup:c.prixKmSup
+      }]).select().single();
+      if(!err&&ins){setContrats(p=>p.map(x=>x.id===c.id?{...x,id:ins.id}:x));}
+      if(err)console.error('Error saving contrat:',err);
+    }
   }
 
   function rePrint(c){
@@ -680,28 +763,66 @@ function AppContent(){
     dlFile(html,`Contrat_${c.locNom.replace(/\s+/g,"_")}_${c.dateDebut}.html`);
   }
 
-  function saveRetour(contratId,data){
+  async function saveRetour(contratId,data){
     setRetours(r=>({...r,[contratId]:data}));
     const ct=contrats.find(c=>c.id===contratId);
     if(ct&&data.kmRetour){
       setVehicles(vs=>vs.map(v=>v.id===ct.vehicleId?{...v,km:parseFloat(data.kmRetour)}:v));
     }
     toast_("✅ Retour enregistré !");setRetourContratId(null);
+    if(user){
+      const{error:err}=await supabase.from('retours').insert([{
+        user_id:user.id,contrat_id:contratId,data:data
+      }]);
+      if(err)console.error('Error saving retour:',err);
+      if(ct&&data.kmRetour){
+        await supabase.from('vehicles').update({km:parseFloat(data.kmRetour)}).eq('id',ct.vehicleId).eq('user_id',user.id);
+      }
+    }
   }
 
-  function addV(){
+  async function addV(){
     if(!vForm.marque||!vForm.modele||!vForm.immat){toast_("Champs manquants","error");return;}
     const base={...vForm,km:+vForm.km,tarif:+vForm.tarif,caution:+vForm.caution||1000,kmInclus:+vForm.kmInclus||0,prixKmSup:+vForm.prixKmSup||0};
-    if(editV){setVehicles(vs=>vs.map(x=>x.id===editV.id?{...x,...base}:x));toast_("Mis à jour");}
-    else{setVehicles(vs=>[...vs,{id:Date.now(),...base,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[]}]);toast_("Véhicule ajouté !");}
+    if(editV){
+      setVehicles(vs=>vs.map(x=>x.id===editV.id?{...x,...base}:x));toast_("Mis à jour");
+      if(user){
+        const{error:err}=await supabase.from('vehicles').update({
+          marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,
+          annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,
+          kmInclus:base.kmInclus,prixKmSup:base.prixKmSup,km_illimite:base.kmIllimite
+        }).eq('id',editV.id).eq('user_id',user.id);
+        if(err)console.error('Error updating vehicle:',err);
+      }
+    }else{
+      const localId=Date.now();
+      const newV={id:localId,...base,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[]};
+      setVehicles(vs=>[...vs,newV]);toast_("Véhicule ajouté !");
+      if(user){
+        const{data:ins,error:err}=await supabase.from('vehicles').insert([{
+          user_id:user.id,marque:base.marque,modele:base.modele,immat:base.immat,
+          couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,
+          caution:base.caution,kmInclus:base.kmInclus,prixKmSup:base.prixKmSup,
+          km_illimite:base.kmIllimite,docs:[],
+          frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),
+          tarifs_speciaux:[]
+        }]).select().single();
+        if(!err&&ins){setVehicles(vs=>vs.map(x=>x.id===localId?{...x,id:ins.id}:x));}
+        if(err)console.error('Error adding vehicle:',err);
+      }
+    }
     setVForm({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false});setShowAddV(false);setEditV(null);
   }
 
   function openTarifs(v){setTarifsVehicleId(v.id);setTarifsTemp((v.tarifsSpeciaux||[]).map(t=>({...t})));setNtarif({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});}
-  function saveTarifs(){
+  async function saveTarifs(){
     if(!tarifsVehicleId)return;
     setVehicles(vs=>vs.map(v=>v.id===tarifsVehicleId?{...v,tarifsSpeciaux:[...tarifsTemp]}:v));
     setTarifsVehicleId(null);toast_("Tarifs enregistrés !");
+    if(user){
+      const{error:err}=await supabase.from('vehicles').update({tarifs_speciaux:[...tarifsTemp]}).eq('id',tarifsVehicleId).eq('user_id',user.id);
+      if(err)console.error('Error saving tarifs:',err);
+    }
   }
   const tarifsVehicle=tarifsVehicleId?vehicles.find(v=>v.id===tarifsVehicleId):null;
 
@@ -784,6 +905,14 @@ function AppContent(){
   }
 
   if(!user) return <AuthPage/>;
+  if(!dataLoaded) return(
+    <div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"#f1f5f9"}}>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontSize:36,marginBottom:12}}>⏳</div>
+        <p style={{color:"#6b7280",fontSize:14}}>Chargement des données...</p>
+      </div>
+    </div>
+  );
 
   const profilVide=!profil.nom&&!profil.entreprise&&!profil.tel;
   if(profilVide) return(
@@ -797,7 +926,7 @@ function AppContent(){
             <input placeholder={l.replace(" *","")} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:13,boxSizing:"border-box"}} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/>
           </div>
         ))}
-        <button onClick={()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel){return;}setProfil({...profilForm});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>
+        <button onClick={async()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel){return;}setProfil({...profilForm});if(user){const{error:err}=await supabase.from('profiles').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});if(err)console.error('Error saving profile:',err);}}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>
           Commencer
         </button>
         <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
@@ -828,7 +957,7 @@ function AppContent(){
       {toast&&<div style={{position:"fixed",top:14,right:14,zIndex:10000,padding:"10px 16px",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,.15)",color:"white",fontSize:12,fontWeight:600,background:toast.type==="error"?"#ef4444":"#16a34a",maxWidth:320}}>{toast.msg}</div>}
 
       {/* MODALS */}
-      {contratModalId&&contratV&&<ContratModal vehicle={contratV} onClose={()=>setContratModalId(null)} onSave={(fr,cl)=>{setVehicles(vs=>vs.map(v=>v.id===contratModalId?{...v,frais:fr,clauses:cl}:v));setContratModalId(null);toast_("Mis à jour !");}}/>}
+      {contratModalId&&contratV&&<ContratModal vehicle={contratV} onClose={()=>setContratModalId(null)} onSave={async(fr,cl)=>{setVehicles(vs=>vs.map(v=>v.id===contratModalId?{...v,frais:fr,clauses:cl}:v));setContratModalId(null);toast_("Mis à jour !");if(user){const{error:err}=await supabase.from('vehicles').update({frais:fr,clauses:cl}).eq('id',contratModalId).eq('user_id',user.id);if(err)console.error('Error updating frais/clauses:',err);}}}/>}
       {retourContratId&&retourContrat&&<RetourModal contrat={retourContrat} vehicle={retourVehicle} onClose={()=>setRetourContratId(null)} onSave={data=>saveRetour(retourContratId,data)}/>}
 
       {/* Modal tarifs */}
@@ -891,7 +1020,7 @@ function AppContent(){
                   <div><label style={LBL}>Expiration</label><input type="date" style={Inp()} value={newDoc.expiration} onChange={e=>setNewDoc(d=>({...d,expiration:e.target.value}))}/></div>
                   <div><label style={LBL}>Fichier</label><input type="file" accept=".pdf,image/*" style={{width:"100%",fontSize:11}} onChange={pickDocFile}/></div>
                 </div>
-                <button onClick={()=>{if(!newDoc.nom){toast_("Donnez un nom","error");return;}setVehicles(vs=>vs.map(v=>v.id===docsId?{...v,docs:[...(v.docs||[]),{id:Date.now(),...newDoc}]}:v));setNewDoc({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});toast_("Document ajouté !");}} style={{marginTop:8,background:"#2563eb",color:"white",border:"none",borderRadius:7,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+                <button onClick={async()=>{if(!newDoc.nom){toast_("Donnez un nom","error");return;}const docEntry={id:Date.now(),...newDoc};const updatedDocs=[...(docsV.docs||[]),docEntry];setVehicles(vs=>vs.map(v=>v.id===docsId?{...v,docs:updatedDocs}:v));setNewDoc({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});toast_("Document ajouté !");if(user){const{error:err}=await supabase.from('vehicles').update({docs:updatedDocs}).eq('id',docsId).eq('user_id',user.id);if(err)console.error('Error adding doc:',err);}}} style={{marginTop:8,background:"#2563eb",color:"white",border:"none",borderRadius:7,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
               </div>
               {(!docsV.docs||docsV.docs.length===0)
                 ?<div style={{textAlign:"center",color:"#9ca3af",padding:24}}><div style={{fontSize:32}}>📂</div><p>Aucun document</p></div>
@@ -903,7 +1032,7 @@ function AppContent(){
                     </div>
                     <div style={{display:"flex",gap:5}}>
                       {doc.fileData&&<button onClick={()=>{const a=document.createElement("a");a.href=doc.fileData;a.download=doc.file||doc.nom;a.click();}} style={{padding:"3px 7px",background:"#dbeafe",color:"#1d4ed8",border:"none",borderRadius:5,cursor:"pointer",fontSize:11}}>⬇️</button>}
-                      <button onClick={()=>{setVehicles(vs=>vs.map(v=>v.id===docsId?{...v,docs:(v.docs||[]).filter(d=>d.id!==doc.id)}:v));toast_("Supprimé");}} style={{padding:"3px 7px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:11}}>🗑️</button>
+                      <button onClick={async()=>{const updatedDocs=(docsV.docs||[]).filter(d=>d.id!==doc.id);setVehicles(vs=>vs.map(v=>v.id===docsId?{...v,docs:updatedDocs}:v));toast_("Supprimé");if(user){const{error:err}=await supabase.from('vehicles').update({docs:updatedDocs}).eq('id',docsId).eq('user_id',user.id);if(err)console.error('Error deleting doc:',err);}}} style={{padding:"3px 7px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:11}}>🗑️</button>
                     </div>
                   </div>);
                 })
@@ -1022,7 +1151,7 @@ function AppContent(){
                       <button onClick={()=>setContratModalId(v.id)} style={{flex:1,padding:"6px 0",background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📄 Contrat</button>
                       <button onClick={()=>setDocsId(v.id)} style={{flex:1,padding:"6px 0",background:"#f0fdf4",color:"#16a34a",border:"1px solid #bbf7d0",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📁 Docs</button>
                       <button onClick={()=>{setEditV(v);setVForm({marque:v.marque,modele:v.modele,immat:v.immat,couleur:v.couleur||"",annee:v.annee||"",km:v.km,tarif:v.tarif,caution:v.caution,kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0,kmIllimite:v.kmIllimite||false});setShowAddV(true);}} style={{padding:"6px 10px",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
-                      <button onClick={()=>{if(window.confirm("Supprimer ?"))setVehicles(vs=>vs.filter(x=>x.id!==v.id));}} style={{padding:"6px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:11,cursor:"pointer"}}>🗑️</button>
+                      <button onClick={async()=>{if(window.confirm("Supprimer ?")){setVehicles(vs=>vs.filter(x=>x.id!==v.id));if(user){const{error:err}=await supabase.from('vehicles').delete().eq('id',v.id).eq('user_id',user.id);if(err)console.error('Error deleting vehicle:',err);}}}} style={{padding:"6px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:11,cursor:"pointer"}}>🗑️</button>
                     </div>
                   </div>
                 </div>
@@ -1290,7 +1419,7 @@ function AppContent(){
                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                       <button onClick={()=>rePrint(c)} style={{padding:"5px 10px",background:"#eff6ff",color:"#2563eb",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>⬇️ PDF</button>
                       {!r&&<button onClick={()=>setRetourContratId(c.id)} style={{padding:"5px 10px",background:"#f0fdf4",color:"#16a34a",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>🔄 Retour</button>}
-                      <button onClick={()=>{if(window.confirm("Supprimer ?"))setContrats(cs=>cs.filter(x=>x.id!==c.id));}} style={{padding:"5px 10px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:7,fontSize:11,cursor:"pointer"}}>🗑️</button>
+                      <button onClick={async()=>{if(window.confirm("Supprimer ?")){setContrats(cs=>cs.filter(x=>x.id!==c.id));if(user){const{error:err}=await supabase.from('contrats').delete().eq('id',c.id).eq('user_id',user.id);if(err)console.error('Error deleting contrat:',err);}}}} style={{padding:"5px 10px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:7,fontSize:11,cursor:"pointer"}}>🗑️</button>
                     </div>
                   </div>
                 );
@@ -1370,7 +1499,7 @@ function AppContent(){
                     <div><label style={LBL}>Date</label><input type="date" style={Inp()} value={dForm.date} onChange={e=>setDForm(f=>({...f,date:e.target.value}))}/></div>
                     <div><label style={LBL}>Véhicule</label><select style={Inp()} value={dForm.vehicleId} onChange={e=>setDForm(f=>({...f,vehicleId:e.target.value}))}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele}</option>)}</select></div>
                   </div>
-                  <button onClick={()=>{if(!dForm.label||!dForm.montant){toast_("Remplissez libellé et montant","error");return;}setDepenses(d=>[{id:Date.now(),...dForm},...d]);setDForm({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});setShowAddD(false);toast_("Dépense ajoutée");}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+                  <button onClick={async()=>{if(!dForm.label||!dForm.montant){toast_("Remplissez libellé et montant","error");return;}const localId=Date.now();const newDep={id:localId,...dForm};setDepenses(d=>[newDep,...d]);setDForm({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});setShowAddD(false);toast_("Dépense ajoutée");if(user){const{data:ins,error:err}=await supabase.from('depenses').insert([{user_id:user.id,label:newDep.label,montant:parseFloat(newDep.montant),categorie:newDep.categorie,date:newDep.date,vehicle_id:newDep.vehicleId||null}]).select().single();if(!err&&ins){setDepenses(ds=>ds.map(x=>x.id===localId?{...x,id:ins.id}:x));}if(err)console.error('Error adding depense:',err);}}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
                 </div>
               )}
               {depenses.length===0
@@ -1378,7 +1507,7 @@ function AppContent(){
                 :depenses.map(d=>(
                   <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px",borderRadius:8,background:"#f9fafb",marginBottom:5}}>
                     <div><div style={{fontWeight:600,fontSize:12}}>{d.label}</div><div style={{fontSize:10,color:"#9ca3af"}}>{d.categorie} · {d.date}</div></div>
-                    <div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontWeight:700,color:"#ef4444"}}>-{d.montant} €</span><button onClick={()=>setDepenses(ds=>ds.filter(x=>x.id!==d.id))} style={{padding:"2px 6px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:10}}>🗑️</button></div>
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontWeight:700,color:"#ef4444"}}>-{d.montant} €</span><button onClick={async()=>{setDepenses(ds=>ds.filter(x=>x.id!==d.id));if(user){const{error:err}=await supabase.from('depenses').delete().eq('id',d.id).eq('user_id',user.id);if(err)console.error('Error deleting depense:',err);}}} style={{padding:"2px 6px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:10}}>🗑️</button></div>
                   </div>
                 ))
               }
@@ -1398,7 +1527,7 @@ function AppContent(){
                 {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["tel","Téléphone"],["whatsapp","WhatsApp"],["snap","Snapchat"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
                   <div key={k} style={{marginBottom:10}}><label style={LBL}>{l}</label><input style={Inp()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>
                 ))}
-                <button onClick={()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Enregistrer</button>
+                <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user){const{error:err}=await supabase.from('profiles').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});if(err)console.error('Error updating profile:',err);}}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Enregistrer</button>
               </div>
             ):(
               <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
@@ -1504,4 +1633,4 @@ function AuthPage(){
 
 export default function App(){
   return <AppContent/>;
-}                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

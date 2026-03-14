@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import { useState, useEffect, useRef } from "react";
+import { AppProvider, useAppContext } from './contexts/AppContext';
+import FuelGauge from './components/FuelGauge';
 
 const DEF_FRAIS=[
   {id:1,label:"Rayure",montant:300},{id:2,label:"Jantes rayées",montant:300},
@@ -69,11 +71,48 @@ const TARIFS_PRESETS=[
   {type:"Mois (30j)",heures:720},
 ];
 
-const INIT_V=[
-  {id:1,marque:"Renault",modele:"Clio 5 RS LINE",immat:"FM-256-AH",couleur:"Bleu",km:55000,tarif:75,caution:1000,kmInclus:200,prixKmSup:0.25,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[]},
-  {id:2,marque:"Peugeot",modele:"208 GT",immat:"AB-123-CD",couleur:"Noir",km:32000,tarif:80,caution:1000,kmInclus:150,prixKmSup:0.30,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[]},
-];
-const INIT_PROFIL={nom:"ZAURY Anas",entreprise:"MAN'S LOCATION",siren:"942062019",tel:"0771642048",email:"contact@manslocation.fr",adresse:"102 avenue des Champs Élysées 75008 Paris",ville:"Saint-Denis",iban:""};
+const INIT_V=[];
+const INIT_PROFIL={nom:"",entreprise:"",siren:"",siret:"",kbis:"",tel:"",whatsapp:"",snap:"",email:"",adresse:"",ville:"",iban:""};
+
+const CAR_BRANDS={
+  "Renault":["Clio","Megane","Captur","Kadjar","Scenic","Twingo","Arkana","Austral","Zoe","Kangoo","Trafic","Master"],
+  "Peugeot":["108","208","308","408","508","2008","3008","5008","Rifter","Partner","Expert"],
+  "Citroën":["C1","C3","C3 Aircross","C4","C4 X","C5 Aircross","C5 X","Berlingo","Jumpy","ë-C4"],
+  "Volkswagen":["Polo","Golf","T-Roc","T-Cross","Tiguan","Touareg","Passat","ID.3","ID.4","Caddy","Transporter"],
+  "BMW":["Série 1","Série 2","Série 3","Série 4","Série 5","X1","X2","X3","X4","X5","X6","iX1","iX3"],
+  "Mercedes":["Classe A","Classe B","Classe C","Classe E","Classe S","CLA","GLA","GLB","GLC","GLE","GLS","EQA","EQB"],
+  "Audi":["A1","A3","A4","A5","A6","Q2","Q3","Q5","Q7","Q8","e-tron","TT"],
+  "Toyota":["Aygo X","Yaris","Yaris Cross","Corolla","C-HR","RAV4","Camry","Land Cruiser","Hilux","Proace"],
+  "Dacia":["Sandero","Duster","Jogger","Spring","Logan"],
+  "Fiat":["500","500X","Panda","Tipo","Punto","Doblo"],
+  "Opel":["Corsa","Astra","Mokka","Crossland","Grandland","Combo","Vivaro"],
+  "Hyundai":["i10","i20","i30","Kona","Tucson","Santa Fe","Ioniq 5","Ioniq 6","Bayon"],
+  "Kia":["Picanto","Rio","Ceed","Sportage","Sorento","Niro","EV6","Stonic"],
+  "Nissan":["Micra","Juke","Qashqai","X-Trail","Leaf","Ariya","Navara"],
+  "Ford":["Fiesta","Focus","Puma","Kuga","Explorer","Mustang","Ranger","Transit","Transit Custom"],
+  "Seat":["Ibiza","Leon","Arona","Ateca","Tarraco"],
+  "Skoda":["Fabia","Octavia","Scala","Kamiq","Karoq","Kodiaq","Enyaq"],
+  "Tesla":["Model 3","Model Y","Model S","Model X"],
+  "Volvo":["XC40","XC60","XC90","S60","V60","C40"],
+  "Mini":["Cooper","Countryman","Clubman"],
+  "Jeep":["Renegade","Compass","Cherokee","Wrangler","Grand Cherokee","Avenger"],
+  "Alfa Romeo":["Giulia","Stelvio","Tonale","Giulietta"],
+  "DS":["DS 3","DS 4","DS 7","DS 9"],
+  "Cupra":["Formentor","Born","Leon","Ateca"],
+  "Suzuki":["Swift","Ignis","Vitara","S-Cross","Jimny"],
+  "Mazda":["Mazda2","Mazda3","CX-3","CX-30","CX-5","MX-5","CX-60"],
+  "Honda":["Jazz","Civic","HR-V","CR-V","ZR-V","e:Ny1"],
+  "Mitsubishi":["Space Star","ASX","Eclipse Cross","Outlander"],
+  "Land Rover":["Defender","Discovery","Discovery Sport","Range Rover","Range Rover Sport","Range Rover Evoque","Range Rover Velar"]
+};
+
+const CAR_COLORS=["Noir","Blanc","Gris","Argent","Bleu","Rouge","Vert","Beige","Marron","Orange","Jaune","Violet","Rose","Bordeaux","Bleu nuit","Gris anthracite","Blanc nacré","Noir métallisé","Bleu métallisé","Gris métallisé"];
+
+const CURRENT_YEAR=new Date().getFullYear();
+const CAR_YEARS=Array.from({length:30},(_,i)=>CURRENT_YEAR-i);
+
+function loadLS(key,def){try{const v=localStorage.getItem(key);return v?JSON.parse(v):def;}catch(e){return def;}}
+function saveLS(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}}
 
 function fuelLabel(pct){
   if(pct>=100)return"Plein";
@@ -132,7 +171,7 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
     ".tot{background:#0a1940;color:#fff;padding:8px 14px;border-radius:6px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}",
     "@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>",
     "<div class='header'><h1>"+(profil.entreprise||"MAN'S LOCATION")+"</h1><p>LOCATION DE CITADINES EN IDF</p>",
-    "<p>SIREN : "+profil.siren+" | T\u00e9l : "+profil.tel+" | "+profil.adresse+"</p></div>",
+    "<p>SIRET : "+(profil.siret||profil.siren)+" | T\u00e9l : "+profil.tel+" | "+profil.adresse+"</p></div>",
     "<div class='body'><div class='title'>Contrat de Location de V\u00e9hicule</div>",
     "<div style='margin-bottom:8px'><div class='st'>Le Propri\u00e9taire (Loueur)</div>",
     "<div class='row'><span><span class='lbl'>Nom : </span><span class='val'>"+profil.nom+"</span></span><span><span class='lbl'>T\u00e9l : </span><span class='val'>"+profil.tel+"</span></span></div>",
@@ -165,33 +204,9 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   return parts.join("");
 }
 
-function FuelGauge({value,onChange,readOnly}){
-  const pct=parseInt(value)||0;
-  const col=fuelColor(pct);
-  const steps=[0,25,50,75,100];
-  return(
-    <div style={{userSelect:"none"}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-        <span style={{fontSize:18}}>⛽</span>
-        <div style={{flex:1,background:"#e5e7eb",borderRadius:99,height:14,overflow:"hidden"}}>
-          <div style={{width:pct+"%",background:col,height:"100%",borderRadius:99,transition:"width .2s"}}/>
-        </div>
-        <span style={{fontSize:13,fontWeight:800,color:col,minWidth:40,textAlign:"right"}}>{pct}%</span>
-        <span style={{fontSize:11,color:"#6b7280",minWidth:50}}>{fuelLabel(pct)}</span>
-      </div>
-      {!readOnly&&(
-        <div style={{display:"flex",gap:4}}>
-          {steps.map(s=>(
-            <button key={s} onClick={()=>onChange(s)}
-              style={{flex:1,padding:"5px 0",borderRadius:7,border:`2px solid ${pct===s?col:"#e5e7eb"}`,background:pct===s?col:"white",color:pct===s?"white":"#374151",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-              {s===0?"Vide":s===100?"Plein":s+"%"}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+// FuelGauge déplacé vers src/components/FuelGauge.jsx
+// Utilisez <FuelGauge value={...} onChange={...} readOnly={...} />
+
 
 function SigPad({label,onSave}){
   const ref=useRef(null),drawing=useRef(false);
@@ -548,6 +563,7 @@ function calcTarifAuto(vehicle,nbJours,heuresLoc){
   return{prix:(vehicle.tarif||0)*nbJours,label:`Standard — ${vehicle.tarif} €/j × ${nbJours}j`};
 }
 
+<<<<<<< HEAD
 export default function App(){
   const[vehicles,setVehicles]=useState(INIT_V);
   const[contrats,setContrats]=useState([]);
@@ -591,6 +607,40 @@ export default function App(){
     if(diff<=0)return{jours:1,heures:24};
     return{jours:Math.max(1,Math.ceil(diff/86400000)),heures:Math.ceil(diff/3600000)};
   }
+=======
+function AppContent() {
+  const { state, saveHelpers } = useAppContext();
+  const { vehicles, contrats, depenses, profil, user } = state;
+  const [page,setPage]=useState("dashboard");
+  const [selId,setSelId]=useState(null);
+  const [form,setForm]=useState(FORM0);
+  const [photosDepart,setPhotosDepart]=useState([]);
+  const [touched,setTouched]=useState({});
+  const [sigL,setSigL]=useState(null);
+  const [sigLoc,setSigLoc]=useState(null);
+  const [vForm,setVForm]=useState({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false});
+  const [showAddV,setShowAddV]=useState(false);
+  const [editV,setEditV]=useState(null);
+  const [toast,setToast]=useState(null);
+  const [planMonth,setPlanMonth]=useState(new Date());
+  const [dForm,setDForm]=useState({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});
+  const [showAddD,setShowAddD]=useState(false);
+  const [profilEdit,setProfilEdit]=useState(false);
+  const [profilForm,setProfilForm]=useState(INIT_PROFIL);
+  const [docsId,setDocsId]=useState(null);
+  const [contratModalId,setContratModalId]=useState(null);
+  const [newDoc,setNewDoc]=useState({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});
+  const [lastContrat,setLastContrat]=useState(null);
+  const [retourContratId,setRetourContratId]=useState(null);
+  const [tarifsVehicleId,setTarifsVehicleId]=useState(null);
+  const [tarifsTemp,setTarifsTemp]=useState([]);
+  const [ntarif,setNtarif]=useState({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});
+
+
+
+
+
+>>>>>>> d008e74b47c1280846c01c6d0cce25cdcc32547a
 
   useEffect(()=>{
     if(form.dateDebut&&form.dateFin){
@@ -599,6 +649,35 @@ export default function App(){
     }
   },[form.dateDebut,form.dateFin,form.heureDebut,form.heureFin]);
 
+<<<<<<< HEAD
+=======
+  // --- RETURNS CONDITIONNELS APRÈS TOUS LES HOOKS ---
+  if(!user) return <AuthPage/>;
+
+  // Onboarding : si le profil n'est pas rempli, afficher le formulaire d'inscription des données
+  const profilVide=!profil.nom&&!profil.entreprise&&!profil.tel;
+  if(profilVide) return(
+    <div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"#f1f5f9",padding:16}}>
+      <div style={{background:"white",borderRadius:16,padding:"32px 28px",width:"100%",maxWidth:480,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
+        <h1 style={{textAlign:"center",marginBottom:6,fontSize:20,fontWeight:800}}>Bienvenue sur MAN'S LOCATION</h1>
+        <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:13}}>Remplissez vos informations pour commencer</p>
+        {[["nom","Nom complet *"],["entreprise","Nom de l'entreprise *"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["tel","Téléphone *"],["whatsapp","WhatsApp"],["snap","Snapchat"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
+          <div key={k} style={{marginBottom:10}}>
+            <label style={{fontSize:11,fontWeight:600,color:"#6b7280",display:"block",marginBottom:3}}>{l}</label>
+            <input placeholder={l.replace(" *","")} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:13,boxSizing:"border-box"}} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/>
+          </div>
+        ))}
+        <button onClick={()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel){return;}setProfil({...profilForm});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>
+          Commencer
+        </button>
+        <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
+      </div>
+    </div>
+  );
+
+  const sel=selId?state.vehicles.find(v=>v.id===selId)||null:null;
+
+>>>>>>> d008e74b47c1280846c01c6d0cce25cdcc32547a
   const loues=contrats.filter(c=>new Date(c.dateFin)>=new Date()).map(c=>c.vehicleId);
   const statut=id=>loues.includes(id)?"loué":"disponible";
 
@@ -609,6 +688,10 @@ export default function App(){
   const totalRetenues=Object.values(retours).reduce((s,r)=>s+(r.montantRetenu||0),0);
   const totalSurplusKm=Object.values(retours).reduce((s,r)=>s+(r.surplusKm||0),0);
   const bT=caT+totalRetenues+totalSurplusKm-dT;
+  const cautionsNonRendues=contrats.filter(c=>!retours[c.id]).reduce((s,c)=>{
+    const v=vehicles.find(x=>x.id===c.vehicleId);
+    return s+(v?v.caution:0);
+  },0);
   const tarifAuto=sel?calcTarifAuto(sel,form.nbJours,form.heuresLoc):{prix:0,label:"—"};
 
   const req=["locNom","locAdresse","locTel","dateDebut","dateFin"];
@@ -635,14 +718,21 @@ export default function App(){
     dlFile(html,`Contrat_${c.locNom.replace(/\s+/g,"_")}_${c.dateDebut}.html`);
   }
 
-  function saveRetour(contratId,data){setRetours(r=>({...r,[contratId]:data}));toast_("✅ Retour enregistré !");setRetourContratId(null);}
+  function saveRetour(contratId,data){
+    setRetours(r=>({...r,[contratId]:data}));
+    if(data.kmRetour){
+      const ct=contrats.find(x=>x.id===contratId);
+      if(ct)setVehicles(vs=>vs.map(v=>v.id===ct.vehicleId?{...v,km:parseFloat(data.kmRetour)}:v));
+    }
+    toast_("✅ Retour enregistré !");setRetourContratId(null);
+  }
 
   function addV(){
     if(!vForm.marque||!vForm.modele||!vForm.immat){toast_("Champs manquants","error");return;}
-    const base={...vForm,km:+vForm.km,tarif:+vForm.tarif,caution:+vForm.caution||1000,kmInclus:+vForm.kmInclus||0,prixKmSup:+vForm.prixKmSup||0};
+    const base={...vForm,km:+vForm.km,tarif:+vForm.tarif,caution:+vForm.caution||1000,kmInclus:vForm.kmIllimite?999999:+vForm.kmInclus||0,prixKmSup:vForm.kmIllimite?0:+vForm.prixKmSup||0,annee:vForm.annee||""};  
     if(editV){setVehicles(vs=>vs.map(x=>x.id===editV.id?{...x,...base}:x));toast_("Mis à jour");}
     else{setVehicles(vs=>[...vs,{id:Date.now(),...base,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[]}]);toast_("Véhicule ajouté !");}
-    setVForm({marque:"",modele:"",immat:"",couleur:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:""});setShowAddV(false);setEditV(null);
+    setVForm({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false});setShowAddV(false);setEditV(null);
   }
 
   function openTarifs(v){setTarifsVehicleId(v.id);setTarifsTemp((v.tarifsSpeciaux||[]).map(t=>({...t})));setNtarif({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});}
@@ -731,9 +821,24 @@ export default function App(){
     r.readAsDataURL(f);
   }
 
+<<<<<<< HEAD
   return(
     <div style={{minHeight:"100vh",background:"#f0f4f8"}}>
       {/* NAV */}
+=======
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
+  );
+}
+
+function AppContent() {
+
+>>>>>>> d008e74b47c1280846c01c6d0cce25cdcc32547a
       <nav style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",boxShadow:"0 2px 12px rgba(0,0,0,.3)",position:"sticky",top:0,zIndex:100}}>
         <div style={{maxWidth:1100,margin:"0 auto",padding:"0 10px",height:50,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
@@ -853,6 +958,7 @@ export default function App(){
               {KPI("Extras",(totalRetenues+totalSurplusKm).toFixed(0)+" €","🔒","#d97706")}
               {KPI("Bénéfice net",bT.toFixed(0)+" €",bT>=0?"📈":"📉",bT>=0?"#16a34a":"#dc2626",null,bT<0)}
               {KPI("Véhicules",vehicles.length,"🚗","#7c3aed",vehicles.filter(v=>statut(v.id)==="loué").length+" en location")}
+              {KPI("Cautions non rendues",cautionsNonRendues+" €","🔓","#dc2626",contrats.filter(c=>!retours[c.id]).length+" contrat(s) en attente")}
             </div>
             <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)",marginBottom:16}}>
               <div style={{display:"flex",gap:16,marginBottom:8}}>
@@ -906,14 +1012,26 @@ export default function App(){
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>🚗 Flotte</h1>
-              <button onClick={()=>{setShowAddV(true);setEditV(null);setVForm({marque:"",modele:"",immat:"",couleur:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:""});}} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
+              <button onClick={()=>{setShowAddV(true);setEditV(null);setVForm({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false});}} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
             </div>
             {showAddV&&(
               <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 12px rgba(0,0,0,.1)",marginBottom:16,border:"2px solid #bfdbfe"}}>
                 <h3 style={{fontWeight:700,marginBottom:12,fontSize:14}}>{editV?"✏️ Modifier":"➕ Nouveau véhicule"}</h3>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
-                  {[["marque","Marque"],["modele","Modèle"],["immat","Immatriculation"],["couleur","Couleur"]].map(([k,l])=>(<div key={k}><label style={LBL}>{l}</label><input style={Inp()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:e.target.value}))}/></div>))}
-                  {[["km","Km actuel"],["tarif","Tarif €/j"],["caution","Caution €"],["kmInclus","Km inclus/loc"],["prixKmSup","Prix km sup €"]].map(([k,l])=>(<div key={k}><label style={LBL}>{l}</label><input type="number" style={Inp()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:e.target.value}))}/></div>))}
+                  <div><label style={LBL}>Marque *</label><select style={Inp()} value={vForm.marque} onChange={e=>setVForm(f=>({...f,marque:e.target.value,modele:""}))}><option value="">-- Choisir --</option>{Object.keys(CAR_BRANDS).sort().map(b=><option key={b} value={b}>{b}</option>)}</select></div>
+                  <div><label style={LBL}>Modèle *</label><select style={Inp()} value={vForm.modele} onChange={e=>setVForm(f=>({...f,modele:e.target.value}))} disabled={!vForm.marque}><option value="">-- Choisir --</option>{(CAR_BRANDS[vForm.marque]||[]).map(m=><option key={m} value={m}>{m}</option>)}</select></div>
+                  <div><label style={LBL}>Immatriculation *</label><input style={Inp()} placeholder="AA-123-BB" value={vForm.immat} onChange={e=>setVForm(f=>({...f,immat:e.target.value}))}/></div>
+                  <div><label style={LBL}>Couleur</label><select style={Inp()} value={vForm.couleur} onChange={e=>setVForm(f=>({...f,couleur:e.target.value}))}><option value="">-- Choisir --</option>{CAR_COLORS.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+                  <div><label style={LBL}>Année</label><select style={Inp()} value={vForm.annee} onChange={e=>setVForm(f=>({...f,annee:e.target.value}))}><option value="">-- Choisir --</option>{CAR_YEARS.map(y=><option key={y} value={y}>{y}</option>)}</select></div>
+                  {[["km","Km actuel"],["tarif","Tarif €/j"],["caution","Caution €"]].map(([k,l])=>(<div key={k}><label style={LBL}>{l}</label><input type="number" style={Inp()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:e.target.value}))}/></div>))}
+                  <div style={{gridColumn:"span 2"}}>
+                    <label style={{...LBL,display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+                      <input type="checkbox" checked={vForm.kmIllimite} onChange={e=>setVForm(f=>({...f,kmIllimite:e.target.checked}))} style={{width:16,height:16,accentColor:"#2563eb"}}/>
+                      <span style={{fontSize:12,fontWeight:700,color:vForm.kmIllimite?"#2563eb":"#6b7280"}}>∞ Kilométrage illimité</span>
+                    </label>
+                  </div>
+                  {!vForm.kmIllimite&&<><div><label style={LBL}>Km inclus/loc</label><input type="number" style={Inp()} value={vForm.kmInclus} onChange={e=>setVForm(f=>({...f,kmInclus:e.target.value}))}/></div>
+                  <div><label style={LBL}>Prix km sup €</label><input type="number" style={Inp()} value={vForm.prixKmSup} onChange={e=>setVForm(f=>({...f,prixKmSup:e.target.value}))}/></div></>}
                 </div>
                 <div style={{display:"flex",gap:8,marginTop:12}}>
                   <button onClick={addV} style={{background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>{editV?"Mettre à jour":"Ajouter"}</button>
@@ -925,12 +1043,12 @@ export default function App(){
               {vehicles.map(v=>(
                 <div key={v.id} style={{background:"white",borderRadius:16,boxShadow:"0 2px 10px rgba(0,0,0,.08)",overflow:"hidden",border:"1px solid #e5e7eb"}}>
                   <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                    <div><div style={{color:"white",fontWeight:800,fontSize:15}}>{v.marque} {v.modele}</div><div style={{color:"rgba(255,255,255,.6)",fontSize:11}}>{v.immat} · {v.couleur}</div></div>
+                    <div><div style={{color:"white",fontWeight:800,fontSize:15}}>{v.marque} {v.modele}{v.annee?" "+v.annee:""}</div><div style={{color:"rgba(255,255,255,.6)",fontSize:11}}>{v.immat} · {v.couleur}</div></div>
                     <Badge s={statut(v.id)}/>
                   </div>
                   <div style={{padding:14}}>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-                      {[["💰 Tarif",v.tarif+" €/j"],["🔒 Caution",v.caution+" €"],["📏 Km inclus",v.kmInclus+" km"],["⚡ Km sup",v.prixKmSup+" €/km"],["🛣️ Km actuel",(v.km||0).toLocaleString()+" km"]].map(([l,val])=>(<div key={l} style={{background:"#f8fafc",borderRadius:8,padding:"7px 10px"}}><div style={{fontSize:9,color:"#9ca3af"}}>{l}</div><div style={{fontWeight:700,fontSize:12}}>{val}</div></div>))}
+                      {[["💰 Tarif",v.tarif+" €/j"],["🔒 Caution",v.caution+" €"],["📏 Km inclus",v.kmInclus>=999999?"∞ Illimité":v.kmInclus+" km"],["⚡ Km sup",v.kmInclus>=999999?"—":v.prixKmSup+" €/km"],["🛣️ Km actuel",(v.km||0).toLocaleString()+" km"]].map(([l,val])=>(<div key={l} style={{background:"#f8fafc",borderRadius:8,padding:"7px 10px"}}><div style={{fontSize:9,color:"#9ca3af"}}>{l}</div><div style={{fontWeight:700,fontSize:12}}>{val}</div></div>))}
                     </div>
                     {(v.tarifsSpeciaux||[]).length>0&&(
                       <div style={{background:"#fff7ed",borderRadius:8,padding:"6px 10px",marginBottom:10,border:"1px solid #fed7aa"}}>
@@ -942,7 +1060,7 @@ export default function App(){
                       <button onClick={()=>openTarifs(v)} style={{flex:1,padding:"6px 0",background:"#fff7ed",color:"#d97706",border:"1px solid #fed7aa",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>💰 Tarifs</button>
                       <button onClick={()=>setContratModalId(v.id)} style={{flex:1,padding:"6px 0",background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📄 Contrat</button>
                       <button onClick={()=>setDocsId(v.id)} style={{flex:1,padding:"6px 0",background:"#f0fdf4",color:"#16a34a",border:"1px solid #bbf7d0",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📁 Docs</button>
-                      <button onClick={()=>{setEditV(v);setVForm({marque:v.marque,modele:v.modele,immat:v.immat,couleur:v.couleur||"",km:v.km,tarif:v.tarif,caution:v.caution,kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0});setShowAddV(true);}} style={{padding:"6px 10px",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
+                      <button onClick={()=>{setEditV(v);setVForm({marque:v.marque,modele:v.modele,immat:v.immat,couleur:v.couleur||"",annee:v.annee||"",km:v.km,tarif:v.tarif,caution:v.caution,kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0,kmIllimite:v.kmInclus>=999999});setShowAddV(true);}} style={{padding:"6px 10px",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>✏️</button>
                       <button onClick={()=>{if(window.confirm("Supprimer ?"))setVehicles(vs=>vs.filter(x=>x.id!==v.id));}} style={{padding:"6px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:11,cursor:"pointer"}}>🗑️</button>
                     </div>
                   </div>
@@ -1037,6 +1155,35 @@ export default function App(){
                   </div>
                 </div>
 
+                <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+                  <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>📄 Documents du locataire</h3>
+                  <p style={{fontSize:11,color:"#6b7280",marginBottom:12}}>Prenez en photo ou importez les documents du locataire</p>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+                    {[["docPermis","Permis","🪪"],["docJustificatif","Justificatif domicile","🏠"],["docCNI","CNI","🆔"]].map(([k,label,icon])=>(
+                      <div key={k} style={{border:"2px dashed "+(form[k]?"#16a34a":"#d1d5db"),borderRadius:12,padding:12,textAlign:"center",background:form[k]?"#f0fdf4":"#fafafa",position:"relative"}}>
+                        <div style={{fontSize:28,marginBottom:4}}>{icon}</div>
+                        <div style={{fontSize:11,fontWeight:600,color:"#374151",marginBottom:6}}>{label}</div>
+                        {form[k]?(
+                          <div>
+                            <img src={form[k]} alt={label} style={{width:"100%",maxHeight:80,objectFit:"cover",borderRadius:6,marginBottom:6}}/>
+                            <button onClick={()=>setForm(f=>({...f,[k]:null}))} style={{fontSize:10,color:"#dc2626",background:"#fef2f2",border:"none",borderRadius:6,padding:"3px 8px",cursor:"pointer"}}>Supprimer</button>
+                          </div>
+                        ):(
+                          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                            <label style={{fontSize:10,color:"#2563eb",cursor:"pointer",background:"#eff6ff",borderRadius:6,padding:"5px 8px",fontWeight:600}}>
+                              📁 Fichier
+                              <input type="file" accept="image/*" style={{display:"none"}} onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setForm(fm=>({...fm,[k]:ev.target.result}));r.readAsDataURL(f);}}/>
+                            </label>
+                            <label style={{fontSize:10,color:"#2563eb",cursor:"pointer",background:"#eff6ff",borderRadius:6,padding:"5px 8px",fontWeight:600}}>
+                              📷 Photo
+                              <input type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setForm(fm=>({...fm,[k]:ev.target.result}));r.readAsDataURL(f);}}/>
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>✍️ Signatures</h3>
                   <div style={{display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center"}}>
@@ -1316,11 +1463,16 @@ export default function App(){
             </div>
             {profilEdit?(
               <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+<<<<<<< HEAD
                 {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["tel","Téléphone"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
                   <div key={k} style={{marginBottom:10}}>
                     <label style={LBL}>{l}</label>
                     <input style={Inp()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/>
                   </div>
+=======
+                {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["tel","Téléphone"],["whatsapp","WhatsApp"],["snap","Snapchat"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
+                  <div key={k} style={{marginBottom:10}}><label style={LBL}>{l}</label><input style={Inp()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>
+>>>>>>> d008e74b47c1280846c01c6d0cce25cdcc32547a
                 ))}
                 <button onClick={()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Enregistrer</button>
               </div>
@@ -1331,7 +1483,7 @@ export default function App(){
                   <div style={{fontWeight:800,fontSize:16}}>{profil.nom}</div>
                   <div style={{color:"#6b7280",fontSize:12}}>{profil.entreprise}</div>
                 </div>
-                {[["SIREN",profil.siren],["Téléphone",profil.tel],["Email",profil.email],["Adresse",profil.adresse],["Ville",profil.ville],["IBAN",profil.iban]].filter(([,v])=>v).map(([l,v])=>(
+                {[["SIREN",profil.siren],["SIRET",profil.siret],["KBIS",profil.kbis],["Téléphone",profil.tel],["WhatsApp",profil.whatsapp],["Snapchat",profil.snap],["Email",profil.email],["Adresse",profil.adresse],["Ville",profil.ville],["IBAN",profil.iban]].filter(([,v])=>v).map(([l,v])=>(
                   <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f0f0"}}>
                     <span style={{fontSize:11,color:"#6b7280"}}>{l}</span>
                     <span style={{fontSize:12,fontWeight:600}}>{v}</span>
@@ -1345,4 +1497,87 @@ export default function App(){
       </div>
     </div>
   );
+<<<<<<< HEAD
 }  
+=======
+}
+
+function AuthPage(){
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  async function handleSubmit(){
+    setLoading(true); setError(""); setSuccess("");
+    if(mode==="forgot"){
+      const {error:err} = await supabase.auth.resetPasswordForEmail(email);
+      if(err){
+        setError(err.message);
+      } else {
+        setSuccess("Un email de réinitialisation a été envoyé. Vérifiez votre boîte mail.");
+      }
+      setLoading(false);
+      return;
+    }
+    let result;
+    if(mode==="login"){
+      result = await supabase.auth.signInWithPassword({email, password});
+    } else {
+      result = await supabase.auth.signUp({email, password, options:{emailRedirectTo: window.location.origin}});
+    }
+    if(result.error){
+      setError(result.error.message);
+    } else if(mode==="signup"){
+      setSuccess("Compte créé ! Vérifiez votre email pour confirmer votre inscription.");
+    }
+    setLoading(false);
+  }
+
+  return(
+    <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"#f1f5f9"}}>
+      <div style={{background:"white",borderRadius:16,padding:"40px 32px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
+        <h1 style={{textAlign:"center",marginBottom:8,fontSize:22,fontWeight:700}}>🚗 MAN'S LOCATION</h1>
+        <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:14}}>Accès réservé aux professionnels</p>
+        {mode!=="forgot" && (
+        <div style={{display:"flex",marginBottom:24,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
+          {["login","signup"].map(m=>(
+            <button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600}}>
+              {m==="login"?"Connexion":"Inscription"}
+            </button>
+          ))}
+        </div>
+        )}
+        {mode==="forgot" && (
+          <p style={{textAlign:"center",color:"#374151",marginBottom:20,fontSize:14}}>Entrez votre email pour recevoir un lien de réinitialisation.</p>
+        )}
+        <input placeholder="Email professionnel" value={email} onChange={e=>setEmail(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
+        {mode!=="forgot" && (
+        <div style={{position:"relative",marginBottom:16}}>
+          <input placeholder="Mot de passe" type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} style={{width:"100%",padding:"10px 12px",paddingRight:40,border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
+          <span onClick={()=>setShowPassword(!showPassword)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:18,color:"#6b7280",userSelect:"none"}}>{showPassword?"🙈":"👁️"}</span>
+        </div>
+        )}
+        {error && <p style={{color:"red",fontSize:13,marginBottom:12}}>{error}</p>}
+        {success && <p style={{color:"#16a34a",fontSize:13,marginBottom:12}}>{success}</p>}
+        <button onClick={handleSubmit} disabled={loading} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:"pointer"}}>
+          {loading?"...":(mode==="login"?"Se connecter":mode==="signup"?"Créer mon compte":"Envoyer le lien")}
+        </button>
+        {mode==="login" && (
+          <p style={{textAlign:"center",marginTop:14,fontSize:13}}>
+            <span onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Mot de passe oublié ?</span>
+          </p>
+        )}
+        {mode==="forgot" && (
+          <p style={{textAlign:"center",marginTop:14,fontSize:13}}>
+            <span onClick={()=>{setMode("login");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Retour à la connexion</span>
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+>>>>>>> d008e74b47c1280846c01c6d0cce25cdcc32547a

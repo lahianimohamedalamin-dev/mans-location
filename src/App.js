@@ -625,7 +625,7 @@ function AppContent(){
   const loadAllData=useCallback(async(uid)=>{
     try{
       const[profRes,vehRes,conRes,depRes,retRes]=await Promise.all([
-        supabase.from('profiles').select('*').eq('user_id',uid).maybeSingle(),
+        supabase.from('profils').select('*').eq('user_id',uid).maybeSingle(),
         supabase.from('vehicles').select('*').eq('user_id',uid),
         supabase.from('contrats').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('depenses').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
@@ -639,7 +639,7 @@ function AppContent(){
         setVehicles(vehRes.data.map(v=>({
           id:v.id,marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',
           annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,
-          kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0,kmIllimite:v.km_illimite||false,
+          kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,
           docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),
           clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),
           tarifsSpeciaux:v.tarifs_speciaux||[]
@@ -672,8 +672,14 @@ function AppContent(){
       if(retRes.data){
         const rMap={};
         retRes.data.forEach(r=>{rMap[r.contrat_id]={
-          ...r.data,
-          id:r.id
+          id:r.id,
+          kmRetour:r.km_retour||'',
+          carburantRetour:r.carburant_retour??100,
+          montantRetenu:r.montant_retenu||0,
+          surplusKm:r.surplus_km||0,
+          cautionRestituee:r.caution_restituee,
+          notes:r.notes||'',
+          date:r.date||''
         };});
         setRetours(rMap);
       }
@@ -772,7 +778,11 @@ function AppContent(){
     toast_("✅ Retour enregistré !");setRetourContratId(null);
     if(user){
       const{error:err}=await supabase.from('retours').insert([{
-        user_id:user.id,contrat_id:contratId,data:data
+        user_id:user.id,contrat_id:contratId,
+        km_retour:data.kmRetour||null,carburant_retour:data.carburantRetour??null,
+        montant_retenu:data.montantRetenu||0,surplus_km:data.surplusKm||0,
+        caution_restituee:data.cautionRestituee,notes:data.raisonRetenue||'',
+        date:data.date||new Date().toISOString()
       }]);
       if(err)console.error('Error saving retour:',err);
       if(ct&&data.kmRetour){
@@ -790,8 +800,8 @@ function AppContent(){
         const{error:err}=await supabase.from('vehicles').update({
           marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,
           annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,
-          kmInclus:base.kmInclus,prixKmSup:base.prixKmSup,km_illimite:base.kmIllimite
-        }).eq('id',editV.id).eq('user_id',user.id);
+                  km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite
+                }).eq('id',editV.id).eq('user_id',user.id);
         if(err)console.error('Error updating vehicle:',err);
       }
     }else{
@@ -802,8 +812,8 @@ function AppContent(){
         const{data:ins,error:err}=await supabase.from('vehicles').insert([{
           user_id:user.id,marque:base.marque,modele:base.modele,immat:base.immat,
           couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,
-          caution:base.caution,kmInclus:base.kmInclus,prixKmSup:base.prixKmSup,
-          km_illimite:base.kmIllimite,docs:[],
+          caution:base.caution,          km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,
+                    km_illimite:base.kmIllimite,docs:[],
           frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),
           tarifs_speciaux:[]
         }]).select().single();
@@ -926,7 +936,7 @@ function AppContent(){
             <input placeholder={l.replace(" *","")} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:13,boxSizing:"border-box"}} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/>
           </div>
         ))}
-        <button onClick={async()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel){return;}setProfil({...profilForm});if(user){const{error:err}=await supabase.from('profiles').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});if(err)console.error('Error saving profile:',err);}}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>
+        <button onClick={async()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel){return;}setProfil({...profilForm});if(user){const{error:err}=await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});if(err)console.error('Error saving profile:',err);}}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>
           Commencer
         </button>
         <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
@@ -1527,7 +1537,7 @@ function AppContent(){
                 {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["tel","Téléphone"],["whatsapp","WhatsApp"],["snap","Snapchat"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(
                   <div key={k} style={{marginBottom:10}}><label style={LBL}>{l}</label><input style={Inp()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>
                 ))}
-                <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user){const{error:err}=await supabase.from('profiles').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});if(err)console.error('Error updating profile:',err);}}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Enregistrer</button>
+                <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user){const{error:err}=await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});if(err)console.error('Error updating profile:',err);}}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>✅ Enregistrer</button>
               </div>
             ):(
               <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
@@ -1633,4 +1643,4 @@ function AuthPage(){
 
 export default function App(){
   return <AppContent/>;
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                

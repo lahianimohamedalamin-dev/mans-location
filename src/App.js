@@ -323,11 +323,11 @@ table th{background:#e8edf5;font-weight:700}table tr:nth-child(even){background:
 </div>
 <div style='margin-bottom:10px'>
   <div class='st'>5. Caution — ${caution} €</div>
-  ${d.cautionRestituee
-    ?"<div style='color:#16a34a;font-weight:700;padding:6px 0'>✅ Restituée intégralement — "+caution+" €</div>"
-    :"<div style='color:#dc2626;font-weight:700;padding:4px 0'>❌ Retenue partielle — "+d.montantRetenu+" € retenus"+(d.raisonRetenue?" ("+d.raisonRetenue+")")+"</div>"
-     +"<div style='margin-top:4px'><span class='lbl'>Montant remboursé : </span><span class='val' style='color:#16a34a'>"+Math.max(0,caution-(d.montantRetenu||0))+" €</span></div>"}
-</div>
+ ${d.cautionRestituee
+    ?"<div style='color:#16a34a;font-weight:700;padding:6px 0'>Restituee integralement - "+caution+" EUR</div>"
+    :"<div style='color:#dc2626;font-weight:700;padding:4px 0'>Retenue partielle - "+d.montantRetenu+" EUR retenus"+(d.raisonRetenue?" ("+d.raisonRetenue+")":"")+"</div>"
+     +"<div style='margin-top:4px'><span class='lbl'>Montant rembourse : </span><span class='val' style='color:#16a34a'>"+Math.max(0,caution-(d.montantRetenu||0))+" EUR</span></div>"
+  }
 <div class='bilan'>
   <div style='font-weight:800;font-size:13px;margin-bottom:8px'>📊 Bilan financier du retour</div>
   <div class='br'><span style='opacity:.7'>Location (${contrat.nbJours}j)</span><span style='font-weight:700'>${contrat.totalCalc||0} €</span></div>

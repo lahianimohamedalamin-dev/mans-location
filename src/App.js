@@ -802,7 +802,7 @@ function AppContent(){
 
   const resetUserData=useCallback(()=>{
     setVehicles([]);setContrats([]);setDepenses([]);setRetours({});setQuestions([]);
-    setProfil(INIT_PROFIL);setProfilForm(INIT_PROFIL);setVitrinePubliee({});
+    setProfil(INIT_PROFIL);setProfilForm(INIT_PROFIL);
     setSelId(null);setDocsId(null);setContratModalId(null);
     setLastContrat(null);setRetourContratId(null);setTarifsVehicleId(null);
     setDataLoaded(false);

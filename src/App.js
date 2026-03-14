@@ -617,7 +617,27 @@ function AppContent(){
   const[dataLoaded,setDataLoaded]=useState(false);
 
   useEffect(()=>{
-    supabase.auth.getSession().then(({data:{session}})=>setUser(session?.user||null));
+    const handleAuthRedirect = async()=>{
+      try{
+        const url=new URL(window.location.href);
+        const code=url.searchParams.get("code");
+        if(code){
+          await supabase.auth.exchangeCodeForSession(code);
+          window.history.replaceState({},document.title,url.pathname);
+          return;
+        }
+        if(window.location.hash.includes("access_token=")||window.location.hash.includes("error=")){
+          window.history.replaceState({},document.title,url.pathname);
+        }
+      }catch(err){
+        console.error("Erreur de redirection auth:",err);
+      }
+    };
+
+    handleAuthRedirect().then(()=>{
+      supabase.auth.getSession().then(({data:{session}})=>setUser(session?.user||null));
+    });
+
     const{data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>setUser(session?.user||null));
     return()=>subscription.unsubscribe();
   },[]);

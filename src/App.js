@@ -460,7 +460,7 @@ function DocsLocataire({docs,setDocs}){
     {key:"cniRecto",  label:"CNI / Passeport — Recto",    color:"#2563eb",icon:"🪪"},
     {key:"cniVerso",  label:"CNI / Passeport — Verso",    color:"#2563eb",icon:"🪪"},
     {key:"justifDom", label:"Justificatif de domicile",   color:"#7c3aed",icon:"🏠"},
-    {key:"photoAr",   label:"Photo arrière du véhicule",  color:"#16a34a",icon:"🚗"},
+    {key:"photoAr",   label:"PERMIS",  color:"#16a34a",icon:"🚗"},
   ];
 
   return(

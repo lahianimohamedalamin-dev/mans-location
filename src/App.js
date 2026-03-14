@@ -323,11 +323,11 @@ table th{background:#e8edf5;font-weight:700}table tr:nth-child(even){background:
 </div>
 <div style='margin-bottom:10px'>
   <div class='st'>5. Caution — ${caution} €</div>
- ${d.cautionRestituee
-    ?"<div style='color:#16a34a;font-weight:700;padding:6px 0'>Restituee integralement - "+caution+" EUR</div>"
-    :"<div style='color:#dc2626;font-weight:700;padding:4px 0'>Retenue partielle - "+d.montantRetenu+" EUR retenus"+(d.raisonRetenue?" ("+d.raisonRetenue+")":"")+"</div>"
-     +"<div style='margin-top:4px'><span class='lbl'>Montant rembourse : </span><span class='val' style='color:#16a34a'>"+Math.max(0,caution-(d.montantRetenu||0))+" EUR</span></div>"
+  ${d.cautionRestituee
+    ? "<div style='color:#16a34a;font-weight:700;padding:6px 0'>Restituee integralement - "+caution+" EUR</div>"
+    : "<div style='color:#dc2626;font-weight:700;padding:4px 0'>Retenue partielle - "+d.montantRetenu+" EUR retenus"+(d.raisonRetenue?" ("+d.raisonRetenue+")")+"</div><div style='margin-top:4px'><span class='lbl'>Montant rembourse : </span><span class='val' style='color:#16a34a'>"+Math.max(0,caution-(d.montantRetenu||0))+" EUR</span></div>"
   }
+</div>
 <div class='bilan'>
   <div style='font-weight:800;font-size:13px;margin-bottom:8px'>📊 Bilan financier du retour</div>
   <div class='br'><span style='opacity:.7'>Location (${contrat.nbJours}j)</span><span style='font-weight:700'>${contrat.totalCalc||0} €</span></div>
@@ -403,7 +403,7 @@ function SigPad({label,onSave}){
 }
 
 function PhotosDepart({photos,setPhotos}){
-  const labels=["Avant","Arrière","Côté gauche","Côté droit","Intérieur","Autre"];
+  const labels=["Avant","Arrière","Côté gauche","Côté droit","Intérieur","Jante AVG","Jante AVD","Jante ARG","Jante ARD","Autre"];
   function addPhoto(label,file){
     if(!file)return;
     const r=new FileReader();
@@ -440,6 +440,60 @@ function PhotosDepart({photos,setPhotos}){
   );
 }
 
+// ─── Photos véhicule (flotte) ────────────────────────────────────────────────
+function PhotosVehicule({photos,setPhotos,max=5}){
+  function addPhoto(file){
+    if(!file)return;
+    if(photos.length>=max){alert(`Maximum ${max} photos`);return;}
+    const r=new FileReader();
+    r.onload=ev=>setPhotos(p=>[...p,{id:Date.now(),data:ev.target.result,name:file.name}]);
+    r.readAsDataURL(file);
+  }
+  function pickFile(){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>addPhoto(e.target.files[0]);i.click();}
+  function pickCamera(){const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>addPhoto(e.target.files[0]);i.click();}
+  function remove(id){setPhotos(p=>p.filter(x=>x.id!==id));}
+  return(
+    <div>
+      <div style={{display:"flex",gap:8,marginBottom:10}}>
+        <button onClick={pickFile} disabled={photos.length>=max} style={{flex:1,padding:"8px 0",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",opacity:photos.length>=max?.5:1}}>📁 Galerie</button>
+        <button onClick={pickCamera} disabled={photos.length>=max} style={{flex:1,padding:"8px 0",background:"#7c3aed",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",opacity:photos.length>=max?.5:1}}>📷 Photo</button>
+        <span style={{fontSize:11,color:"#9ca3af",alignSelf:"center"}}>{photos.length}/{max}</span>
+      </div>
+      {photos.length>0
+        ?<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(90px,1fr))",gap:7}}>
+          {photos.map((p,i)=>(
+            <div key={p.id} style={{position:"relative",borderRadius:8,overflow:"hidden",border:"2px solid #e5e7eb"}}>
+              <img src={p.data} alt="" style={{width:"100%",height:75,objectFit:"cover",display:"block"}}/>
+              {i===0&&<div style={{position:"absolute",top:3,left:3,background:"#2563eb",color:"white",fontSize:8,fontWeight:700,padding:"1px 5px",borderRadius:4}}>COUV</div>}
+              <button onClick={()=>remove(p.id)} style={{position:"absolute",top:3,right:3,background:"#ef4444",color:"white",border:"none",borderRadius:"50%",width:16,height:16,fontSize:10,cursor:"pointer",fontWeight:700,lineHeight:"16px",textAlign:"center",padding:0}}>x</button>
+            </div>
+          ))}
+        </div>
+        :<div style={{textAlign:"center",color:"#9ca3af",fontSize:11,padding:10,background:"#f9fafb",borderRadius:8,border:"1px dashed #d1d5db"}}>Aucune photo</div>
+      }
+    </div>
+  );
+}
+
+function PhotosVehiculeModal({vehicle,onClose,onSave}){
+  const[photos,setPhotos]=useState((vehicle.photosVehicule||[]).map(p=>({...p})));
+  return(
+    <div onClick={e=>{if(e.target===e.currentTarget)onClose();}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+      <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:480,overflow:"hidden"}}>
+        <div style={{padding:"14px 18px",background:"#0a1940",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div><b style={{color:"white",fontSize:14}}>Photos - {vehicle.marque} {vehicle.modele}</b><div style={{fontSize:10,color:"rgba(255,255,255,.6)"}}>{vehicle.immat} · 5 photos max · La 1ere = couverture</div></div>
+          <button onClick={onClose} style={{fontSize:22,background:"none",border:"none",cursor:"pointer",color:"white"}}>x</button>
+        </div>
+        <div style={{padding:16}}><PhotosVehicule photos={photos} setPhotos={setPhotos} max={5}/></div>
+        <div style={{padding:"12px 16px",borderTop:"1px solid #e5e7eb",display:"flex",gap:8}}>
+          <button onClick={()=>onSave(photos)} style={{flex:1,background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+          <button onClick={onClose} style={{padding:"10px 16px",background:"#e5e7eb",border:"none",borderRadius:10,fontSize:13,cursor:"pointer"}}>Annuler</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── NOUVEAU : Documents locataire ───────────────────────────────────────────
 function DocsLocataire({docs,setDocs}){
   function pickImg(key,capture=false){
@@ -460,7 +514,7 @@ function DocsLocataire({docs,setDocs}){
     {key:"cniRecto",  label:"CNI / Passeport — Recto",    color:"#2563eb",icon:"🪪"},
     {key:"cniVerso",  label:"CNI / Passeport — Verso",    color:"#2563eb",icon:"🪪"},
     {key:"justifDom", label:"Justificatif de domicile",   color:"#7c3aed",icon:"🏠"},
-    {key:"photoAr",   label:"PERMIS",  color:"#16a34a",icon:"🚗"},
+    {key:"photoAr",   label:"Photo arrière du véhicule",  color:"#16a34a",icon:"🚗"},
   ];
 
   return(
@@ -843,6 +897,8 @@ function AppContent(){
   const FORM0={locNom:"",locAdresse:"",locTel:"",locEmail:"",locPermis:"",dateDebut:"",heureDebut:"10:00",dateFin:"",heureFin:"10:00",paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null};
   const[form,setForm]=useState(FORM0);
   const[photosDepart,setPhotosDepart]=useState([]);
+  const[photosVehicleModal,setPhotosVehicleModal]=useState(null);
+  const[vitrinePubliee,setVitrinePubliee]=useState({});
   const[docsLocataire,setDocsLocataire]=useState({});  // ← NOUVEAU
   const[touched,setTouched]=useState({});
   const[sigL,setSigL]=useState(null);
@@ -1060,6 +1116,7 @@ function AppContent(){
   const LBL={fontSize:11,fontWeight:600,color:"#6b7280",display:"block",marginBottom:3};
 
   const PAGES=[
+    {id:"vitrine",icon:"🏪",label:"Vitrine"},
     {id:"dashboard",icon:"📊",label:"Dashboard"},
     {id:"vehicles",icon:"🚗",label:"Flotte"},
     {id:"nouveau",icon:"📝",label:"Contrat"},
@@ -1160,6 +1217,7 @@ function AppContent(){
       {toast&&<div style={{position:"fixed",top:14,right:14,zIndex:10000,padding:"10px 16px",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,.15)",color:"white",fontSize:12,fontWeight:600,background:toast.type==="error"?"#ef4444":"#16a34a",maxWidth:320}}>{toast.msg}</div>}
 
       {/* MODALS */}
+      {photosVehicleModal&&<PhotosVehiculeModal vehicle={photosVehicleModal} onClose={()=>setPhotosVehicleModal(null)} onSave={async(photos)=>{setVehicles(vs=>vs.map(v=>v.id===photosVehicleModal.id?{...v,photosVehicule:photos}:v));setPhotosVehicleModal(null);toast_("Photos enregistrees !");if(user){await supabase.from('vehicules').update({photos_vehicule:photos}).eq('id',photosVehicleModal.id).eq('user_id',user.id);}}}/>}
       {contratModalId&&contratV&&<ContratModal vehicle={contratV} onClose={()=>setContratModalId(null)} onSave={async(fr,cl)=>{setVehicles(vs=>vs.map(v=>v.id===contratModalId?{...v,frais:fr,clauses:cl}:v));setContratModalId(null);toast_("Mis à jour !");if(user){await supabase.from('vehicules').update({frais:fr,clauses:cl}).eq('id',contratModalId).eq('user_id',user.id);}}}/>}
 
       {/* ← profil passé au RetourModal */}
@@ -1242,6 +1300,122 @@ function AppContent(){
       )}
 
       <div style={{maxWidth:1100,margin:"0 auto",width:"100%",padding:"16px 12px"}}>
+
+        {/* ── VITRINE ── */}
+        {page==="vitrine"&&(
+          <div>
+            <div style={{marginBottom:16}}>
+              <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>🏪 Vitrine</h1>
+              <p style={{fontSize:12,color:"#6b7280"}}>Publiez vos véhicules — partagez le lien unique à vos clients</p>
+            </div>
+
+            {/* Lien vitrine public */}
+            {Object.values(vitrinePubliee).some(v=>v)&&(
+              <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",borderRadius:14,padding:16,marginBottom:16,color:"white"}}>
+                <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>🔗 Lien vitrine public</div>
+                <div style={{background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px",fontSize:11,wordBreak:"break-all",marginBottom:8}}>
+                  {window.location.origin}/vitrine/{user?.id?.slice(0,8)}
+                </div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  <button onClick={()=>{navigator.clipboard.writeText(window.location.origin+"/vitrine/"+user?.id?.slice(0,8));toast_("Lien copie !");}} style={{padding:"7px 14px",background:"white",color:"#1e3a8a",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📋 Copier le lien</button>
+                  <button onClick={()=>{const url=`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(window.location.origin+"/vitrine/"+user?.id?.slice(0,8))}`;window.open(url,"_blank");}} style={{padding:"7px 14px",background:"rgba(255,255,255,.2)",color:"white",border:"1px solid rgba(255,255,255,.4)",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📲 QR Code</button>
+                  <button onClick={()=>{const msg=`Bonjour, voici notre catalogue de véhicules disponibles : ${window.location.origin}/vitrine/${user?.id?.slice(0,8)}`;window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,"_blank");}} style={{padding:"7px 14px",background:"#25D366",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>💬 WhatsApp</button>
+                </div>
+              </div>
+            )}
+
+            {/* QR Code preview si publié */}
+            {Object.values(vitrinePubliee).some(v=>v)&&(
+              <div style={{background:"white",borderRadius:14,padding:16,marginBottom:16,boxShadow:"0 2px 8px rgba(0,0,0,.07)",display:"flex",alignItems:"center",gap:16}}>
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(window.location.origin+"/vitrine/"+user?.id?.slice(0,8))}`} alt="QR Code" style={{width:120,height:120,borderRadius:8,border:"2px solid #e5e7eb"}}/>
+                <div>
+                  <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>QR Code vitrine</div>
+                  <div style={{fontSize:12,color:"#6b7280",marginBottom:8}}>Imprimez-le ou envoyez-le à vos clients</div>
+                  <button onClick={()=>{const url=`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(window.location.origin+"/vitrine/"+user?.id?.slice(0,8))}`;const a=document.createElement("a");a.href=url;a.download="qrcode-vitrine.png";a.click();}} style={{padding:"6px 12px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>⬇️ Télécharger</button>
+                </div>
+              </div>
+            )}
+
+            {/* Liste véhicules */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:14}}>
+              {vehicles.map(v=>{
+                const publie=vitrinePubliee[v.id]||false;
+                const cover=(v.photosVehicule||[])[0];
+                return(
+                  <div key={v.id} style={{background:"white",borderRadius:16,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,.08)",border:`2px solid ${publie?"#2563eb":"#e5e7eb"}`}}>
+                    {/* Photo couverture */}
+                    <div style={{height:160,background:"#f1f5f9",position:"relative",overflow:"hidden"}}>
+                      {cover
+                        ?<img src={cover.data} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                        :<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",flexDirection:"column",gap:6}}>
+                          <span style={{fontSize:36}}>🚗</span>
+                          <span style={{fontSize:11,color:"#9ca3af"}}>Pas de photo</span>
+                        </div>
+                      }
+                      {publie&&<div style={{position:"absolute",top:8,right:8,background:"#2563eb",color:"white",fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:99}}>● EN LIGNE</div>}
+                      <div style={{position:"absolute",bottom:8,left:8,background:"rgba(0,0,0,.6)",color:"white",fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:99}}>
+                        {(v.photosVehicule||[]).length} photo{(v.photosVehicule||[]).length>1?"s":""}
+                      </div>
+                    </div>
+
+                    <div style={{padding:14}}>
+                      <div style={{fontWeight:800,fontSize:15,marginBottom:2}}>{v.marque} {v.modele}</div>
+                      <div style={{fontSize:11,color:"#6b7280",marginBottom:10}}>{v.couleur} · {v.annee} · {v.immat}</div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginBottom:12}}>
+                        <div style={{background:"#eff6ff",borderRadius:8,padding:"6px 8px",textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280"}}>Prix/jour</div><div style={{fontWeight:800,fontSize:13,color:"#2563eb"}}>{v.tarif} EUR</div></div>
+                        <div style={{background:"#f0fdf4",borderRadius:8,padding:"6px 8px",textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280"}}>Km inclus</div><div style={{fontWeight:800,fontSize:13,color:"#16a34a"}}>{v.kmInclus||0} km</div></div>
+                        <div style={{background:"#fef3c7",borderRadius:8,padding:"6px 8px",textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280"}}>Caution</div><div style={{fontWeight:800,fontSize:13,color:"#d97706"}}>{v.caution} EUR</div></div>
+                      </div>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={()=>setVitrinePubliee(p=>({...p,[v.id]:!publie}))} style={{flex:1,padding:"8px 0",background:publie?"#fef2f2":"#1e3a8a",color:publie?"#dc2626":"white",border:publie?"2px solid #fecaca":"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                          {publie?"⏸ Retirer":"▶ Publier"}
+                        </button>
+                        {publie&&<button onClick={()=>{const msg=`Bonjour ! Voici le lien pour voir nos vehicules disponibles : ${window.location.origin}/vitrine/${user?.id?.slice(0,8)}`;window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,"_blank");}} style={{padding:"8px 12px",background:"#25D366",color:"white",border:"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer"}}>💬</button>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {vehicles.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>🏪</div><p>Ajoutez des véhicules dans la Flotte pour les publier ici.</p></div>}
+
+            {/* Apercu vitrine */}
+            {Object.values(vitrinePubliee).some(v=>v)&&(
+              <div style={{marginTop:20}}>
+                <h2 style={{fontSize:14,fontWeight:700,color:"#1f2937",marginBottom:12}}>👁️ Apercu client</h2>
+                <div style={{background:"#f8fafc",borderRadius:14,padding:16,border:"2px dashed #e5e7eb"}}>
+                  <div style={{textAlign:"center",marginBottom:16}}>
+                    <div style={{fontWeight:800,fontSize:18,color:"#0a1940"}}>{profil.entreprise||"MAN'S LOCATION"}</div>
+                    <div style={{fontSize:12,color:"#6b7280"}}>Nos véhicules disponibles</div>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>
+                    {vehicles.filter(v=>vitrinePubliee[v.id]).map(v=>{
+                      const cover=(v.photosVehicule||[])[0];
+                      return(
+                        <div key={v.id} style={{background:"white",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.08)"}}>
+                          <div style={{height:120,background:"#f1f5f9",overflow:"hidden"}}>
+                            {cover?<img src={cover.data} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",fontSize:28}}>🚗</div>}
+                          </div>
+                          <div style={{padding:10}}>
+                            <div style={{fontWeight:700,fontSize:13}}>{v.marque} {v.modele}</div>
+                            <div style={{fontSize:10,color:"#6b7280",marginBottom:6}}>{v.couleur} · {v.annee}</div>
+                            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:6}}>
+                              <span style={{color:"#2563eb",fontWeight:700}}>{v.tarif} EUR/j</span>
+                              <span style={{color:"#6b7280"}}>{v.kmInclus||0} km inclus</span>
+                            </div>
+                            <div style={{fontSize:10,color:"#d97706",fontWeight:600,marginBottom:8}}>Caution : {v.caution} EUR</div>
+                            <button onClick={()=>{const msg=`Bonjour, je suis interesse par le ${v.marque} ${v.modele}. Pouvez-vous me donner plus d'informations ?`;window.open(`https://wa.me/${profil.whatsapp||profil.tel}?text=${encodeURIComponent(msg)}`,"_blank");}} style={{width:"100%",padding:"6px 0",background:"#25D366",color:"white",border:"none",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>💬 Demande WhatsApp</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── DASHBOARD ── */}
         {page==="dashboard"&&(
@@ -1346,6 +1520,7 @@ function AppContent(){
                       </div>
                     )}
                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                      <button onClick={()=>setPhotosVehicleModal(v)} style={{flex:1,padding:"6px 0",background:"#fdf4ff",color:"#9333ea",border:"1px solid #e9d5ff",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📸 Photos {(v.photosVehicule||[]).length>0?"("+v.photosVehicule.length+")":""}</button>
                       <button onClick={()=>openTarifs(v)} style={{flex:1,padding:"6px 0",background:"#fff7ed",color:"#d97706",border:"1px solid #fed7aa",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>💰 Tarifs</button>
                       <button onClick={()=>setContratModalId(v.id)} style={{flex:1,padding:"6px 0",background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📄 Contrat</button>
                       <button onClick={()=>setDocsId(v.id)} style={{flex:1,padding:"6px 0",background:"#f0fdf4",color:"#16a34a",border:"1px solid #bbf7d0",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📁 Docs</button>

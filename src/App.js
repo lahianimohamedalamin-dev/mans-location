@@ -563,34 +563,34 @@ function calcTarifAuto(vehicle,nbJours,heuresLoc){
   return{prix:(vehicle.tarif||0)*nbJours,label:`Standard — ${vehicle.tarif} €/j × ${nbJours}j`};
 }
 
-// Context setup prêt - refactor progress (duplicate supprimé)
-const { state, saveHelpers } = useAppContext();
-const [page,setPage]=useState("dashboard");
-const [selId,setSelId]=useState(null);
-const [form,setForm]=useState(FORM0);
-const [photosDepart,setPhotosDepart]=useState([]);
-const [touched,setTouched]=useState({});
-const [sigL,setSigL]=useState(null);
-const [sigLoc,setSigLoc]=useState(null);
-const [vForm,setVForm]=useState({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false});
-const [showAddV,setShowAddV]=useState(false);
-const [editV,setEditV]=useState(null);
-const [toast,setToast]=useState(null);
-const [planMonth,setPlanMonth]=useState(new Date());
-const [dForm,setDForm]=useState({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});
-const [showAddD,setShowAddD]=useState(false);
-const [profilEdit,setProfilEdit]=useState(false);
-const [profilForm,setProfilForm]=useState(INIT_PROFIL);
-const [docsId,setDocsId]=useState(null);
-const [contratModalId,setContratModalId]=useState(null);
-const [newDoc,setNewDoc]=useState({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});
-const [lastContrat,setLastContrat]=useState(null);
-const [retourContratId,setRetourContratId]=useState(null);
-const [tarifsVehicleId,setTarifsVehicleId]=useState(null);
-const [tarifsTemp,setTarifsTemp]=useState([]);
-const [ntarif,setNtarif]=useState({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});
+function AppContent() {
+  const { state, saveHelpers } = useAppContext();
+  const { vehicles, contrats, depenses, profil, user } = state;
+  const [page,setPage]=useState("dashboard");
+  const [selId,setSelId]=useState(null);
+  const [form,setForm]=useState(FORM0);
+  const [photosDepart,setPhotosDepart]=useState([]);
+  const [touched,setTouched]=useState({});
+  const [sigL,setSigL]=useState(null);
+  const [sigLoc,setSigLoc]=useState(null);
+  const [vForm,setVForm]=useState({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false});
+  const [showAddV,setShowAddV]=useState(false);
+  const [editV,setEditV]=useState(null);
+  const [toast,setToast]=useState(null);
+  const [planMonth,setPlanMonth]=useState(new Date());
+  const [dForm,setDForm]=useState({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});
+  const [showAddD,setShowAddD]=useState(false);
+  const [profilEdit,setProfilEdit]=useState(false);
+  const [profilForm,setProfilForm]=useState(INIT_PROFIL);
+  const [docsId,setDocsId]=useState(null);
+  const [contratModalId,setContratModalId]=useState(null);
+  const [newDoc,setNewDoc]=useState({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});
+  const [lastContrat,setLastContrat]=useState(null);
+  const [retourContratId,setRetourContratId]=useState(null);
+  const [tarifsVehicleId,setTarifsVehicleId]=useState(null);
+  const [tarifsTemp,setTarifsTemp]=useState([]);
+  const [ntarif,setNtarif]=useState({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});
 
-const { vehicles, contrats, depenses, profil, user } = state;
 
 
 
@@ -781,8 +781,18 @@ const { vehicles, contrats, depenses, profil, user } = state;
     r.readAsDataURL(f);
   }
 
-  return(
-    <div style={{minHeight:"100vh",background:"#f0f4f8"}}>
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
+  );
+}
+
+function AppContent() {
+
       <nav style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",boxShadow:"0 2px 12px rgba(0,0,0,.3)",position:"sticky",top:0,zIndex:100}}>
         <div style={{maxWidth:1100,margin:"0 auto",padding:"0 10px",height:50,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>

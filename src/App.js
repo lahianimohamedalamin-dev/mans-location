@@ -771,7 +771,7 @@ function AppContent(){
   const[form,setForm]=useState(FORM0);
   const[photosDepart,setPhotosDepart]=useState([]);
   const[photosVehicleModal,setPhotosVehicleModal]=useState(null);
-  const[vitrinePubliee,setVitrinePubliee]=useState({});
+  // vitrinePubliee supprimé - on utilise v.publie directement
   const[docsLocataire,setDocsLocataire]=useState({});
   const[questions,setQuestions]=useState([]);
   const[touched,setTouched]=useState({});
@@ -840,13 +840,10 @@ function AppContent(){
 
       // Charger véhicules avec publie + photos_vehicule
       if(vehRes.data){
-        const vMap={};
         const vList=vehRes.data.map(v=>{
-          if(v.publie)vMap[v.id]=true;
           return{id:v.id,marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],photosVehicule:v.photos_vehicule||[],publie:v.publie||false};
         });
         setVehicles(vList);
-        setVitrinePubliee(vMap);
       }
       if(conRes.data){setContrats(conRes.data.map(c=>({id:c.id,locNom:c.loc_nom||'',locAdresse:c.loc_adresse||'',locTel:c.loc_tel||'',locEmail:c.loc_email||'',locPermis:c.loc_permis||'',dateDebut:c.date_debut||'',heureDebut:c.heure_debut||'10:00',dateFin:c.date_fin||'',heureFin:c.heure_fin||'10:00',paiement:c.paiement||'especes',cautionMode:c.caution_mode||'especes',kmDepart:c.km_depart||'',nbJours:c.nb_jours||1,heuresLoc:c.heures_loc||24,carburantDepart:c.carburant_depart??100,exterieurPropre:c.exterieur_propre,interieurPropre:c.interieur_propre,vehicleId:c.vehicle_id,vehicleLabel:c.vehicle_label||'',immat:c.immat||'',sigL:c.sig_l||null,sigLoc:c.sig_loc||null,totalCalc:c.total_calc||0,tarifLabel:c.tarif_label||'',photosDepart:c.photos_depart||[],docsLocataire:c.docs_locataire||{},fraisSnap:c.frais_snap||[],clausesSnap:c.clauses_snap||[],kmInclus:c.km_inclus,prixKmSup:c.prix_km_sup})));}
       if(depRes.data){setDepenses(depRes.data.map(d=>({id:d.id,label:d.label||'',montant:d.montant||0,categorie:d.categorie||'Carburant',date:d.date||'',vehicleId:d.vehicle_id||''})));}
@@ -950,7 +947,6 @@ function AppContent(){
   async function togglePublier(v){
     const newVal=!v.publie;
     setVehicles(vs=>vs.map(x=>x.id===v.id?{...x,publie:newVal}:x));
-    setVitrinePubliee(p=>({...p,[v.id]:newVal}));
     toast_(newVal?"Véhicule publié en ligne !":"Véhicule retiré de la vitrine");
     if(user)await supabase.from('vehicules').update({publie:newVal}).eq('id',v.id).eq('user_id',user.id);
   }

@@ -109,8 +109,6 @@ function dlPDF(html, filename) {
   setTimeout(() => { win.print(); }, 600);
 }
 
-// Garde dlFile pour compatibilité interne mais redirige vers PDF
-function dlFile(html, filename){ dlPDF(html, filename); }
 
 function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   const nb=contrat.nbJours||1,total=contrat.totalCalc||0,pm=contrat.paiement;

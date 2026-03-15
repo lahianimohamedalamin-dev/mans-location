@@ -37,6 +37,8 @@ const CARRO_ELEMENTS=[
   {id:"retro_g",label:"Rétroviseur gauche",zone:"Divers"},{id:"retro_d",label:"Rétroviseur droit",zone:"Divers"},
 ];
 
+
+
 const PAYS_CODES=[
   {code:"+33",pays:"🇫🇷 France"},
   {code:"+32",pays:"🇧🇪 Belgique"},
@@ -53,6 +55,27 @@ const PAYS_CODES=[
   {code:"+39",pays:"🇮🇹 Italie"},
   {code:"+1",pays:"🇺🇸 USA/Canada"},
 ];
+
+// Composant téléphone avec indicatif pays
+function TelInput({value,onChange,placeholder,style}){
+  // value = "+33 0612345678" ou juste "0612345678"
+  const parts=value.match(/^(\+\d+)\s(.*)$/);
+  const code=parts?parts[1]:"+33";
+  const num=parts?parts[2]:value;
+  function update(c,n){onChange(n?c+" "+n:c+" ");}
+  const IS={border:"1px solid #d1d5db",borderRadius:8,padding:"7px 8px",fontSize:12,boxSizing:"border-box",...(style||{})};
+  return(
+    <div style={{display:"flex",gap:4,width:"100%"}}>
+      <select value={code} onChange={e=>update(e.target.value,num)}
+        style={{...IS,width:90,flexShrink:0,padding:"7px 4px"}}>
+        {PAYS_CODES.map(p=><option key={p.code} value={p.code}>{p.pays.split(" ")[0]} {p.code}</option>)}
+      </select>
+      <input value={num} onChange={e=>update(code,e.target.value)}
+        placeholder={placeholder||"Numéro"}
+        style={{...IS,flex:1}}/>
+    </div>
+  );
+}
 
 const MOTORISATIONS=["Essence","Diesel","Hybride","Hybride rechargeable","Électrique","GPL","Hydrogène"];
 const BOITES=["Manuelle","Automatique","Semi-automatique"];
@@ -482,7 +505,7 @@ function DemandeVehicule({vehicle,profil,userId}){
             <input placeholder="Prénom *" value={form.prenom} onChange={e=>setForm(f=>({...f,prenom:e.target.value}))} style={{padding:"6px 8px",border:"1px solid #d1d5db",borderRadius:7,fontSize:11,boxSizing:"border-box"}}/>
             <input placeholder="Nom *" value={form.nom} onChange={e=>setForm(f=>({...f,nom:e.target.value}))} style={{padding:"6px 8px",border:"1px solid #d1d5db",borderRadius:7,fontSize:11,boxSizing:"border-box"}}/>
             <input placeholder="Âge *" type="number" value={form.age} onChange={e=>setForm(f=>({...f,age:e.target.value}))} style={{padding:"6px 8px",border:"1px solid #d1d5db",borderRadius:7,fontSize:11,boxSizing:"border-box"}}/>
-            <input placeholder="Téléphone *" value={form.tel} onChange={e=>setForm(f=>({...f,tel:e.target.value}))} style={{padding:"6px 8px",border:"1px solid #d1d5db",borderRadius:7,fontSize:11,boxSizing:"border-box"}}/>
+            <TelInput value={form.tel} onChange={v=>setForm(f=>({...f,tel:v}))} placeholder="Téléphone *" style={{padding:"6px 8px",fontSize:11}}/>
           </div>
           <input placeholder="Email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} style={{padding:"6px 8px",border:"1px solid #d1d5db",borderRadius:7,fontSize:11,boxSizing:"border-box",width:"100%"}}/>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
@@ -1061,7 +1084,8 @@ function AppContent(){
       <div style={{background:"white",borderRadius:16,padding:"32px 28px",width:"100%",maxWidth:480,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
         <h1 style={{textAlign:"center",marginBottom:6,fontSize:20,fontWeight:800}}>Bienvenue sur MAN'S LOCATION</h1>
         <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:13}}>Remplissez vos informations pour commencer</p>
-        {[["nom","Nom complet *"],["entreprise","Nom de l'entreprise *"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["tel","Téléphone *"],["whatsapp","WhatsApp"],["snap","Snapchat"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(<div key={k} style={{marginBottom:10}}><label style={{fontSize:11,fontWeight:600,color:"#6b7280",display:"block",marginBottom:3}}>{l}</label><input placeholder={l.replace(" *","")} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:13,boxSizing:"border-box"}} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>))}
+        {[["nom","Nom complet *"],["entreprise","Nom de l'entreprise *"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(<div key={k} style={{marginBottom:10}}><label style={{fontSize:11,fontWeight:600,color:"#6b7280",display:"block",marginBottom:3}}>{l}</label><input placeholder={l.replace(" *","")} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:13,boxSizing:"border-box"}} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>))}
+        {[["tel","Téléphone *"],["whatsapp","WhatsApp"],["snap","Snapchat"]].map(([k,l])=>(<div key={k} style={{marginBottom:10}}><label style={{fontSize:11,fontWeight:600,color:"#6b7280",display:"block",marginBottom:3}}>{l}</label><TelInput value={profilForm[k]||""} onChange={v=>setProfilForm(p=>({...p,[k]:v}))} placeholder={l.replace(" *","")}/></div>))}
         <button onClick={async()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel)return;setProfil({...profilForm});if(user)await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>Commencer</button>
         <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
       </div>
@@ -1412,7 +1436,8 @@ function AppContent(){
                 <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>Locataire</h3>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                   <F k="locNom" label="Nom complet *" span2/><F k="locAdresse" label="Adresse *" span2/>
-                  <F k="locTel" label="Téléphone *"/><F k="locEmail" label="Email" type="email"/>
+                  <div><label style={LBL}>Téléphone *</label><TelInput value={form.locTel} onChange={v=>setForm(f=>({...f,locTel:v}))} placeholder="06 12 34 56 78"/>{inv("locTel")&&<p style={{color:"#ef4444",fontSize:10,marginTop:2}}>Obligatoire</p>}</div>
+                  <F k="locEmail" label="Email" type="email"/>
                   <F k="locPermis" label="N° Permis" span2/>
                 </div>
               </div>
@@ -1830,7 +1855,8 @@ function AppContent(){
               <button onClick={()=>{setProfilEdit(!profilEdit);setProfilForm({...profil});}} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>{profilEdit?"Annuler":"Modifier"}</button>
             </div>
             {profilEdit?(<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
-              {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["tel","Téléphone"],["whatsapp","WhatsApp"],["snap","Snapchat"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(<div key={k} style={{marginBottom:10}}><label style={LBL}>{l}</label><input style={Inp()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>))}
+              {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(<div key={k} style={{marginBottom:10}}><label style={LBL}>{l}</label><input style={Inp()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>))}
+              {[["tel","Téléphone"],["whatsapp","WhatsApp"],["snap","Snapchat"]].map(([k,l])=>(<div key={k} style={{marginBottom:10}}><label style={LBL}>{l}</label><TelInput value={profilForm[k]||""} onChange={v=>setProfilForm(p=>({...p,[k]:v}))} placeholder={l}/></div>))}
               <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user)await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
               <button onClick={()=>supabase.auth.signOut()} style={{marginTop:10,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
             </div>):(<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>

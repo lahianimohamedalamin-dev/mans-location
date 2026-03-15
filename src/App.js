@@ -37,66 +37,30 @@ const CARRO_ELEMENTS=[
   {id:"retro_g",label:"Rétroviseur gauche",zone:"Divers"},{id:"retro_d",label:"Rétroviseur droit",zone:"Divers"},
 ];
 
-
-
 const PAYS_CODES=[
-  {code:"+33",pays:"🇫🇷 France"},
-  {code:"+32",pays:"🇧🇪 Belgique"},
-  {code:"+41",pays:"🇨🇭 Suisse"},
-  {code:"+352",pays:"🇱🇺 Luxembourg"},
-  {code:"+212",pays:"🇲🇦 Maroc"},
-  {code:"+213",pays:"🇩🇿 Algérie"},
-  {code:"+216",pays:"🇹🇳 Tunisie"},
-  {code:"+221",pays:"🇸🇳 Sénégal"},
-  {code:"+225",pays:"🇨🇮 Côte d'Ivoire"},
-  {code:"+44",pays:"🇬🇧 Royaume-Uni"},
-  {code:"+49",pays:"🇩🇪 Allemagne"},
-  {code:"+34",pays:"🇪🇸 Espagne"},
-  {code:"+39",pays:"🇮🇹 Italie"},
-  {code:"+1",pays:"🇺🇸 USA/Canada"},
+  {code:"+33",pays:"🇫🇷 France"},{code:"+32",pays:"🇧🇪 Belgique"},{code:"+41",pays:"🇨🇭 Suisse"},
+  {code:"+352",pays:"🇱🇺 Luxembourg"},{code:"+212",pays:"🇲🇦 Maroc"},{code:"+213",pays:"🇩🇿 Algérie"},
+  {code:"+216",pays:"🇹🇳 Tunisie"},{code:"+221",pays:"🇸🇳 Sénégal"},{code:"+225",pays:"🇨🇮 Côte d'Ivoire"},
+  {code:"+44",pays:"🇬🇧 Royaume-Uni"},{code:"+49",pays:"🇩🇪 Allemagne"},{code:"+34",pays:"🇪🇸 Espagne"},
+  {code:"+39",pays:"🇮🇹 Italie"},{code:"+1",pays:"🇺🇸 USA/Canada"},
 ];
-
-// Composant téléphone avec indicatif pays
-function TelInput({value,onChange,placeholder,style}){
-  // value = "+33 0612345678" ou juste "0612345678"
-  const parts=value.match(/^(\+\d+)\s(.*)$/);
-  const code=parts?parts[1]:"+33";
-  const num=parts?parts[2]:value;
-  function update(c,n){onChange(n?c+" "+n:c+" ");}
-  const IS={border:"1px solid #d1d5db",borderRadius:8,padding:"7px 8px",fontSize:12,boxSizing:"border-box",...(style||{})};
-  return(
-    <div style={{display:"flex",gap:4,width:"100%"}}>
-      <select value={code} onChange={e=>update(e.target.value,num)}
-        style={{...IS,width:90,flexShrink:0,padding:"7px 4px"}}>
-        {PAYS_CODES.map(p=><option key={p.code} value={p.code}>{p.pays.split(" ")[0]} {p.code}</option>)}
-      </select>
-      <input value={num} onChange={e=>update(code,e.target.value)}
-        placeholder={placeholder||"Numéro"}
-        style={{...IS,flex:1}}/>
-    </div>
-  );
-}
 
 const MOTORISATIONS=["Essence","Diesel","Hybride","Hybride rechargeable","Électrique","GPL","Hydrogène"];
 const BOITES=["Manuelle","Automatique","Semi-automatique"];
-
 const RETOUR_CHECKS=[
   {id:"carburant",label:"Carburant niveau OK",icon:"⛽"},{id:"exterieur",label:"Extérieur propre",icon:"🚿"},
   {id:"interieur",label:"Intérieur propre",icon:"🧹"},{id:"sieges",label:"Sièges sans dégât",icon:"💺"},
   {id:"odeur",label:"Pas d'odeur tabac",icon:"🚭"},{id:"documents",label:"Documents présents",icon:"📋"},
   {id:"cles",label:"Clés rendues",icon:"🔑"},
 ];
-
 const CAT_DEP=["Carburant","Assurance","Entretien","Réparation","Nettoyage","Péage","Amende","Retenue caution","Autre"];
 const DOC_TYPES=["Carte grise","Assurance","Contrôle technique","Permis de conduire","CNI / Passeport","Contrat","Autre"];
 const TARIFS_PRESETS=[
   {type:"Journée (24h)",heures:24},{type:"Week-end (48h)",heures:48},
   {type:"Week-end (72h)",heures:72},{type:"Semaine (7j)",heures:168},{type:"Mois (30j)",heures:720},
 ];
-
 const INIT_V=[];
 const INIT_PROFIL={nom:"",entreprise:"",siren:"",siret:"",kbis:"",tel:"",whatsapp:"",snap:"",email:"",adresse:"",ville:"",iban:""};
-
 const CAR_BRANDS={
   "Renault":["Clio","Megane","Captur","Kadjar","Scenic","Twingo","Arkana","Austral","Zoe","Kangoo","Trafic","Master"],
   "Peugeot":["108","208","308","408","508","2008","3008","5008","Rifter","Partner","Expert"],
@@ -128,24 +92,25 @@ const CAR_BRANDS={
   "Mitsubishi":["Space Star","ASX","Eclipse Cross","Outlander"],
   "Land Rover":["Defender","Discovery","Discovery Sport","Range Rover","Range Rover Sport","Range Rover Evoque","Range Rover Velar"]
 };
-
 const CAR_COLORS=["Noir","Blanc","Gris","Argent","Bleu","Rouge","Vert","Beige","Marron","Orange","Jaune","Violet","Rose","Bordeaux","Bleu nuit","Gris anthracite","Blanc nacré","Noir métallisé","Bleu métallisé","Gris métallisé"];
 const CURRENT_YEAR=new Date().getFullYear();
 const CAR_YEARS=Array.from({length:30},(_,i)=>CURRENT_YEAR-i);
 
-function fuelLabel(pct){
-  if(pct>=100)return"Plein";if(pct>=75)return"3/4";if(pct>=50)return"1/2";if(pct>=25)return"1/4";return"Réserve";
-}
-function fuelColor(pct){
-  if(pct>=60)return"#16a34a";if(pct>=30)return"#d97706";return"#dc2626";
+function fuelLabel(pct){if(pct>=100)return"Plein";if(pct>=75)return"3/4";if(pct>=50)return"1/2";if(pct>=25)return"1/4";return"Réserve";}
+function fuelColor(pct){if(pct>=60)return"#16a34a";if(pct>=30)return"#d97706";return"#dc2626";}
+
+// ── Téléchargement PDF via print ──────────────────────────────────────────────
+function dlPDF(html, filename) {
+  const win = window.open('', '_blank');
+  if (!win) { alert("Autorisez les popups pour télécharger le PDF"); return; }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 600);
 }
 
-function dlFile(html,filename){
-  const b=new Blob([html],{type:"text/html;charset=utf-8"});
-  const u=URL.createObjectURL(b);const a=document.createElement("a");
-  a.href=u;a.download=filename;document.body.appendChild(a);a.click();
-  setTimeout(()=>{URL.revokeObjectURL(u);document.body.removeChild(a);},1000);
-}
+// Garde dlFile pour compatibilité interne mais redirige vers PDF
+function dlFile(html, filename){ dlPDF(html, filename); }
 
 function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   const nb=contrat.nbJours||1,total=contrat.totalCalc||0,pm=contrat.paiement;
@@ -320,6 +285,22 @@ table th{background:#e8edf5;font-weight:700}table tr:nth-child(even){background:
 }
 
 // ─── COMPOSANTS ───────────────────────────────────────────────────────────────
+function TelInput({value,onChange,placeholder,style}){
+  const parts=(value||"").match(/^(\+\d+)\s(.*)$/);
+  const code=parts?parts[1]:"+33";
+  const num=parts?parts[2]:(value||"");
+  function update(c,n){onChange(n?c+" "+n:c+" ");}
+  const IS={border:"1px solid #d1d5db",borderRadius:8,padding:"7px 8px",fontSize:12,boxSizing:"border-box",...(style||{})};
+  return(
+    <div style={{display:"flex",gap:4,width:"100%"}}>
+      <select value={code} onChange={e=>update(e.target.value,num)} style={{...IS,width:88,flexShrink:0,padding:"7px 3px"}}>
+        {PAYS_CODES.map(p=><option key={p.code} value={p.code}>{p.pays.split(" ")[0]} {p.code}</option>)}
+      </select>
+      <input value={num} onChange={e=>update(code,e.target.value)} placeholder={placeholder||"Numéro"} style={{...IS,flex:1}}/>
+    </div>
+  );
+}
+
 function FuelGauge({value,onChange,readOnly}){
   const pct=parseInt(value)||0;const col=fuelColor(pct);
   const steps=[0,10,20,30,40,50,60,70,80,90,100];
@@ -407,7 +388,7 @@ function PhotosVehiculeModal({vehicle,onClose,onSave}){
     <div onClick={e=>{if(e.target===e.currentTarget)onClose();}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
       <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:480,overflow:"hidden"}}>
         <div style={{padding:"14px 18px",background:"#0a1940",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div><b style={{color:"white",fontSize:14}}>Photos - {vehicle.marque} {vehicle.modele}</b><div style={{fontSize:10,color:"rgba(255,255,255,.6)"}}>5 photos max - La 1ere = couverture</div></div>
+          <div><b style={{color:"white",fontSize:14}}>Photos - {vehicle.marque} {vehicle.modele}</b><div style={{fontSize:10,color:"rgba(255,255,255,.6)"}}>5 photos max</div></div>
           <button onClick={onClose} style={{fontSize:22,background:"none",border:"none",cursor:"pointer",color:"white"}}>x</button>
         </div>
         <div style={{padding:16}}><PhotosVehicule photos={photos} setPhotos={setPhotos} max={5}/></div>
@@ -444,7 +425,7 @@ function DocsLocataire({docs,setDocs}){
 function DemandeVehicule({vehicle,profil,userId}){
   const[open,setOpen]=useState(false);
   const[tab,setTab]=useState("resa");
-  const[form,setForm]=useState({prenom:"",nom:"",age:"",tel:"",email:"",dateDebut:"",dateFin:"",message:""});
+  const[form,setForm]=useState({prenom:"",nom:"",age:"",tel:"+33 ",email:"",dateDebut:"",dateFin:"",message:""});
   const[question,setQuestion]=useState("");
   const[sent,setSent]=useState(false);
   const[qSent,setQSent]=useState(false);
@@ -466,76 +447,70 @@ function DemandeVehicule({vehicle,profil,userId}){
   async function sendQuestion(){
     if(!question.trim()){alert("Ecrivez votre question");return;}
     if(userId){
-      await supabase.from('questions').insert([{
-        user_id:userId,vehicle_id:vehicle.id,
-        vehicle_label:vehicle.marque+" "+vehicle.modele,
-        client_nom:"Client vitrine",client_tel:"",
-        question:question,lu:false
-      }]);
+      await supabase.from('questions').insert([{user_id:userId,vehicle_id:vehicle.id,vehicle_label:vehicle.marque+" "+vehicle.modele,client_nom:"Client vitrine",client_tel:"",question:question,lu:false}]);
     }
-    setQSent(true);
-    setQuestion("");
+    setQSent(true);setQuestion("");
   }
 
   if(!open)return(
     <div style={{display:"flex",gap:6,marginTop:6}}>
-      <button onClick={()=>{setOpen(true);setTab("resa");setSent(false);setQSent(false);}} style={{flex:1,padding:"7px 0",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📅 Réserver</button>
-      <button onClick={()=>{setOpen(true);setTab("question");setSent(false);setQSent(false);}} style={{flex:1,padding:"7px 0",background:"#f1f5f9",color:"#374151",border:"1px solid #e5e7eb",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>❓ Question</button>
+      <button onClick={()=>{setOpen(true);setTab("resa");setSent(false);setQSent(false);}} style={{flex:1,padding:"8px 0",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📅 Réserver</button>
+      <button onClick={()=>{setOpen(true);setTab("question");setSent(false);setQSent(false);}} style={{flex:1,padding:"8px 0",background:"#f1f5f9",color:"#374151",border:"1px solid #e5e7eb",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>❓ Question</button>
     </div>
   );
 
   return(
-    <div style={{marginTop:8,background:"#f8fafc",borderRadius:10,padding:12,border:"1px solid #e5e7eb"}}>
-      <div style={{display:"flex",gap:6,marginBottom:10}}>
-        <button onClick={()=>setTab("resa")} style={{flex:1,padding:"5px 0",borderRadius:7,border:"none",cursor:"pointer",fontWeight:tab==="resa"?700:400,background:tab==="resa"?"#1e3a8a":"#e5e7eb",color:tab==="resa"?"white":"#374151",fontSize:11}}>📅 Réservation</button>
-        <button onClick={()=>setTab("question")} style={{flex:1,padding:"5px 0",borderRadius:7,border:"none",cursor:"pointer",fontWeight:tab==="question"?700:400,background:tab==="question"?"#7c3aed":"#e5e7eb",color:tab==="question"?"white":"#374151",fontSize:11}}>❓ Question</button>
-        <button onClick={()=>setOpen(false)} style={{padding:"5px 8px",borderRadius:7,border:"none",cursor:"pointer",background:"#fef2f2",color:"#ef4444",fontSize:11,fontWeight:700}}>x</button>
+    <div style={{marginTop:8,background:"#f8fafc",borderRadius:12,padding:14,border:"1px solid #e5e7eb"}}>
+      <div style={{display:"flex",gap:6,marginBottom:12}}>
+        <button onClick={()=>setTab("resa")} style={{flex:1,padding:"7px 0",borderRadius:8,border:"none",cursor:"pointer",fontWeight:tab==="resa"?700:400,background:tab==="resa"?"#1e3a8a":"#e5e7eb",color:tab==="resa"?"white":"#374151",fontSize:12}}>📅 Réservation</button>
+        <button onClick={()=>setTab("question")} style={{flex:1,padding:"7px 0",borderRadius:8,border:"none",cursor:"pointer",fontWeight:tab==="question"?700:400,background:tab==="question"?"#7c3aed":"#e5e7eb",color:tab==="question"?"white":"#374151",fontSize:12}}>❓ Question</button>
+        <button onClick={()=>setOpen(false)} style={{padding:"7px 10px",borderRadius:8,border:"none",cursor:"pointer",background:"#fef2f2",color:"#ef4444",fontSize:12,fontWeight:700}}>✕</button>
       </div>
 
       {tab==="resa"&&(sent?(
-        <div style={{textAlign:"center",padding:"12px 0"}}>
-          <div style={{fontSize:24,marginBottom:6}}>✅</div>
-          <div style={{fontWeight:700,fontSize:13,color:"#16a34a",marginBottom:4}}>Demande envoyée !</div>
-          <div style={{fontSize:11,color:"#6b7280",marginBottom:10}}>WhatsApp va s'ouvrir pour finaliser.</div>
-          <button onClick={()=>{setSent(false);setForm({prenom:"",nom:"",age:"",tel:"",email:"",dateDebut:"",dateFin:"",message:""});}} style={{padding:"6px 14px",background:"#e5e7eb",border:"none",borderRadius:7,fontSize:11,cursor:"pointer"}}>Nouvelle demande</button>
+        <div style={{textAlign:"center",padding:"16px 0"}}>
+          <div style={{fontSize:32,marginBottom:8}}>✅</div>
+          <div style={{fontWeight:700,fontSize:14,color:"#16a34a",marginBottom:6}}>Demande envoyée !</div>
+          <div style={{fontSize:12,color:"#6b7280",marginBottom:12}}>WhatsApp va s'ouvrir pour finaliser.</div>
+          <button onClick={()=>{setSent(false);setForm({prenom:"",nom:"",age:"",tel:"+33 ",email:"",dateDebut:"",dateFin:"",message:""});}} style={{padding:"8px 16px",background:"#e5e7eb",border:"none",borderRadius:8,fontSize:12,cursor:"pointer"}}>Nouvelle demande</button>
         </div>
       ):(
-        <div style={{display:"flex",flexDirection:"column",gap:7}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-            <input placeholder="Prénom *" value={form.prenom} onChange={e=>setForm(f=>({...f,prenom:e.target.value}))} style={{padding:"6px 8px",border:"1px solid #d1d5db",borderRadius:7,fontSize:11,boxSizing:"border-box"}}/>
-            <input placeholder="Nom *" value={form.nom} onChange={e=>setForm(f=>({...f,nom:e.target.value}))} style={{padding:"6px 8px",border:"1px solid #d1d5db",borderRadius:7,fontSize:11,boxSizing:"border-box"}}/>
-            <input placeholder="Âge *" type="number" value={form.age} onChange={e=>setForm(f=>({...f,age:e.target.value}))} style={{padding:"6px 8px",border:"1px solid #d1d5db",borderRadius:7,fontSize:11,boxSizing:"border-box"}}/>
-            <TelInput value={form.tel} onChange={v=>setForm(f=>({...f,tel:v}))} placeholder="Téléphone *" style={{padding:"6px 8px",fontSize:11}}/>
+        <div style={{display:"flex",flexDirection:"column",gap:9}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <input placeholder="Prénom *" value={form.prenom} onChange={e=>setForm(f=>({...f,prenom:e.target.value}))} style={{padding:"8px 10px",border:"1px solid #d1d5db",borderRadius:8,fontSize:12,boxSizing:"border-box"}}/>
+            <input placeholder="Nom *" value={form.nom} onChange={e=>setForm(f=>({...f,nom:e.target.value}))} style={{padding:"8px 10px",border:"1px solid #d1d5db",borderRadius:8,fontSize:12,boxSizing:"border-box"}}/>
           </div>
-          <input placeholder="Email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} style={{padding:"6px 8px",border:"1px solid #d1d5db",borderRadius:7,fontSize:11,boxSizing:"border-box",width:"100%"}}/>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-            <div><div style={{fontSize:9,color:"#6b7280",marginBottom:2}}>Début *</div><input type="date" value={form.dateDebut} onChange={e=>setForm(f=>({...f,dateDebut:e.target.value}))} style={{padding:"6px 8px",border:"1px solid #d1d5db",borderRadius:7,fontSize:11,width:"100%",boxSizing:"border-box"}}/></div>
-            <div><div style={{fontSize:9,color:"#6b7280",marginBottom:2}}>Fin *</div><input type="date" value={form.dateFin} onChange={e=>setForm(f=>({...f,dateFin:e.target.value}))} style={{padding:"6px 8px",border:"1px solid #d1d5db",borderRadius:7,fontSize:11,width:"100%",boxSizing:"border-box"}}/></div>
+          <input placeholder="Âge *" type="number" value={form.age} onChange={e=>setForm(f=>({...f,age:e.target.value}))} style={{padding:"8px 10px",border:"1px solid #d1d5db",borderRadius:8,fontSize:12,boxSizing:"border-box",width:"100%"}}/>
+          <div><div style={{fontSize:10,color:"#6b7280",marginBottom:3}}>Téléphone *</div><TelInput value={form.tel} onChange={v=>setForm(f=>({...f,tel:v}))} placeholder="06 12 34 56 78" style={{padding:"8px 8px",fontSize:12}}/></div>
+          <input placeholder="Email" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} style={{padding:"8px 10px",border:"1px solid #d1d5db",borderRadius:8,fontSize:12,boxSizing:"border-box",width:"100%"}}/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            <div><div style={{fontSize:10,color:"#6b7280",marginBottom:3}}>Début *</div><input type="date" value={form.dateDebut} onChange={e=>setForm(f=>({...f,dateDebut:e.target.value}))} style={{padding:"8px 10px",border:"1px solid #d1d5db",borderRadius:8,fontSize:12,width:"100%",boxSizing:"border-box"}}/></div>
+            <div><div style={{fontSize:10,color:"#6b7280",marginBottom:3}}>Fin *</div><input type="date" value={form.dateFin} onChange={e=>setForm(f=>({...f,dateFin:e.target.value}))} style={{padding:"8px 10px",border:"1px solid #d1d5db",borderRadius:8,fontSize:12,width:"100%",boxSizing:"border-box"}}/></div>
           </div>
           {form.dateDebut&&form.dateFin&&new Date(form.dateFin)>new Date(form.dateDebut)&&(
-            <div style={{background:"#eff6ff",borderRadius:7,padding:"5px 8px",fontSize:11,color:"#2563eb",fontWeight:600}}>
+            <div style={{background:"#eff6ff",borderRadius:8,padding:"7px 10px",fontSize:12,color:"#2563eb",fontWeight:600}}>
               {Math.ceil((new Date(form.dateFin)-new Date(form.dateDebut))/86400000)} jour(s) — {Math.ceil((new Date(form.dateFin)-new Date(form.dateDebut))/86400000)*vehicle.tarif} EUR
             </div>
           )}
-          <textarea placeholder="Message (optionnel)" value={form.message} onChange={e=>setForm(f=>({...f,message:e.target.value}))} rows={2} style={{padding:"6px 8px",border:"1px solid #d1d5db",borderRadius:7,fontSize:11,resize:"none",fontFamily:"inherit"}}/>
-          <button onClick={()=>{if(!form.prenom||!form.nom||!form.tel||!form.dateDebut||!form.dateFin){alert("Remplissez les champs obligatoires *");return;}sendWhatsApp();}} style={{width:"100%",padding:"8px 0",background:"#25D366",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>💬 Envoyer sur WhatsApp</button>
+          <textarea placeholder="Message (optionnel)" value={form.message} onChange={e=>setForm(f=>({...f,message:e.target.value}))} rows={2} style={{padding:"8px 10px",border:"1px solid #d1d5db",borderRadius:8,fontSize:12,resize:"none",fontFamily:"inherit"}}/>
+          <button onClick={()=>{if(!form.prenom||!form.nom||!form.tel||!form.dateDebut||!form.dateFin){alert("Remplissez les champs obligatoires *");return;}sendWhatsApp();}} style={{width:"100%",padding:"10px 0",background:"#25D366",color:"white",border:"none",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>💬 Envoyer sur WhatsApp</button>
         </div>
       ))}
 
       {tab==="question"&&(qSent?(
-        <div style={{textAlign:"center",padding:"12px 0"}}>
-          <div style={{fontSize:24,marginBottom:6}}>✅</div>
-          <div style={{fontWeight:700,fontSize:13,color:"#16a34a",marginBottom:4}}>Question envoyée !</div>
-          <div style={{fontSize:11,color:"#6b7280",marginBottom:10}}>Le loueur vous répondra bientôt sur ce site.</div>
-          <button onClick={()=>setQSent(false)} style={{padding:"6px 14px",background:"#e5e7eb",border:"none",borderRadius:7,fontSize:11,cursor:"pointer"}}>Nouvelle question</button>
+        <div style={{textAlign:"center",padding:"16px 0"}}>
+          <div style={{fontSize:32,marginBottom:8}}>✅</div>
+          <div style={{fontWeight:700,fontSize:14,color:"#16a34a",marginBottom:6}}>Question envoyée !</div>
+          <div style={{fontSize:12,color:"#6b7280",marginBottom:12}}>Le loueur vous répondra bientôt.</div>
+          <button onClick={()=>setQSent(false)} style={{padding:"8px 16px",background:"#e5e7eb",border:"none",borderRadius:8,fontSize:12,cursor:"pointer"}}>Nouvelle question</button>
         </div>
       ):(
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          <div style={{fontSize:11,color:"#6b7280",background:"#eff6ff",borderRadius:8,padding:"8px 10px",border:"1px solid #bfdbfe"}}>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{fontSize:12,color:"#6b7280",background:"#eff6ff",borderRadius:8,padding:"10px 12px",border:"1px solid #bfdbfe"}}>
             Les réponses seront visibles sur ce site. Posez votre question ci-dessous.
           </div>
-          <textarea placeholder="Votre question..." value={question} onChange={e=>setQuestion(e.target.value)} rows={4} style={{padding:"8px",border:"1px solid #d1d5db",borderRadius:7,fontSize:12,resize:"none",fontFamily:"inherit"}}/>
-          <button onClick={sendQuestion} style={{width:"100%",padding:"8px 0",background:"#7c3aed",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Envoyer la question</button>
+          <textarea placeholder="Votre question..." value={question} onChange={e=>setQuestion(e.target.value)} rows={4} style={{padding:"10px",border:"1px solid #d1d5db",borderRadius:8,fontSize:13,resize:"none",fontFamily:"inherit"}}/>
+          <button onClick={sendQuestion} style={{width:"100%",padding:"10px 0",background:"#7c3aed",color:"white",border:"none",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Envoyer la question</button>
         </div>
       ))}
     </div>
@@ -577,12 +552,22 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
   function pickFile(id,setter){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>handlePhoto(id,e.target.files[0],setter);i.click();}
   function pickCamera(id,setter){const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>handlePhoto(id,e.target.files[0],setter);i.click();}
 
+  function getRetourData(){
+    return{checks,carro,carroPhotos,carroNotes,photos,notes,cautionRestituee,montantRetenu:retenu,raisonRetenue,rembourse:cautionRestituee?caution:Math.max(0,caution-retenu),kmRetour,kmSup,surplusKm,carburantRetour,date:new Date().toISOString(),sigRetourLoueur,sigRetourLocataire};
+  }
+
+  function downloadPV(){
+    const data=getRetourData();
+    const pvHtml=buildPVRetourHTML(contrat,vehicle,data,sigRetourLoueur,sigRetourLocataire,profil);
+    dlPDF(pvHtml,`PV_Retour_${contrat.locNom.replace(/\s+/g,"_")}.pdf`);
+  }
+
   function save(){
     if(cautionRestituee===null){alert("Précisez si la caution est restituée.");return;}
-    const retourData={checks,carro,carroPhotos,carroNotes,photos,notes,cautionRestituee,montantRetenu:retenu,raisonRetenue,rembourse:cautionRestituee?caution:Math.max(0,caution-retenu),kmRetour,kmSup,surplusKm,carburantRetour,date:new Date().toISOString(),sigRetourLoueur,sigRetourLocataire};
-    onSave(retourData);
-    const pvHtml=buildPVRetourHTML(contrat,vehicle,retourData,sigRetourLoueur,sigRetourLocataire,profil);
-    dlFile(pvHtml,`PV_Retour_${contrat.locNom.replace(/\s+/g,"_")}.html`);
+    const data=getRetourData();
+    onSave(data);
+    const pvHtml=buildPVRetourHTML(contrat,vehicle,data,sigRetourLoueur,sigRetourLocataire,profil);
+    dlPDF(pvHtml,`PV_Retour_${contrat.locNom.replace(/\s+/g,"_")}.pdf`);
   }
 
   const TABS=[["km","📏 Km"],["carro","🚗 Carrosserie"],["checks","✅ État"],["caution","🔒 Caution"],["sig","✍️ Signatures"]];
@@ -592,7 +577,10 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
       <div style={{background:"#f8fafc",borderRadius:18,width:"100%",maxWidth:640,maxHeight:"93vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>
         <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",padding:"13px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div><div style={{color:"white",fontWeight:800,fontSize:15}}>Retour — {contrat.locNom}</div><div style={{color:"rgba(255,255,255,.65)",fontSize:11}}>{vehicle?.marque} {vehicle?.modele} · {vehicle?.immat}</div></div>
-          <button onClick={onClose} style={{fontSize:22,background:"none",border:"none",cursor:"pointer",color:"white"}}>x</button>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <button onClick={downloadPV} style={{background:"#fbbf24",color:"#1f2937",border:"none",borderRadius:8,padding:"6px 10px",fontSize:11,fontWeight:700,cursor:"pointer"}}>📄 PV PDF</button>
+            <button onClick={onClose} style={{fontSize:22,background:"none",border:"none",cursor:"pointer",color:"white"}}>x</button>
+          </div>
         </div>
         <div style={{display:"flex",background:"white",borderBottom:"1px solid #e5e7eb",overflowX:"auto"}}>
           {TABS.map(([id,lb])=>(<button key={id} onClick={()=>setTab(id)} style={{flexShrink:0,padding:"9px 10px",fontSize:10,fontWeight:tab===id?700:400,color:tab===id?"#2563eb":"#6b7280",background:"none",border:"none",borderBottom:tab===id?"2px solid #2563eb":"2px solid transparent",cursor:"pointer"}}>{lb}</button>))}
@@ -708,7 +696,7 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
               <div style={{background:"#eff6ff",borderRadius:12,padding:12,border:"1px solid #bfdbfe",textAlign:"center"}}>
                 <div style={{fontSize:13,fontWeight:700,color:"#1e3a8a",marginBottom:4}}>Signatures du procès-verbal</div>
-                <div style={{fontSize:11,color:"#6b7280"}}>Les deux parties signent pour valider le retour. Le PV PDF sera généré automatiquement.</div>
+                <div style={{fontSize:11,color:"#6b7280"}}>Les deux parties signent pour valider le retour.</div>
               </div>
               <div style={{background:"white",borderRadius:12,padding:14,border:"1px solid #e5e7eb"}}><SigPad label="Signature du Loueur" onSave={setSigRetourLoueur}/></div>
               <div style={{background:"white",borderRadius:12,padding:14,border:"1px solid #e5e7eb"}}><SigPad label="Signature du Locataire" onSave={setSigRetourLocataire}/></div>
@@ -718,8 +706,9 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
         </div>
         <div style={{padding:"12px 16px",borderTop:"1px solid #e5e7eb",display:"flex",gap:8,background:"white"}}>
           <button onClick={save} disabled={cautionRestituee===null} style={{flex:1,background:cautionRestituee!==null?"#16a34a":"#9ca3af",color:"white",border:"none",borderRadius:10,padding:12,fontSize:13,fontWeight:700,cursor:cautionRestituee!==null?"pointer":"not-allowed"}}>
-            Valider le retour {sigRetourLoueur&&sigRetourLocataire?"+ PV PDF":""}
+            Valider le retour + PV PDF
           </button>
+          <button onClick={downloadPV} style={{padding:"12px 14px",background:"#fbbf24",color:"#1f2937",border:"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer"}}>📄 PV</button>
           <button onClick={onClose} style={{padding:"12px 16px",background:"#e5e7eb",border:"none",borderRadius:10,fontSize:13,cursor:"pointer"}}>Annuler</button>
         </div>
       </div>
@@ -820,7 +809,7 @@ function AppContent(){
   const[profil,setProfil]=useState(INIT_PROFIL);
   const[page,setPage]=useState("dashboard");
   const[selId,setSelId]=useState(null);
-  const FORM0={locNom:"",locAdresse:"",locTel:"",locEmail:"",locPermis:"",dateDebut:"",heureDebut:"10:00",dateFin:"",heureFin:"10:00",paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null};
+  const FORM0={locNom:"",locAdresse:"",locTel:"+33 ",locEmail:"",locPermis:"",dateDebut:"",heureDebut:"10:00",dateFin:"",heureFin:"10:00",paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null};
   const[form,setForm]=useState(FORM0);
   const[photosDepart,setPhotosDepart]=useState([]);
   const[photosVehicleModal,setPhotosVehicleModal]=useState(null);
@@ -834,10 +823,10 @@ function AppContent(){
   const[editV,setEditV]=useState(null);
   const[toast,setToast]=useState(null);
   const[planMonth,setPlanMonth]=useState(new Date());
-  // ── CORRECTIONS : états manquants ──────────────────────────────────────────
   const[planView,setPlanView]=useState("calendrier");
+  // Gantt scroll
+  const ganttRef=useRef(null);
   const[reponseModal,setReponseModal]=useState(null);
-  // ───────────────────────────────────────────────────────────────────────────
   const[dForm,setDForm]=useState({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});
   const[showAddD,setShowAddD]=useState(false);
   const[profilEdit,setProfilEdit]=useState(false);
@@ -858,6 +847,14 @@ function AppContent(){
   const TYPES_AMENDE=["Excès de vitesse","Stationnement","Feu rouge","Téléphone au volant","Non port ceinture","Autre"];
   const STATUTS_AMENDE=["A traiter","En cours","Confirmée","Payée","Contestée"];
   const[reponseText,setReponseText]=useState("");
+  // Recherche contrats
+  const[searchContrat,setSearchContrat]=useState("");
+  const[filterVehicleContrat,setFilterVehicleContrat]=useState("");
+  const[filterDateDebut,setFilterDateDebut]=useState("");
+  const[filterDateFin,setFilterDateFin]=useState("");
+  // Recherche retours
+  const[searchRetour,setSearchRetour]=useState("");
+  const[filterVehicleRetour,setFilterVehicleRetour]=useState("");
 
   function findContratForAmende(vehicleId,date,heure){
     if(!vehicleId||!date)return null;
@@ -903,12 +900,8 @@ function AppContent(){
       const p=profRes.data||{};
       const profData={nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||''};
       setProfil(profData);setProfilForm(profData);
-
       if(vehRes.data){
-        const vList=vehRes.data.map(v=>{
-          return{id:v.id,marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],photosVehicule:v.photos_vehicule||[],publie:v.publie||false};
-        });
-        setVehicles(vList);
+        setVehicles(vehRes.data.map(v=>({id:v.id,marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],photosVehicule:v.photos_vehicule||[],publie:v.publie||false})));
       }
       if(conRes.data){setContrats(conRes.data.map(c=>({id:c.id,locNom:c.loc_nom||'',locAdresse:c.loc_adresse||'',locTel:c.loc_tel||'',locEmail:c.loc_email||'',locPermis:c.loc_permis||'',dateDebut:c.date_debut||'',heureDebut:c.heure_debut||'10:00',dateFin:c.date_fin||'',heureFin:c.heure_fin||'10:00',paiement:c.paiement||'especes',cautionMode:c.caution_mode||'especes',kmDepart:c.km_depart||'',nbJours:c.nb_jours||1,heuresLoc:c.heures_loc||24,carburantDepart:c.carburant_depart??100,exterieurPropre:c.exterieur_propre,interieurPropre:c.interieur_propre,vehicleId:c.vehicle_id,vehicleLabel:c.vehicle_label||'',immat:c.immat||'',sigL:c.sig_l||null,sigLoc:c.sig_loc||null,totalCalc:c.total_calc||0,tarifLabel:c.tarif_label||'',photosDepart:c.photos_depart||[],docsLocataire:c.docs_locataire||{},fraisSnap:c.frais_snap||[],clausesSnap:c.clauses_snap||[],kmInclus:c.km_inclus,prixKmSup:c.prix_km_sup})));}
       if(depRes.data){setDepenses(depRes.data.map(d=>({id:d.id,label:d.label||'',montant:d.montant||0,categorie:d.categorie||'Carburant',date:d.date||'',vehicleId:d.vehicle_id||''})));}
@@ -952,6 +945,24 @@ function AppContent(){
   const inv=k=>touched[k]&&!form[k];
   const nbQSansReponse=questions.filter(q=>!q.reponse).length;
 
+  // Filtres contrats
+  const contratsFiltres=contrats.filter(c=>{
+    const q=searchContrat.toLowerCase();
+    const matchQ=!q||(c.locNom.toLowerCase().includes(q)||c.immat.toLowerCase().includes(q)||c.locTel.includes(q));
+    const matchV=!filterVehicleContrat||c.vehicleId===filterVehicleContrat;
+    const matchD=!filterDateDebut||c.dateDebut>=filterDateDebut;
+    const matchF=!filterDateFin||c.dateFin<=filterDateFin;
+    return matchQ&&matchV&&matchD&&matchF;
+  });
+
+  // Filtres retours
+  const retoursFiltres=contrats.filter(c=>retours[c.id]).filter(c=>{
+    const q=searchRetour.toLowerCase();
+    const matchQ=!q||(c.locNom.toLowerCase().includes(q)||c.immat.toLowerCase().includes(q));
+    const matchV=!filterVehicleRetour||c.vehicleId===filterVehicleRetour;
+    return matchQ&&matchV;
+  });
+
   async function saveContrat(){
     const miss=req.filter(k=>!form[k]);
     if(!sel||miss.length>0){const t={};req.forEach(k=>t[k]=true);setTouched(t);toast_("Remplissez tous les champs obligatoires","error");return;}
@@ -972,7 +983,7 @@ function AppContent(){
   function rePrint(c){
     const v=vehicles.find(x=>x.id===c.vehicleId)||{marque:"",modele:"",immat:"",couleur:"",km:0,tarif:0,caution:1000,frais:DEF_FRAIS,clauses:DEF_CLAUSES};
     const html=buildContratHTML(c,{...v,frais:c.fraisSnap||v.frais,clauses:c.clausesSnap||v.clauses},c.sigL,c.sigLoc,profil);
-    dlFile(html,`Contrat_${c.locNom.replace(/\s+/g,"_")}_${c.dateDebut}.html`);
+    dlPDF(html,`Contrat_${c.locNom.replace(/\s+/g,"_")}.pdf`);
   }
 
   async function saveRetour(contratId,data){
@@ -984,6 +995,15 @@ function AppContent(){
       await supabase.from('retours').insert([{user_id:user.id,contrat_id:contratId,km_retour:data.kmRetour||null,carburant_retour:data.carburantRetour??null,montant_retenu:data.montantRetenu||0,raison_retenue:data.raisonRetenue||'',rembourse:data.rembourse||0,km_sup:data.kmSup||0,surplus_km:data.surplusKm||0,caution_restituee:data.cautionRestituee,checks:data.checks||{},carro:data.carro||{},carro_photos:data.carroPhotos||{},carro_notes:data.carroNotes||{},photos:data.photos||{},notes:data.notes||'',date:data.date||new Date().toISOString()}]);
       if(ct&&data.kmRetour)await supabase.from('vehicules').update({km:parseFloat(data.kmRetour)}).eq('id',ct.vehicleId).eq('user_id',user.id);
     }
+  }
+
+  // Re-télécharger PV d'un retour existant
+  function reDownloadPV(c){
+    const r=retours[c.id];
+    if(!r)return;
+    const v=vehicles.find(x=>x.id===c.vehicleId)||{};
+    const html=buildPVRetourHTML(c,v,r,r.sigRetourLoueur||null,r.sigRetourLocataire||null,profil);
+    dlPDF(html,`PV_Retour_${c.locNom.replace(/\s+/g,"_")}.pdf`);
   }
 
   async function addV(){
@@ -1021,6 +1041,11 @@ function AppContent(){
     await supabase.from('questions').update({reponse:reponseText,lu:true}).eq('id',q.id).eq('user_id',user.id);
     setQuestions(qs=>qs.map(x=>x.id===q.id?{...x,reponse:reponseText,lu:true}:x));
     setReponseModal(null);setReponseText("");toast_("Réponse envoyée !");
+  }
+
+  async function supprimerQuestion(q){
+    setQuestions(qs=>qs.filter(x=>x.id!==q.id));
+    if(user)await supabase.from('questions').delete().eq('id',q.id).eq('user_id',user.id);
   }
 
   const tarifsVehicle=tarifsVehicleId?vehicles.find(v=>v.id===tarifsVehicleId):null;
@@ -1114,7 +1139,6 @@ function AppContent(){
 
       {toast&&<div style={{position:"fixed",top:14,right:14,zIndex:10000,padding:"10px 16px",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,.15)",color:"white",fontSize:12,fontWeight:600,background:toast.type==="error"?"#ef4444":"#16a34a",maxWidth:320}}>{toast.msg}</div>}
 
-      {/* Modal réponse question */}
       {reponseModal&&(
         <div onClick={e=>{if(e.target===e.currentTarget){setReponseModal(null);setReponseText("");}}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
           <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:480,padding:20}}>
@@ -1130,7 +1154,6 @@ function AppContent(){
         </div>
       )}
 
-      {/* MODALS */}
       {photosVehicleModal&&<PhotosVehiculeModal vehicle={photosVehicleModal} onClose={()=>setPhotosVehicleModal(null)} onSave={async(photos)=>{setVehicles(vs=>vs.map(v=>v.id===photosVehicleModal.id?{...v,photosVehicule:photos}:v));setPhotosVehicleModal(null);toast_("Photos enregistrées !");if(user)await supabase.from('vehicules').update({photos_vehicule:photos}).eq('id',photosVehicleModal.id).eq('user_id',user.id);}}/>}
       {contratModalId&&contratV&&<ContratModal vehicle={contratV} onClose={()=>setContratModalId(null)} onSave={async(fr,cl)=>{setVehicles(vs=>vs.map(v=>v.id===contratModalId?{...v,frais:fr,clauses:cl}:v));setContratModalId(null);toast_("Mis à jour !");if(user)await supabase.from('vehicules').update({frais:fr,clauses:cl}).eq('id',contratModalId).eq('user_id',user.id);}}/>}
       {retourContratId&&retourContrat&&<RetourModal contrat={retourContrat} vehicle={retourVehicle} profil={profil} onClose={()=>setRetourContratId(null)} onSave={data=>saveRetour(retourContratId,data)}/>}
@@ -1205,9 +1228,8 @@ function AppContent(){
           <div>
             <div style={{marginBottom:16}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>🏪 Vitrine</h1>
-              <p style={{fontSize:12,color:"#6b7280"}}>Publiez vos véhicules — partagez le lien unique à vos clients. Les données sont sauvegardées et persistent.</p>
+              <p style={{fontSize:12,color:"#6b7280"}}>Publiez vos véhicules — partagez le lien unique à vos clients.</p>
             </div>
-
             {vehicles.some(v=>v.publie)&&(
               <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",borderRadius:14,padding:16,marginBottom:16,color:"white"}}>
                 <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>Lien vitrine public</div>
@@ -1215,22 +1237,10 @@ function AppContent(){
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                   <button onClick={()=>{navigator.clipboard.writeText(window.location.origin+"/vitrine/"+user?.id?.slice(0,8));toast_("Lien copié !");}} style={{padding:"7px 14px",background:"white",color:"#1e3a8a",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Copier le lien</button>
                   <button onClick={()=>window.open(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(window.location.origin+"/vitrine/"+user?.id?.slice(0,8))}`,"_blank")} style={{padding:"7px 14px",background:"rgba(255,255,255,.2)",color:"white",border:"1px solid rgba(255,255,255,.4)",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>QR Code</button>
-                  <button onClick={()=>{const msg="Bonjour, voici notre catalogue de vehicules : "+window.location.origin+"/vitrine/"+user?.id?.slice(0,8);window.open("https://wa.me/"+(profil.whatsapp||profil.tel||"").replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");}} style={{padding:"7px 14px",background:"#25D366",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>WhatsApp</button>
+                  <button onClick={()=>{const msg="Bonjour, voici notre catalogue : "+window.location.origin+"/vitrine/"+user?.id?.slice(0,8);window.open("https://wa.me/"+(profil.whatsapp||profil.tel||"").replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");}} style={{padding:"7px 14px",background:"#25D366",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>WhatsApp</button>
                 </div>
               </div>
             )}
-
-            {vehicles.some(v=>v.publie)&&(
-              <div style={{background:"white",borderRadius:14,padding:16,marginBottom:16,boxShadow:"0 2px 8px rgba(0,0,0,.07)",display:"flex",alignItems:"center",gap:16}}>
-                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(window.location.origin+"/vitrine/"+user?.id?.slice(0,8))}`} alt="QR" style={{width:120,height:120,borderRadius:8,border:"2px solid #e5e7eb"}}/>
-                <div>
-                  <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>QR Code vitrine</div>
-                  <div style={{fontSize:12,color:"#6b7280",marginBottom:8}}>Imprimez-le ou envoyez-le à vos clients</div>
-                  <button onClick={()=>{const url=`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(window.location.origin+"/vitrine/"+user?.id?.slice(0,8))}`;const a=document.createElement("a");a.href=url;a.download="qrcode-vitrine.png";a.click();}} style={{padding:"6px 12px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Télécharger</button>
-                </div>
-              </div>
-            )}
-
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:14}}>
               {vehicles.map(v=>{
                 const cover=(v.photosVehicule||[])[0];
@@ -1239,7 +1249,6 @@ function AppContent(){
                     <div style={{height:160,background:"#f1f5f9",position:"relative",overflow:"hidden"}}>
                       {cover?<img src={cover.data} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",flexDirection:"column",gap:6}}><span style={{fontSize:36}}>🚗</span><span style={{fontSize:11,color:"#9ca3af"}}>Pas de photo</span></div>}
                       {v.publie&&<div style={{position:"absolute",top:8,right:8,background:"#2563eb",color:"white",fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:99}}>EN LIGNE</div>}
-                      <div style={{position:"absolute",bottom:8,left:8,background:"rgba(0,0,0,.6)",color:"white",fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:99}}>{(v.photosVehicule||[]).length} photo{(v.photosVehicule||[]).length>1?"s":""}</div>
                     </div>
                     <div style={{padding:14}}>
                       <div style={{fontWeight:800,fontSize:15,marginBottom:2}}>{v.marque} {v.modele}</div>
@@ -1250,10 +1259,8 @@ function AppContent(){
                         <div style={{background:"#fef3c7",borderRadius:8,padding:"6px 8px",textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280"}}>Caution</div><div style={{fontWeight:800,fontSize:13,color:"#d97706"}}>{v.caution} EUR</div></div>
                       </div>
                       <div style={{display:"flex",gap:8}}>
-                        <button onClick={()=>togglePublier(v)} style={{flex:1,padding:"8px 0",background:v.publie?"#fef2f2":"#1e3a8a",color:v.publie?"#dc2626":"white",border:v.publie?"2px solid #fecaca":"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer"}}>
-                          {v.publie?"Retirer":"Publier"}
-                        </button>
-                        {v.publie&&<button onClick={()=>{const msg="Bonjour ! Voici le lien pour voir nos vehicules : "+window.location.origin+"/vitrine/"+user?.id?.slice(0,8);window.open("https://wa.me/"+(profil.whatsapp||profil.tel||"").replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");}} style={{padding:"8px 12px",background:"#25D366",color:"white",border:"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer"}}>WA</button>}
+                        <button onClick={()=>togglePublier(v)} style={{flex:1,padding:"8px 0",background:v.publie?"#fef2f2":"#1e3a8a",color:v.publie?"#dc2626":"white",border:v.publie?"2px solid #fecaca":"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer"}}>{v.publie?"Retirer":"Publier"}</button>
+                        {v.publie&&<button onClick={()=>{const msg="Voici nos véhicules : "+window.location.origin+"/vitrine/"+user?.id?.slice(0,8);window.open("https://wa.me/"+(profil.whatsapp||profil.tel||"").replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");}} style={{padding:"8px 12px",background:"#25D366",color:"white",border:"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer"}}>WA</button>}
                       </div>
                     </div>
                   </div>
@@ -1261,7 +1268,6 @@ function AppContent(){
               })}
             </div>
             {vehicles.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>🏪</div><p>Ajoutez des véhicules dans la Flotte pour les publier ici.</p></div>}
-
             {vehicles.some(v=>v.publie)&&(
               <div style={{marginTop:20}}>
                 <h2 style={{fontSize:14,fontWeight:700,color:"#1f2937",marginBottom:12}}>Aperçu client</h2>
@@ -1270,22 +1276,21 @@ function AppContent(){
                     <div style={{fontWeight:800,fontSize:18,color:"#0a1940"}}>{profil.entreprise||"MAN'S LOCATION"}</div>
                     <div style={{fontSize:12,color:"#6b7280"}}>Nos véhicules disponibles</div>
                   </div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}}>
                     {vehicles.filter(v=>v.publie).map(v=>{
                       const cover=(v.photosVehicule||[])[0];
                       return(
-                        <div key={v.id} style={{background:"white",borderRadius:12,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.08)"}}>
-                          <div style={{height:120,background:"#f1f5f9",overflow:"hidden"}}>
-                            {cover?<img src={cover.data} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",fontSize:28}}>🚗</div>}
+                        <div key={v.id} style={{background:"white",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.08)"}}>
+                          <div style={{height:140,background:"#f1f5f9",overflow:"hidden"}}>
+                            {cover?<img src={cover.data} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",fontSize:32}}>🚗</div>}
                           </div>
-                          <div style={{padding:10}}>
-                            <div style={{fontWeight:700,fontSize:13}}>{v.marque} {v.modele}</div>
-                            <div style={{fontSize:10,color:"#6b7280",marginBottom:6}}>{v.couleur} · {v.annee}</div>
-                            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}>
-                              <span style={{color:"#2563eb",fontWeight:700}}>{v.tarif} EUR/j</span>
-                              <span style={{color:"#6b7280"}}>{v.kmInclus||0} km inclus</span>
+                          <div style={{padding:14}}>
+                            <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>{v.marque} {v.modele}</div>
+                            <div style={{fontSize:11,color:"#6b7280",marginBottom:8}}>{v.couleur} · {v.annee}</div>
+                            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:8}}>
+                              <div style={{background:"#eff6ff",borderRadius:8,padding:"6px 8px",textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280"}}>Prix/jour</div><div style={{fontWeight:800,fontSize:14,color:"#2563eb"}}>{v.tarif} EUR</div></div>
+                              <div style={{background:"#fef3c7",borderRadius:8,padding:"6px 8px",textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280"}}>Caution</div><div style={{fontWeight:800,fontSize:14,color:"#d97706"}}>{v.caution} EUR</div></div>
                             </div>
-                            <div style={{fontSize:10,color:"#d97706",fontWeight:600,marginBottom:8}}>Caution : {v.caution} EUR</div>
                             <DemandeVehicule vehicle={v} profil={profil} userId={user?.id}/>
                           </div>
                         </div>
@@ -1341,7 +1346,7 @@ function AppContent(){
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Flotte</h1>
-              <button onClick={()=>{setShowAddV(true);setEditV(null);setVForm({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false});}} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
+              <button onClick={()=>{setShowAddV(true);setEditV(null);setVForm({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false,motorisation:"Essence",boite:"Manuelle",puissanceFiscale:"",description:"",locationMin48:false});}} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
             </div>
             {showAddV&&(
               <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 12px rgba(0,0,0,.1)",marginBottom:16,border:"2px solid #bfdbfe"}}>
@@ -1358,29 +1363,12 @@ function AppContent(){
                   {[["km","Km actuel"],["tarif","Tarif EUR/j"],["caution","Caution EUR"],["kmInclus","Km inclus/loc"],["prixKmSup","Prix km sup EUR"]].map(([k,l])=>(<div key={k}><label style={LBL}>{l}</label><input type="number" style={Inp()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:e.target.value.replace(/\D/g,"")}))} inputMode="numeric"/></div>))}
                 </div>
                 <div style={{marginTop:10}}>
-                  <label style={LBL}>Description du véhicule (visible sur la vitrine)</label>
-                  <textarea value={vForm.description} onChange={e=>setVForm(f=>({...f,description:e.target.value}))} placeholder="Ex: Véhicule récent, climatisation, GPS, parfait état..." rows={3} style={{...Inp(),resize:"vertical",fontFamily:"inherit"}}/>
+                  <label style={LBL}>Description</label>
+                  <textarea value={vForm.description} onChange={e=>setVForm(f=>({...f,description:e.target.value}))} rows={2} style={{...Inp(),resize:"vertical",fontFamily:"inherit"}}/>
                 </div>
                 <div style={{marginTop:10,display:"flex",gap:16,flexWrap:"wrap"}}>
-                  <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,cursor:"pointer"}}>
-                    <input type="checkbox" checked={vForm.locationMin48} onChange={e=>setVForm(f=>({...f,locationMin48:e.target.checked}))}/>
-                    <span>Location minimum 48h (pas de 24h)</span>
-                  </label>
-                  <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,cursor:"pointer"}}>
-                    <input type="checkbox" checked={vForm.kmIllimite} onChange={e=>setVForm(f=>({...f,kmIllimite:e.target.checked}))}/>
-                    <span>Kilométrage illimité</span>
-                  </label>
-                </div>
-                <div style={{marginTop:14,background:"#fff7ed",borderRadius:10,padding:12,border:"1px solid #fed7aa"}}>
-                  <div style={{fontWeight:700,fontSize:12,color:"#92400e",marginBottom:8}}>Tarifs obligatoires</div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
-                    {[["tarif24h","24h (journée)"],["tarif48h","48h (week-end)"],["tarif72h","72h (WE long)"],["tarif5j","5 jours"],["tarif7j","7 jours (semaine)"],["tarif30j","30 jours (mois)"]].map(([k,l])=>(
-                      <div key={k}>
-                        <label style={LBL}>{l} EUR</label>
-                        <input type="number" style={Inp()} placeholder="0" value={vForm[k]||""} onChange={e=>setVForm(f=>({...f,[k]:e.target.value.replace(/\D/g,"")}))} inputMode="numeric"/>
-                      </div>
-                    ))}
-                  </div>
+                  <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,cursor:"pointer"}}><input type="checkbox" checked={vForm.locationMin48} onChange={e=>setVForm(f=>({...f,locationMin48:e.target.checked}))}/><span>Location min 48h</span></label>
+                  <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,cursor:"pointer"}}><input type="checkbox" checked={vForm.kmIllimite} onChange={e=>setVForm(f=>({...f,kmIllimite:e.target.checked}))}/><span>Km illimité</span></label>
                 </div>
                 <div style={{display:"flex",gap:8,marginTop:12}}>
                   <button onClick={addV} style={{background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>{editV?"Mettre à jour":"Ajouter"}</button>
@@ -1400,11 +1388,11 @@ function AppContent(){
                       {[["Tarif",v.tarif+" EUR/j"],["Caution",v.caution+" EUR"],["Km inclus",v.kmInclus+" km"],["Km sup",v.prixKmSup+" EUR/km"],["Km actuel",(v.km||0).toLocaleString()+" km"]].map(([l,val])=>(<div key={l} style={{background:"#f8fafc",borderRadius:8,padding:"7px 10px"}}><div style={{fontSize:9,color:"#9ca3af"}}>{l}</div><div style={{fontWeight:700,fontSize:12}}>{val}</div></div>))}
                     </div>
                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                      <button onClick={()=>setPhotosVehicleModal(v)} style={{flex:1,padding:"6px 0",background:"#fdf4ff",color:"#9333ea",border:"1px solid #e9d5ff",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Photos {(v.photosVehicule||[]).length>0?"("+v.photosVehicule.length+")":""}</button>
+                      <button onClick={()=>setPhotosVehicleModal(v)} style={{flex:1,padding:"6px 0",background:"#fdf4ff",color:"#9333ea",border:"1px solid #e9d5ff",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Photos{(v.photosVehicule||[]).length>0?" ("+v.photosVehicule.length+")":""}</button>
                       <button onClick={()=>openTarifs(v)} style={{flex:1,padding:"6px 0",background:"#fff7ed",color:"#d97706",border:"1px solid #fed7aa",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Tarifs</button>
                       <button onClick={()=>setContratModalId(v.id)} style={{flex:1,padding:"6px 0",background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Clauses</button>
                       <button onClick={()=>setDocsId(v.id)} style={{flex:1,padding:"6px 0",background:"#f0fdf4",color:"#16a34a",border:"1px solid #bbf7d0",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Docs</button>
-                      <button onClick={()=>{setEditV(v);setVForm({marque:v.marque,modele:v.modele,immat:v.immat,couleur:v.couleur||"",annee:v.annee||"",km:v.km,tarif:v.tarif,caution:v.caution,kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0,kmIllimite:v.kmIllimite||false});setShowAddV(true);}} style={{padding:"6px 10px",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Editer</button>
+                      <button onClick={()=>{setEditV(v);setVForm({marque:v.marque,modele:v.modele,immat:v.immat,couleur:v.couleur||"",annee:v.annee||"",km:v.km,tarif:v.tarif,caution:v.caution,kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0,kmIllimite:v.kmIllimite||false,motorisation:"Essence",boite:"Manuelle",puissanceFiscale:"",description:"",locationMin48:false});setShowAddV(true);}} style={{padding:"6px 10px",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Editer</button>
                       <button onClick={async()=>{if(window.confirm("Supprimer ?")){setVehicles(vs=>vs.filter(x=>x.id!==v.id));if(user)await supabase.from('vehicules').delete().eq('id',v.id).eq('user_id',user.id);}}} style={{padding:"6px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:11,cursor:"pointer"}}>X</button>
                     </div>
                   </div>
@@ -1429,21 +1417,26 @@ function AppContent(){
             </div>
             {sel&&(<>
               <div style={{background:"#1e3a8a",borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div><div style={{color:"rgba(255,255,255,.7)",fontSize:10}}>Tarif calculé automatiquement</div><div style={{color:"white",fontSize:11,marginTop:2}}>{tarifAuto.label}</div></div>
+                <div><div style={{color:"rgba(255,255,255,.7)",fontSize:10}}>Tarif calculé</div><div style={{color:"white",fontSize:11,marginTop:2}}>{tarifAuto.label}</div></div>
                 <div style={{color:"#4ade80",fontWeight:900,fontSize:22}}>{tarifAuto.prix} EUR</div>
               </div>
               <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>Locataire</h3>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  <F k="locNom" label="Nom complet *" span2/><F k="locAdresse" label="Adresse *" span2/>
-                  <div><label style={LBL}>Téléphone *</label><TelInput value={form.locTel} onChange={v=>setForm(f=>({...f,locTel:v}))} placeholder="06 12 34 56 78"/>{inv("locTel")&&<p style={{color:"#ef4444",fontSize:10,marginTop:2}}>Obligatoire</p>}</div>
+                  <F k="locNom" label="Nom complet *" span2/>
+                  <F k="locAdresse" label="Adresse *" span2/>
+                  <div style={{gridColumn:"span 2"}}>
+                    <label style={LBL}>Téléphone *</label>
+                    <TelInput value={form.locTel} onChange={v=>setForm(f=>({...f,locTel:v}))} placeholder="06 12 34 56 78"/>
+                    {inv("locTel")&&<p style={{color:"#ef4444",fontSize:10,marginTop:2}}>Obligatoire</p>}
+                  </div>
                   <F k="locEmail" label="Email" type="email"/>
-                  <F k="locPermis" label="N° Permis" span2/>
+                  <F k="locPermis" label="N° Permis"/>
                 </div>
               </div>
               <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <h3 style={{fontWeight:700,fontSize:13,marginBottom:4}}>Documents du locataire</h3>
-                <p style={{fontSize:11,color:"#6b7280",marginBottom:12}}>CNI/Passeport (recto + verso) · Justificatif de domicile · Photo arrière véhicule</p>
+                <p style={{fontSize:11,color:"#6b7280",marginBottom:12}}>CNI/Passeport · Justificatif domicile · Photo arrière</p>
                 <DocsLocataire docs={docsLocataire} setDocs={setDocsLocataire}/>
               </div>
               <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
@@ -1491,7 +1484,7 @@ function AppContent(){
             {lastContrat&&(<div style={{marginTop:16,background:"#f0fdf4",borderRadius:14,padding:16,border:"2px solid #86efac"}}>
               <div style={{fontWeight:700,color:"#16a34a",marginBottom:8}}>Contrat créé pour {lastContrat.contrat.locNom}</div>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                <button onClick={()=>dlFile(lastContrat.html,`Contrat_${lastContrat.contrat.locNom.replace(/\s+/g,"_")}.html`)} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Télécharger PDF</button>
+                <button onClick={()=>dlPDF(lastContrat.html,`Contrat_${lastContrat.contrat.locNom.replace(/\s+/g,"_")}.pdf`)} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Imprimer / PDF</button>
                 <button onClick={()=>setLastContrat(null)} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"8px 12px",fontSize:12,cursor:"pointer"}}>Fermer</button>
               </div>
             </div>)}
@@ -1501,9 +1494,9 @@ function AppContent(){
         {/* ── PLANNING ── */}
         {page==="planning"&&(
           <div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Planning</h1>
-              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
                 <div style={{display:"flex",background:"white",borderRadius:8,border:"1px solid #e5e7eb",overflow:"hidden"}}>
                   <button onClick={()=>setPlanView("calendrier")} style={{padding:"6px 12px",fontSize:11,fontWeight:planView==="calendrier"?700:400,background:planView==="calendrier"?"#1e3a8a":"white",color:planView==="calendrier"?"white":"#374151",border:"none",cursor:"pointer"}}>Calendrier</button>
                   <button onClick={()=>setPlanView("gantt")} style={{padding:"6px 12px",fontSize:11,fontWeight:planView==="gantt"?700:400,background:planView==="gantt"?"#1e3a8a":"white",color:planView==="gantt"?"white":"#374151",border:"none",cursor:"pointer"}}>Gantt</button>
@@ -1541,25 +1534,31 @@ function AppContent(){
 
             {planView==="gantt"&&(()=>{
               const allC=contrats.filter(c=>c.dateDebut&&c.dateFin);
-              const gStart=allC.length>0?new Date(Math.min(...allC.map(c=>new Date(c.dateDebut)))):new Date();
-              const gEnd=allC.length>0?new Date(Math.max(...allC.map(c=>new Date(c.dateFin)))):new Date();
-              const gDays=Math.max(30,Math.ceil((gEnd-gStart)/86400000)+7);
+              const today=new Date();
+              const gStart=allC.length>0?new Date(Math.min(...allC.map(c=>new Date(c.dateDebut)))):new Date(today.getFullYear(),today.getMonth(),1);
+              const gEnd=allC.length>0?new Date(Math.max(...allC.map(c=>new Date(c.dateFin)))):new Date(today.getFullYear(),today.getMonth()+2,0);
+              const gDays=Math.max(60,Math.ceil((gEnd-gStart)/86400000)+14);
               const gDates=Array.from({length:gDays},(_,i)=>{const d=new Date(gStart);d.setDate(d.getDate()+i);return d;});
-              const DW=28;
+              const DW=32;
               const colors=["#2563eb","#7c3aed","#16a34a","#d97706","#dc2626","#0891b2","#be185d"];
+              const todayOffset=Math.floor((today-gStart)/86400000);
               return(
                 <div style={{background:"white",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
-                  <div style={{padding:"12px 16px",borderBottom:"1px solid #e5e7eb",fontWeight:700,fontSize:13}}>Diagramme de Gantt</div>
-                  <div style={{overflowX:"auto"}}>
+                  <div style={{padding:"12px 16px",borderBottom:"1px solid #e5e7eb",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontWeight:700,fontSize:13}}>Diagramme de Gantt</span>
+                    <button onClick={()=>{if(ganttRef.current)ganttRef.current.scrollLeft=Math.max(0,todayOffset*DW-100);}} style={{padding:"5px 12px",background:"#1e3a8a",color:"white",border:"none",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer"}}>📅 Aujourd'hui</button>
+                  </div>
+                  <div ref={ganttRef} style={{overflowX:"auto"}}>
                     <div style={{minWidth:150+gDays*DW}}>
                       <div style={{display:"flex",borderBottom:"2px solid #e5e7eb",background:"#f8fafc"}}>
                         <div style={{width:150,flexShrink:0,padding:"6px 10px",fontSize:11,fontWeight:700,borderRight:"1px solid #e5e7eb"}}>Vehicule</div>
                         {gDates.map((d,i)=>{
-                          const isToday=d.toDateString()===new Date().toDateString();
+                          const isToday=d.toDateString()===today.toDateString();
                           const isWE=d.getDay()===0||d.getDay()===6;
-                          return(<div key={i} style={{width:DW,flexShrink:0,textAlign:"center",padding:"4px 0",fontSize:9,color:isToday?"#2563eb":isWE?"#9ca3af":"#6b7280",background:isToday?"#dbeafe":isWE?"#f9fafb":"#f8fafc",borderLeft:"1px solid #f0f0f0",position:"relative"}}>
-                            {d.getDate()===1&&<span style={{position:"absolute",top:0,left:0,background:"#1e3a8a",color:"white",fontSize:7,padding:"1px 2px",borderRadius:2,whiteSpace:"nowrap",zIndex:2}}>{d.toLocaleDateString("fr-FR",{month:"short"})}</span>}
-                            {d.getDate()}
+                          const isFirst=d.getDate()===1;
+                          return(<div key={i} style={{width:DW,flexShrink:0,textAlign:"center",padding:"4px 0",fontSize:9,color:isToday?"white":isWE?"#9ca3af":"#6b7280",background:isToday?"#2563eb":isWE?"#f0f0f0":"#f8fafc",borderLeft:"1px solid #e8e8e8",position:"relative",fontWeight:isToday?800:400}}>
+                            {isFirst&&!isToday&&<div style={{position:"absolute",top:0,left:0,right:0,background:"#1e3a8a",color:"white",fontSize:7,textAlign:"center",lineHeight:"10px"}}>{d.toLocaleDateString("fr-FR",{month:"short"})}</div>}
+                            <span style={{position:"relative",top:isFirst&&!isToday?8:0}}>{d.getDate()}</span>
                           </div>);
                         })}
                       </div>
@@ -1570,12 +1569,14 @@ function AppContent(){
                             <div style={{fontSize:9,color:"#9ca3af"}}>{v.immat}</div>
                           </div>
                           <div style={{flex:1,position:"relative",height:44}}>
-                            {gDates.map((d,i)=>{const isWE=d.getDay()===0||d.getDay()===6;return(<div key={i} style={{position:"absolute",left:i*DW,top:0,width:DW,height:"100%",background:isWE?"rgba(0,0,0,.02)":"transparent",borderLeft:"1px solid #f5f5f5"}}/>);})}
+                            {/* Ligne aujourd'hui */}
+                            {todayOffset>=0&&todayOffset<gDays&&<div style={{position:"absolute",left:todayOffset*DW+DW/2,top:0,bottom:0,width:2,background:"#ef4444",zIndex:2,opacity:.6}}/>}
+                            {gDates.map((d,i)=>{const isWE=d.getDay()===0||d.getDay()===6;return(<div key={i} style={{position:"absolute",left:i*DW,top:0,width:DW,height:"100%",background:isWE?"rgba(0,0,0,.025)":"transparent",borderLeft:"1px solid #f5f5f5"}}/>);})}
                             {contrats.filter(c=>c.vehicleId===v.id&&c.dateDebut&&c.dateFin).map((c,ci)=>{
                               const s=new Date(c.dateDebut),e=new Date(c.dateFin);
                               const off=Math.floor((s-gStart)/86400000);
                               const w=Math.max(Math.ceil((e-s)/86400000)+1,1);
-                              return(<div key={c.id} style={{position:"absolute",left:off*DW+2,top:8,height:28,width:Math.max(w*DW-4,20),background:colors[ci%colors.length],borderRadius:6,display:"flex",alignItems:"center",padding:"0 6px",overflow:"hidden",zIndex:1}} title={c.locNom+" — "+c.dateDebut+" → "+c.dateFin}>
+                              return(<div key={c.id} style={{position:"absolute",left:off*DW+2,top:8,height:28,width:Math.max(w*DW-4,24),background:colors[ci%colors.length],borderRadius:6,display:"flex",alignItems:"center",padding:"0 6px",overflow:"hidden",zIndex:1,cursor:"pointer"}} title={c.locNom+" — "+c.dateDebut+" → "+c.dateFin}>
                                 <span style={{color:"white",fontSize:9,fontWeight:700,whiteSpace:"nowrap"}}>{c.locNom}</span>
                               </div>);
                             })}
@@ -1593,9 +1594,21 @@ function AppContent(){
         {/* ── CONTRATS ── */}
         {page==="contrats"&&(
           <div>
-            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>Contrats ({contrats.length})</h1>
-            {contrats.length===0?<div style={{textAlign:"center",color:"#9ca3af",padding:40}}><p>Aucun contrat</p></div>
-              :contrats.map(c=>{
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Contrats ({contratsFiltres.length}/{contrats.length})</h1>
+            </div>
+            {/* Barre de recherche / filtres */}
+            <div style={{background:"white",borderRadius:12,padding:14,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)",display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <div style={{gridColumn:"span 2"}}><input placeholder="🔍 Rechercher par nom, immat, téléphone..." style={Inp()} value={searchContrat} onChange={e=>setSearchContrat(e.target.value)}/></div>
+              <div><label style={LBL}>Véhicule</label><select style={Inp()} value={filterVehicleContrat} onChange={e=>setFilterVehicleContrat(e.target.value)}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele} — {v.immat}</option>)}</select></div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                <div><label style={LBL}>Début après</label><input type="date" style={Inp()} value={filterDateDebut} onChange={e=>setFilterDateDebut(e.target.value)}/></div>
+                <div><label style={LBL}>Fin avant</label><input type="date" style={Inp()} value={filterDateFin} onChange={e=>setFilterDateFin(e.target.value)}/></div>
+              </div>
+              {(searchContrat||filterVehicleContrat||filterDateDebut||filterDateFin)&&<div style={{gridColumn:"span 2"}}><button onClick={()=>{setSearchContrat("");setFilterVehicleContrat("");setFilterDateDebut("");setFilterDateFin("");}} style={{padding:"5px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>✕ Effacer les filtres</button></div>}
+            </div>
+            {contratsFiltres.length===0?<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><p>Aucun contrat trouvé</p></div>
+              :contratsFiltres.map(c=>{
                 const r=retours[c.id];
                 const dl=c.docsLocataire||{};
                 const nbDocs=[dl.cniRecto,dl.cniVerso,dl.justifDom,dl.photoAr].filter(Boolean).length;
@@ -1612,12 +1625,13 @@ function AppContent(){
                     </div>
                     <div style={{textAlign:"right"}}>
                       <div style={{fontWeight:900,fontSize:18,color:"#1e3a8a"}}>{c.totalCalc} EUR</div>
-                      {r&&<div style={{fontSize:10,color:"#16a34a",fontWeight:600}}>Retour OK</div>}
+                      {r&&<div style={{fontSize:10,color:"#16a34a",fontWeight:600}}>✅ Retour OK</div>}
                     </div>
                   </div>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                    <button onClick={()=>rePrint(c)} style={{padding:"5px 10px",background:"#eff6ff",color:"#2563eb",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>PDF</button>
+                    <button onClick={()=>rePrint(c)} style={{padding:"5px 10px",background:"#eff6ff",color:"#2563eb",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>📄 PDF</button>
                     {!r&&<button onClick={()=>setRetourContratId(c.id)} style={{padding:"5px 10px",background:"#f0fdf4",color:"#16a34a",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>Retour</button>}
+                    {r&&<button onClick={()=>reDownloadPV(c)} style={{padding:"5px 10px",background:"#fef3c7",color:"#d97706",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>📄 PV Retour</button>}
                     <button onClick={async()=>{if(window.confirm("Supprimer ?")){setContrats(cs=>cs.filter(x=>x.id!==c.id));if(user)await supabase.from('contrats').delete().eq('id',c.id).eq('user_id',user.id);}}} style={{padding:"5px 10px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:7,fontSize:11,cursor:"pointer"}}>Supprimer</button>
                   </div>
                 </div>);
@@ -1628,7 +1642,7 @@ function AppContent(){
         {/* ── RETOURS ── */}
         {page==="retours"&&(
           <div>
-            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>Retours</h1>
+            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:12}}>Retours</h1>
             {contrats.filter(c=>!retours[c.id]).length>0&&(<div style={{marginBottom:16}}>
               <h2 style={{fontSize:13,fontWeight:700,color:"#6b7280",marginBottom:8}}>En attente de retour</h2>
               {contrats.filter(c=>!retours[c.id]).map(c=>(<div key={c.id} style={{background:"white",borderRadius:12,padding:12,marginBottom:8,border:"1px solid #fde68a",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -1636,25 +1650,35 @@ function AppContent(){
                 <button onClick={()=>setRetourContratId(c.id)} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"7px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Faire le retour</button>
               </div>))}
             </div>)}
-            {contrats.filter(c=>retours[c.id]).length>0&&(<div>
-              <h2 style={{fontSize:13,fontWeight:700,color:"#6b7280",marginBottom:8}}>Retours effectués</h2>
-              {contrats.filter(c=>retours[c.id]).map(c=>{const r=retours[c.id];return(<div key={c.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"1px solid #e5e7eb"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                  <div>
-                    <div style={{fontWeight:700}}>{c.locNom}</div>
-                    <div style={{fontSize:11,color:"#6b7280"}}>{c.vehicleLabel}</div>
-                    <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
-                      {r.kmRetour&&<span style={{fontSize:10,background:"#eff6ff",color:"#2563eb",borderRadius:6,padding:"2px 7px",fontWeight:600}}>{r.kmRetour} km</span>}
-                      {r.montantRetenu>0&&<span style={{fontSize:10,background:"#fef2f2",color:"#dc2626",borderRadius:6,padding:"2px 7px",fontWeight:600}}>-{r.montantRetenu} EUR</span>}
-                      {r.cautionRestituee&&<span style={{fontSize:10,background:"#f0fdf4",color:"#16a34a",borderRadius:6,padding:"2px 7px",fontWeight:600}}>Caution OK</span>}
+            {/* Recherche retours effectués */}
+            {contrats.filter(c=>retours[c.id]).length>0&&(
+              <div>
+                <h2 style={{fontSize:13,fontWeight:700,color:"#6b7280",marginBottom:8}}>Retours effectués ({retoursFiltres.length})</h2>
+                <div style={{background:"white",borderRadius:12,padding:12,marginBottom:12,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  <div style={{gridColumn:"span 2"}}><input placeholder="🔍 Rechercher par nom, immat..." style={Inp()} value={searchRetour} onChange={e=>setSearchRetour(e.target.value)}/></div>
+                  <div><label style={LBL}>Véhicule</label><select style={Inp()} value={filterVehicleRetour} onChange={e=>setFilterVehicleRetour(e.target.value)}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele}</option>)}</select></div>
+                  {(searchRetour||filterVehicleRetour)&&<div style={{display:"flex",alignItems:"flex-end"}}><button onClick={()=>{setSearchRetour("");setFilterVehicleRetour("");}} style={{padding:"5px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>✕ Effacer</button></div>}
+                </div>
+                {retoursFiltres.map(c=>{const r=retours[c.id];return(<div key={c.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"1px solid #e5e7eb"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                    <div>
+                      <div style={{fontWeight:700}}>{c.locNom}</div>
+                      <div style={{fontSize:11,color:"#6b7280"}}>{c.vehicleLabel} · {c.dateDebut} → {c.dateFin}</div>
+                      <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
+                        {r.kmRetour&&<span style={{fontSize:10,background:"#eff6ff",color:"#2563eb",borderRadius:6,padding:"2px 7px",fontWeight:600}}>{r.kmRetour} km</span>}
+                        {r.montantRetenu>0&&<span style={{fontSize:10,background:"#fef2f2",color:"#dc2626",borderRadius:6,padding:"2px 7px",fontWeight:600}}>-{r.montantRetenu} EUR</span>}
+                        {r.cautionRestituee&&<span style={{fontSize:10,background:"#f0fdf4",color:"#16a34a",borderRadius:6,padding:"2px 7px",fontWeight:600}}>Caution OK</span>}
+                      </div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontWeight:900,fontSize:16,color:"#16a34a"}}>{((c.totalCalc||0)+(r.surplusKm||0)+(r.montantRetenu||0)).toFixed(0)} EUR</div>
                     </div>
                   </div>
-                  <div style={{textAlign:"right"}}>
-                    <div style={{fontWeight:900,fontSize:16,color:"#16a34a"}}>{((c.totalCalc||0)+(r.surplusKm||0)+(r.montantRetenu||0)).toFixed(0)} EUR</div>
-                  </div>
-                </div>
-              </div>);})}
-            </div>)}
+                  {/* Toujours pouvoir télécharger le PV */}
+                  <button onClick={()=>reDownloadPV(c)} style={{padding:"6px 12px",background:"#fbbf24",color:"#1f2937",border:"none",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📄 Télécharger PV PDF</button>
+                </div>);})}
+              </div>
+            )}
             {contrats.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:40}}><p>Aucun contrat enregistré.</p></div>}
           </div>
         )}
@@ -1666,107 +1690,57 @@ function AppContent(){
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Amendes</h1>
               <button onClick={()=>setShowAddAmende(!showAddAmende)} style={{background:"#dc2626",color:"white",border:"none",borderRadius:10,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
             </div>
-
             {showAddAmende&&(()=>{
               const contratRef=findContratForAmende(amendeForm.vehicleId,amendeForm.date,amendeForm.heure);
               return(
               <div style={{background:"white",borderRadius:14,padding:18,marginBottom:16,boxShadow:"0 2px 12px rgba(0,0,0,.1)",border:"2px solid #fecaca"}}>
                 <h3 style={{fontWeight:700,fontSize:14,marginBottom:12,color:"#dc2626"}}>Nouvelle amende</h3>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:10}}>
-                  <div><label style={LBL}>Véhicule *</label>
-                    <select style={Inp()} value={amendeForm.vehicleId} onChange={e=>setAmendeForm(f=>({...f,vehicleId:e.target.value}))}>
-                      <option value="">-- Choisir --</option>
-                      {vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele} — {v.immat}</option>)}
-                    </select>
-                  </div>
+                  <div><label style={LBL}>Véhicule *</label><select style={Inp()} value={amendeForm.vehicleId} onChange={e=>setAmendeForm(f=>({...f,vehicleId:e.target.value}))}><option value="">-- Choisir --</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele} — {v.immat}</option>)}</select></div>
                   <div><label style={LBL}>Date *</label><input type="date" style={Inp()} value={amendeForm.date} onChange={e=>setAmendeForm(f=>({...f,date:e.target.value}))}/></div>
                   <div><label style={LBL}>Heure</label><input type="time" style={Inp()} value={amendeForm.heure} onChange={e=>setAmendeForm(f=>({...f,heure:e.target.value}))}/></div>
-                  <div><label style={LBL}>Type</label>
-                    <select style={Inp()} value={amendeForm.type} onChange={e=>setAmendeForm(f=>({...f,type:e.target.value}))}>
-                      {TYPES_AMENDE.map(t=><option key={t}>{t}</option>)}
-                    </select>
-                  </div>
+                  <div><label style={LBL}>Type</label><select style={Inp()} value={amendeForm.type} onChange={e=>setAmendeForm(f=>({...f,type:e.target.value}))}>{TYPES_AMENDE.map(t=><option key={t}>{t}</option>)}</select></div>
                   <div><label style={LBL}>Montant (EUR)</label><input type="number" style={Inp()} value={amendeForm.montant} onChange={e=>setAmendeForm(f=>({...f,montant:e.target.value.replace(/\D/g,"")}))} inputMode="numeric"/></div>
-                  <div><label style={LBL}>Statut</label>
-                    <select style={Inp()} value={amendeForm.statut} onChange={e=>setAmendeForm(f=>({...f,statut:e.target.value}))}>
-                      {STATUTS_AMENDE.map(s=><option key={s}>{s}</option>)}
-                    </select>
-                  </div>
+                  <div><label style={LBL}>Statut</label><select style={Inp()} value={amendeForm.statut} onChange={e=>setAmendeForm(f=>({...f,statut:e.target.value}))}>{STATUTS_AMENDE.map(s=><option key={s}>{s}</option>)}</select></div>
                 </div>
                 <div style={{marginBottom:10}}><label style={LBL}>Notes</label><textarea style={{...Inp(),resize:"vertical",fontFamily:"inherit"}} rows={2} value={amendeForm.notes} onChange={e=>setAmendeForm(f=>({...f,notes:e.target.value}))}/></div>
-
                 {amendeForm.vehicleId&&amendeForm.date&&(
                   <div style={{padding:"10px 14px",borderRadius:10,marginBottom:10,background:contratRef?"#f0fdf4":"#fef3c7",border:`1px solid ${contratRef?"#bbf7d0":"#fde68a"}`}}>
-                    {contratRef
-                      ?<div><div style={{fontWeight:700,fontSize:12,color:"#16a34a",marginBottom:2}}>Contrat trouvé automatiquement</div><div style={{fontSize:11,color:"#374151"}}><b>{contratRef.locNom}</b> — {contratRef.dateDebut} → {contratRef.dateFin} — {contratRef.vehicleLabel}</div><div style={{fontSize:10,color:"#6b7280",marginTop:2}}>Tel : {contratRef.locTel}</div></div>
-                      :<div style={{fontSize:12,color:"#92400e"}}>Aucun contrat actif à cette date pour ce véhicule.</div>
-                    }
+                    {contratRef?<div><div style={{fontWeight:700,fontSize:12,color:"#16a34a",marginBottom:2}}>Contrat trouvé automatiquement</div><div style={{fontSize:11,color:"#374151"}}><b>{contratRef.locNom}</b> — {contratRef.dateDebut} → {contratRef.dateFin}</div><div style={{fontSize:10,color:"#6b7280",marginTop:2}}>Tel : {contratRef.locTel}</div></div>
+                    :<div style={{fontSize:12,color:"#92400e"}}>Aucun contrat actif à cette date pour ce véhicule.</div>}
                   </div>
                 )}
-
                 <div style={{display:"flex",gap:8}}>
-                  <button onClick={()=>{
-                    if(!amendeForm.vehicleId||!amendeForm.date){toast_("Choisissez un véhicule et une date","error");return;}
-                    const v=vehicles.find(x=>x.id===amendeForm.vehicleId);
-                    const newA={id:Date.now(),...amendeForm,vehicleLabel:v?v.marque+" "+v.modele+" - "+v.immat:"",contratId:contratRef?.id||null,locNom:contratRef?.locNom||"",locTel:contratRef?.locTel||""};
-                    setAmendes(a=>[newA,...a]);
-                    setAmendeForm({vehicleId:"",contratRef:"",date:"",heure:"",montant:"",type:"Excès de vitesse",statut:"A traiter",notes:""});
-                    setShowAddAmende(false);
-                    toast_("Amende ajoutée !");
-                  }} style={{background:"#dc2626",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>Enregistrer</button>
+                  <button onClick={()=>{if(!amendeForm.vehicleId||!amendeForm.date){toast_("Choisissez un véhicule et une date","error");return;}const v=vehicles.find(x=>x.id===amendeForm.vehicleId);const newA={id:Date.now(),...amendeForm,vehicleLabel:v?v.marque+" "+v.modele+" - "+v.immat:"",contratId:contratRef?.id||null,locNom:contratRef?.locNom||"",locTel:contratRef?.locTel||""};setAmendes(a=>[newA,...a]);setAmendeForm({vehicleId:"",contratRef:"",date:"",heure:"",montant:"",type:"Excès de vitesse",statut:"A traiter",notes:""});setShowAddAmende(false);toast_("Amende ajoutée !");}} style={{background:"#dc2626",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>Enregistrer</button>
                   <button onClick={()=>setShowAddAmende(false)} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:12}}>Annuler</button>
                 </div>
-              </div>
-              );
+              </div>);
             })()}
-
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10,marginBottom:16}}>
-              {[["A traiter","#dc2626","🚨"],["En cours","#d97706","⏳"],["Confirmée","#2563eb","✅"],["Payée","#16a34a","💰"],["Contestée","#7c3aed","⚖️"]].map(([s,col,icon])=>(
-                <div key={s} style={{background:"white",borderRadius:12,padding:"10px 14px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:`4px solid ${col}`}}>
-                  <div style={{fontSize:10,color:"#6b7280"}}>{icon} {s}</div>
-                  <div style={{fontSize:22,fontWeight:800,color:col}}>{amendes.filter(a=>a.statut===s).length}</div>
-                </div>
-              ))}
+              {[["A traiter","#dc2626","🚨"],["En cours","#d97706","⏳"],["Confirmée","#2563eb","✅"],["Payée","#16a34a","💰"],["Contestée","#7c3aed","⚖️"]].map(([s,col,icon])=>(<div key={s} style={{background:"white",borderRadius:12,padding:"10px 14px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:`4px solid ${col}`}}><div style={{fontSize:10,color:"#6b7280"}}>{icon} {s}</div><div style={{fontSize:22,fontWeight:800,color:col}}>{amendes.filter(a=>a.statut===s).length}</div></div>))}
             </div>
-
-            {amendes.length===0
-              ?<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>🚨</div><p>Aucune amende enregistrée.</p></div>
+            {amendes.length===0?<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>🚨</div><p>Aucune amende enregistrée.</p></div>
               :amendes.map(a=>{
                 const colStatut=a.statut==="A traiter"?"#dc2626":a.statut==="En cours"?"#d97706":a.statut==="Confirmée"?"#2563eb":a.statut==="Payée"?"#16a34a":"#7c3aed";
                 const contratLie=contrats.find(c=>c.id===a.contratId);
-                return(
-                  <div key={a.id} style={{background:"white",borderRadius:14,padding:14,marginBottom:10,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:`2px solid ${colStatut}22`}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                      <div>
-                        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
-                          <span style={{fontWeight:800,fontSize:14,color:"#1f2937"}}>{a.type}</span>
-                          <span style={{fontSize:10,background:colStatut+"22",color:colStatut,borderRadius:99,padding:"2px 8px",fontWeight:700}}>{a.statut}</span>
-                        </div>
-                        <div style={{fontSize:11,color:"#6b7280"}}>{a.vehicleLabel}</div>
-                        <div style={{fontSize:11,color:"#6b7280"}}>{a.date}{a.heure?" à "+a.heure:""}</div>
-                        {a.locNom&&<div style={{fontSize:11,color:"#374151",marginTop:4}}>Locataire : <b>{a.locNom}</b>{a.locTel?" — "+a.locTel:""}</div>}
-                        {a.notes&&<div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{a.notes}</div>}
-                      </div>
-                      <div style={{textAlign:"right"}}>
-                        {a.montant&&<div style={{fontWeight:900,fontSize:18,color:"#dc2626"}}>{a.montant} EUR</div>}
-                      </div>
+                return(<div key={a.id} style={{background:"white",borderRadius:14,padding:14,marginBottom:10,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:`2px solid ${colStatut}22`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                    <div>
+                      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}><span style={{fontWeight:800,fontSize:14,color:"#1f2937"}}>{a.type}</span><span style={{fontSize:10,background:colStatut+"22",color:colStatut,borderRadius:99,padding:"2px 8px",fontWeight:700}}>{a.statut}</span></div>
+                      <div style={{fontSize:11,color:"#6b7280"}}>{a.vehicleLabel}</div>
+                      <div style={{fontSize:11,color:"#6b7280"}}>{a.date}{a.heure?" à "+a.heure:""}</div>
+                      {a.locNom&&<div style={{fontSize:11,color:"#374151",marginTop:4}}>Locataire : <b>{a.locNom}</b>{a.locTel?" — "+a.locTel:""}</div>}
+                      {a.notes&&<div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{a.notes}</div>}
                     </div>
-                    {contratLie&&(
-                      <div style={{background:"#eff6ff",borderRadius:8,padding:"6px 10px",marginBottom:8,fontSize:11,border:"1px solid #bfdbfe"}}>
-                        Contrat ref : <b>{contratLie.locNom}</b> — {contratLie.dateDebut} → {contratLie.dateFin}
-                        <button onClick={()=>rePrint(contratLie)} style={{marginLeft:8,padding:"2px 8px",background:"#1e3a8a",color:"white",border:"none",borderRadius:5,fontSize:10,cursor:"pointer",fontWeight:700}}>PDF</button>
-                      </div>
-                    )}
-                    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                      {STATUTS_AMENDE.filter(s=>s!==a.statut).map(s=>(
-                        <button key={s} onClick={()=>setAmendes(as=>as.map(x=>x.id===a.id?{...x,statut:s}:x))} style={{padding:"4px 10px",background:"#f1f5f9",color:"#374151",border:"1px solid #e5e7eb",borderRadius:7,fontSize:10,cursor:"pointer",fontWeight:600}}>{s}</button>
-                      ))}
-                      <button onClick={()=>setAmendes(as=>as.filter(x=>x.id!==a.id))} style={{padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:10,cursor:"pointer"}}>Supprimer</button>
-                    </div>
+                    <div style={{textAlign:"right"}}>{a.montant&&<div style={{fontWeight:900,fontSize:18,color:"#dc2626"}}>{a.montant} EUR</div>}</div>
                   </div>
-                );
-              })
-            }
+                  {contratLie&&(<div style={{background:"#eff6ff",borderRadius:8,padding:"6px 10px",marginBottom:8,fontSize:11,border:"1px solid #bfdbfe"}}>Contrat ref : <b>{contratLie.locNom}</b> — {contratLie.dateDebut} → {contratLie.dateFin}<button onClick={()=>rePrint(contratLie)} style={{marginLeft:8,padding:"2px 8px",background:"#1e3a8a",color:"white",border:"none",borderRadius:5,fontSize:10,cursor:"pointer",fontWeight:700}}>PDF</button></div>)}
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {STATUTS_AMENDE.filter(s=>s!==a.statut).map(s=>(<button key={s} onClick={()=>setAmendes(as=>as.map(x=>x.id===a.id?{...x,statut:s}:x))} style={{padding:"4px 10px",background:"#f1f5f9",color:"#374151",border:"1px solid #e5e7eb",borderRadius:7,fontSize:10,cursor:"pointer",fontWeight:600}}>{s}</button>))}
+                    <button onClick={()=>setAmendes(as=>as.filter(x=>x.id!==a.id))} style={{padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:10,cursor:"pointer"}}>Supprimer</button>
+                  </div>
+                </div>);
+              })}
           </div>
         )}
 
@@ -1774,29 +1748,26 @@ function AppContent(){
         {page==="questions"&&(
           <div>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:4}}>Questions clients</h1>
-            <p style={{fontSize:12,color:"#6b7280",marginBottom:16}}>Les questions posées par vos clients depuis la vitrine.</p>
-
-            {questions.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>❓</div><p>Aucune question pour l'instant.</p><p style={{fontSize:11,marginTop:8}}>Les clients pourront poser des questions depuis votre vitrine.</p></div>}
-
+            <p style={{fontSize:12,color:"#6b7280",marginBottom:16}}>Questions posées depuis la vitrine.</p>
+            {questions.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>❓</div><p>Aucune question pour l'instant.</p></div>}
             {questions.filter(q=>!q.reponse).length>0&&(
               <div style={{marginBottom:20}}>
                 <h2 style={{fontSize:13,fontWeight:700,color:"#dc2626",marginBottom:8}}>Sans réponse ({questions.filter(q=>!q.reponse).length})</h2>
                 {questions.filter(q=>!q.reponse).map(q=>(
                   <div key={q.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"2px solid #fde68a"}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                      <div>
-                        <div style={{fontWeight:700,fontSize:13,color:"#1e3a8a"}}>{q.vehicleLabel}</div>
-                        <div style={{fontSize:10,color:"#9ca3af"}}>{new Date(q.createdAt).toLocaleDateString("fr-FR")}</div>
-                      </div>
+                      <div><div style={{fontWeight:700,fontSize:13,color:"#1e3a8a"}}>{q.vehicleLabel}</div><div style={{fontSize:10,color:"#9ca3af"}}>{new Date(q.createdAt).toLocaleDateString("fr-FR")}</div></div>
                       <span style={{fontSize:10,background:"#fef3c7",color:"#d97706",borderRadius:99,padding:"2px 8px",fontWeight:700}}>En attente</span>
                     </div>
                     <div style={{background:"#f8fafc",borderRadius:8,padding:"10px 12px",fontSize:12,marginBottom:10,border:"1px solid #e5e7eb"}}>{q.question}</div>
-                    <button onClick={()=>{setReponseModal(q);setReponseText("");}} style={{padding:"7px 14px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Répondre</button>
+                    <div style={{display:"flex",gap:8}}>
+                      <button onClick={()=>{setReponseModal(q);setReponseText("");}} style={{padding:"7px 14px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Répondre</button>
+                      <button onClick={()=>supprimerQuestion(q)} style={{padding:"7px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:12,cursor:"pointer"}}>Supprimer</button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
-
             {questions.filter(q=>q.reponse).length>0&&(
               <div>
                 <h2 style={{fontSize:13,fontWeight:700,color:"#16a34a",marginBottom:8}}>Répondues ({questions.filter(q=>q.reponse).length})</h2>
@@ -1804,8 +1775,8 @@ function AppContent(){
                   <div key={q.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"1px solid #bbf7d0"}}>
                     <div style={{fontWeight:700,fontSize:13,color:"#1e3a8a",marginBottom:4}}>{q.vehicleLabel}</div>
                     <div style={{background:"#f8fafc",borderRadius:8,padding:"8px 10px",fontSize:11,marginBottom:8,color:"#374151"}}>Q : {q.question}</div>
-                    <div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 10px",fontSize:11,color:"#16a34a",border:"1px solid #bbf7d0",marginBottom:6}}>R : {q.reponse}</div>
-                    <button onClick={async()=>{setQuestions(qs=>qs.filter(x=>x.id!==q.id));if(user)await supabase.from('questions').delete().eq('id',q.id).eq('user_id',user.id);}} style={{fontSize:10,padding:"3px 8px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:6,cursor:"pointer"}}>Supprimer</button>
+                    <div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 10px",fontSize:11,color:"#16a34a",border:"1px solid #bbf7d0",marginBottom:8}}>R : {q.reponse}</div>
+                    <button onClick={()=>supprimerQuestion(q)} style={{fontSize:11,padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer"}}>Supprimer</button>
                   </div>
                 ))}
               </div>

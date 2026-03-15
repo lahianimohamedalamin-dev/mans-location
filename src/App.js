@@ -801,7 +801,6 @@ function AppContent(){
   const[form,setForm]=useState(FORM0);
   const[photosDepart,setPhotosDepart]=useState([]);
   const[photosVehicleModal,setPhotosVehicleModal]=useState(null);
-  // vitrinePubliee supprimé - on utilise v.publie directement
   const[docsLocataire,setDocsLocataire]=useState({});
   const[questions,setQuestions]=useState([]);
   const[touched,setTouched]=useState({});
@@ -812,6 +811,10 @@ function AppContent(){
   const[editV,setEditV]=useState(null);
   const[toast,setToast]=useState(null);
   const[planMonth,setPlanMonth]=useState(new Date());
+  // ── CORRECTIONS : états manquants ──────────────────────────────────────────
+  const[planView,setPlanView]=useState("calendrier");
+  const[reponseModal,setReponseModal]=useState(null);
+  // ───────────────────────────────────────────────────────────────────────────
   const[dForm,setDForm]=useState({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});
   const[showAddD,setShowAddD]=useState(false);
   const[profilEdit,setProfilEdit]=useState(false);
@@ -833,7 +836,6 @@ function AppContent(){
   const STATUTS_AMENDE=["A traiter","En cours","Confirmée","Payée","Contestée"];
   const[reponseText,setReponseText]=useState("");
 
-  // Amendes : chercher contrat référentiel automatiquement
   function findContratForAmende(vehicleId,date,heure){
     if(!vehicleId||!date)return null;
     const dt=new Date(`${date}T${heure||"00:00"}`);
@@ -879,7 +881,6 @@ function AppContent(){
       const profData={nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||''};
       setProfil(profData);setProfilForm(profData);
 
-      // Charger véhicules avec publie + photos_vehicule
       if(vehRes.data){
         const vList=vehRes.data.map(v=>{
           return{id:v.id,marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],photosVehicule:v.photos_vehicule||[],publie:v.publie||false};
@@ -1346,7 +1347,6 @@ function AppContent(){
                     <span>Kilométrage illimité</span>
                   </label>
                 </div>
-                {/* Tarifs obligatoires */}
                 <div style={{marginTop:14,background:"#fff7ed",borderRadius:10,padding:12,border:"1px solid #fed7aa"}}>
                   <div style={{fontWeight:700,fontSize:12,color:"#92400e",marginBottom:8}}>Tarifs obligatoires</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
@@ -1670,7 +1670,6 @@ function AppContent(){
                 </div>
                 <div style={{marginBottom:10}}><label style={LBL}>Notes</label><textarea style={{...Inp(),resize:"vertical",fontFamily:"inherit"}} rows={2} value={amendeForm.notes} onChange={e=>setAmendeForm(f=>({...f,notes:e.target.value}))}/></div>
 
-                {/* Contrat référentiel trouvé automatiquement */}
                 {amendeForm.vehicleId&&amendeForm.date&&(
                   <div style={{padding:"10px 14px",borderRadius:10,marginBottom:10,background:contratRef?"#f0fdf4":"#fef3c7",border:`1px solid ${contratRef?"#bbf7d0":"#fde68a"}`}}>
                     {contratRef
@@ -1696,7 +1695,6 @@ function AppContent(){
               );
             })()}
 
-            {/* Stats */}
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10,marginBottom:16}}>
               {[["A traiter","#dc2626","🚨"],["En cours","#d97706","⏳"],["Confirmée","#2563eb","✅"],["Payée","#16a34a","💰"],["Contestée","#7c3aed","⚖️"]].map(([s,col,icon])=>(
                 <div key={s} style={{background:"white",borderRadius:12,padding:"10px 14px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:`4px solid ${col}`}}>
@@ -1706,7 +1704,6 @@ function AppContent(){
               ))}
             </div>
 
-            {/* Liste amendes */}
             {amendes.length===0
               ?<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>🚨</div><p>Aucune amende enregistrée.</p></div>
               :amendes.map(a=>{
@@ -1842,62 +1839,4 @@ function AppContent(){
                 <div style={{fontWeight:800,fontSize:16}}>{profil.nom}</div>
                 <div style={{color:"#6b7280",fontSize:12}}>{profil.entreprise}</div>
               </div>
-              {[["SIREN",profil.siren],["SIRET",profil.siret],["KBIS",profil.kbis],["Téléphone",profil.tel],["WhatsApp",profil.whatsapp],["Snapchat",profil.snap],["Email",profil.email],["Adresse",profil.adresse],["Ville",profil.ville],["IBAN",profil.iban]].filter(([,v])=>v).map(([l,v])=>(<div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f0f0"}}><span style={{fontSize:11,color:"#6b7280"}}>{l}</span><span style={{fontSize:12,fontWeight:600}}>{v}</span></div>))}
-              <button onClick={()=>supabase.auth.signOut()} style={{marginTop:14,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
-            </div>)}
-          </div>
-        )}
-
-      </div>
-    </div>
-  );
-}
-
-function AuthPage(){
-  const[mode,setMode]=useState("login");
-  const[email,setEmail]=useState("");
-  const[password,setPassword]=useState("");
-  const[showPassword,setShowPassword]=useState(false);
-  const[loading,setLoading]=useState(false);
-  const[error,setError]=useState("");
-  const[success,setSuccess]=useState("");
-
-  async function handleSubmit(){
-    setLoading(true);setError("");setSuccess("");
-    if(mode==="forgot"){const{error:err}=await supabase.auth.resetPasswordForEmail(email);if(err)setError(err.message);else setSuccess("Email envoyé.");setLoading(false);return;}
-    let result;
-    if(mode==="login")result=await supabase.auth.signInWithPassword({email,password});
-    else result=await supabase.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin}});
-    if(result.error)setError(result.error.message);
-    else if(mode==="signup")setSuccess("Compte créé ! Vérifiez votre email.");
-    setLoading(false);
-  }
-
-  return(
-    <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"#f1f5f9"}}>
-      <div style={{background:"white",borderRadius:16,padding:"40px 32px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
-        <h1 style={{textAlign:"center",marginBottom:8,fontSize:22,fontWeight:700}}>MAN'S LOCATION</h1>
-        <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:14}}>Accès réservé aux professionnels</p>
-        {mode!=="forgot"&&(<div style={{display:"flex",marginBottom:24,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
-          {["login","signup"].map(m=>(<button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600}}>{m==="login"?"Connexion":"Inscription"}</button>))}
-        </div>)}
-        <input placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
-        {mode!=="forgot"&&(<div style={{position:"relative",marginBottom:16}}>
-          <input placeholder="Mot de passe" type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} style={{width:"100%",padding:"10px 12px",paddingRight:40,border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
-          <span onClick={()=>setShowPassword(!showPassword)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:18,color:"#6b7280",userSelect:"none"}}>{showPassword?"🙈":"👁️"}</span>
-        </div>)}
-        {error&&<p style={{color:"red",fontSize:13,marginBottom:12}}>{error}</p>}
-        {success&&<p style={{color:"#16a34a",fontSize:13,marginBottom:12}}>{success}</p>}
-        <button onClick={handleSubmit} disabled={loading} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:"pointer"}}>
-          {loading?"...":(mode==="login"?"Se connecter":mode==="signup"?"Créer mon compte":"Envoyer le lien")}
-        </button>
-        {mode==="login"&&<p style={{textAlign:"center",marginTop:14,fontSize:13}}><span onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Mot de passe oublié ?</span></p>}
-        {mode==="forgot"&&<p style={{textAlign:"center",marginTop:14,fontSize:13}}><span onClick={()=>{setMode("login");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Retour</span></p>}
-      </div>
-    </div>
-  );
-}
-
-export default function App(){
-  return <AppContent/>;
-}
+              {[["SIREN",profil.siren],["SIRET",profil.siret],["KBIS",profil.kbis],["Téléphone",profil.tel],["WhatsApp",profil.whatsapp],["Snapchat",profil.snap],

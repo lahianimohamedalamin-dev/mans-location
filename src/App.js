@@ -37,6 +37,26 @@ const CARRO_ELEMENTS=[
   {id:"retro_g",label:"Rétroviseur gauche",zone:"Divers"},{id:"retro_d",label:"Rétroviseur droit",zone:"Divers"},
 ];
 
+const PAYS_CODES=[
+  {code:"+33",pays:"🇫🇷 France"},
+  {code:"+32",pays:"🇧🇪 Belgique"},
+  {code:"+41",pays:"🇨🇭 Suisse"},
+  {code:"+352",pays:"🇱🇺 Luxembourg"},
+  {code:"+212",pays:"🇲🇦 Maroc"},
+  {code:"+213",pays:"🇩🇿 Algérie"},
+  {code:"+216",pays:"🇹🇳 Tunisie"},
+  {code:"+221",pays:"🇸🇳 Sénégal"},
+  {code:"+225",pays:"🇨🇮 Côte d'Ivoire"},
+  {code:"+44",pays:"🇬🇧 Royaume-Uni"},
+  {code:"+49",pays:"🇩🇪 Allemagne"},
+  {code:"+34",pays:"🇪🇸 Espagne"},
+  {code:"+39",pays:"🇮🇹 Italie"},
+  {code:"+1",pays:"🇺🇸 USA/Canada"},
+];
+
+const MOTORISATIONS=["Essence","Diesel","Hybride","Hybride rechargeable","Électrique","GPL","Hydrogène"];
+const BOITES=["Manuelle","Automatique","Semi-automatique"];
+
 const RETOUR_CHECKS=[
   {id:"carburant",label:"Carburant niveau OK",icon:"⛽"},{id:"exterieur",label:"Extérieur propre",icon:"🚿"},
   {id:"interieur",label:"Intérieur propre",icon:"🧹"},{id:"sieges",label:"Sièges sans dégât",icon:"💺"},
@@ -278,7 +298,8 @@ table th{background:#e8edf5;font-weight:700}table tr:nth-child(even){background:
 
 // ─── COMPOSANTS ───────────────────────────────────────────────────────────────
 function FuelGauge({value,onChange,readOnly}){
-  const pct=parseInt(value)||0;const col=fuelColor(pct);const steps=[0,25,50,75,100];
+  const pct=parseInt(value)||0;const col=fuelColor(pct);
+  const steps=[0,10,20,30,40,50,60,70,80,90,100];
   return(
     <div style={{userSelect:"none"}}>
       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
@@ -289,7 +310,16 @@ function FuelGauge({value,onChange,readOnly}){
         <span style={{fontSize:13,fontWeight:800,color:col,minWidth:40,textAlign:"right"}}>{pct}%</span>
         <span style={{fontSize:11,color:"#6b7280",minWidth:50}}>{fuelLabel(pct)}</span>
       </div>
-      {!readOnly&&(<div style={{display:"flex",gap:4}}>{steps.map(s=>(<button key={s} onClick={()=>onChange(s)} style={{flex:1,padding:"5px 0",borderRadius:7,border:`2px solid ${pct===s?col:"#e5e7eb"}`,background:pct===s?col:"white",color:pct===s?"white":"#374151",fontSize:11,fontWeight:700,cursor:"pointer"}}>{s===0?"Vide":s===100?"Plein":s+"%"}</button>))}</div>)}
+      {!readOnly&&(
+        <div style={{display:"flex",gap:2,flexWrap:"wrap"}}>
+          {steps.map(s=>(
+            <button key={s} onClick={()=>onChange(s)}
+              style={{flex:"1 0 auto",padding:"4px 2px",borderRadius:6,border:`2px solid ${pct===s?col:"#e5e7eb"}`,background:pct===s?col:"white",color:pct===s?"white":"#374151",fontSize:10,fontWeight:700,cursor:"pointer",minWidth:28}}>
+              {s===0?"V":s===100?"P":s}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -777,7 +807,7 @@ function AppContent(){
   const[touched,setTouched]=useState({});
   const[sigL,setSigL]=useState(null);
   const[sigLoc,setSigLoc]=useState(null);
-  const[vForm,setVForm]=useState({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false});
+  const[vForm,setVForm]=useState({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false,motorisation:"Essence",boite:"Manuelle",puissanceFiscale:"",description:"",locationMin48:false});
   const[showAddV,setShowAddV]=useState(false);
   const[editV,setEditV]=useState(null);
   const[toast,setToast]=useState(null);
@@ -796,8 +826,19 @@ function AppContent(){
   const[tarifsTemp,setTarifsTemp]=useState([]);
   const[ntarif,setNtarif]=useState({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});
   const[dataLoaded,setDataLoaded]=useState(false);
-  const[reponseModal,setReponseModal]=useState(null);
+  const[amendes,setAmendes]=useState([]);
+  const[showAddAmende,setShowAddAmende]=useState(false);
+  const[amendeForm,setAmendeForm]=useState({vehicleId:"",contratRef:"",date:"",heure:"",montant:"",type:"Excès de vitesse",statut:"A traiter",notes:""});
+  const TYPES_AMENDE=["Excès de vitesse","Stationnement","Feu rouge","Téléphone au volant","Non port ceinture","Autre"];
+  const STATUTS_AMENDE=["A traiter","En cours","Confirmée","Payée","Contestée"];
   const[reponseText,setReponseText]=useState("");
+
+  // Amendes : chercher contrat référentiel automatiquement
+  function findContratForAmende(vehicleId,date,heure){
+    if(!vehicleId||!date)return null;
+    const dt=new Date(`${date}T${heure||"00:00"}`);
+    return contrats.find(c=>c.vehicleId===vehicleId&&new Date(c.dateDebut)<=dt&&new Date(c.dateFin)>=dt)||null;
+  }
   const activeUserIdRef=useRef(null);
 
   const resetUserData=useCallback(()=>{
@@ -990,6 +1031,7 @@ function AppContent(){
     {id:"planning",icon:"📅",label:"Planning"},
     {id:"contrats",icon:"📋",label:"Contrats"},
     {id:"retours",icon:"🔄",label:"Retours"},
+    {id:"amendes",icon:"🚨",label:"Amendes"},
     {id:"questions",icon:"❓",label:"Questions"},
     {id:"finances",icon:"💰",label:"Finances"},
     {id:"profil",icon:"👤",label:"Profil"},
@@ -1282,10 +1324,39 @@ function AppContent(){
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
                   <div><label style={LBL}>Marque *</label><select style={Inp()} value={vForm.marque} onChange={e=>setVForm(f=>({...f,marque:e.target.value,modele:""}))}><option value="">-- Choisir --</option>{Object.keys(CAR_BRANDS).sort().map(b=><option key={b} value={b}>{b}</option>)}</select></div>
                   <div><label style={LBL}>Modèle *</label><select style={Inp()} value={vForm.modele} onChange={e=>setVForm(f=>({...f,modele:e.target.value}))} disabled={!vForm.marque}><option value="">-- Choisir --</option>{(CAR_BRANDS[vForm.marque]||[]).map(m=><option key={m} value={m}>{m}</option>)}</select></div>
-                  <div><label style={LBL}>Immatriculation *</label><input style={Inp()} value={vForm.immat} onChange={e=>setVForm(f=>({...f,immat:e.target.value}))}/></div>
+                  <div><label style={LBL}>Immatriculation *</label><input style={Inp()} value={vForm.immat} onChange={e=>setVForm(f=>({...f,immat:e.target.value.toUpperCase()}))}/></div>
                   <div><label style={LBL}>Couleur</label><select style={Inp()} value={vForm.couleur} onChange={e=>setVForm(f=>({...f,couleur:e.target.value}))}><option value="">-- Choisir --</option>{CAR_COLORS.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
                   <div><label style={LBL}>Année</label><select style={Inp()} value={vForm.annee} onChange={e=>setVForm(f=>({...f,annee:e.target.value}))}><option value="">-- Choisir --</option>{CAR_YEARS.map(y=><option key={y} value={y}>{y}</option>)}</select></div>
-                  {[["km","Km actuel"],["tarif","Tarif EUR/j"],["caution","Caution EUR"],["kmInclus","Km inclus/loc"],["prixKmSup","Prix km sup EUR"]].map(([k,l])=>(<div key={k}><label style={LBL}>{l}</label><input type="number" style={Inp()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:e.target.value}))}/></div>))}
+                  <div><label style={LBL}>Motorisation</label><select style={Inp()} value={vForm.motorisation} onChange={e=>setVForm(f=>({...f,motorisation:e.target.value}))}>{MOTORISATIONS.map(m=><option key={m}>{m}</option>)}</select></div>
+                  <div><label style={LBL}>Boîte</label><select style={Inp()} value={vForm.boite} onChange={e=>setVForm(f=>({...f,boite:e.target.value}))}>{BOITES.map(b=><option key={b}>{b}</option>)}</select></div>
+                  <div><label style={LBL}>Puissance fiscale (CV)</label><input type="number" style={Inp()} value={vForm.puissanceFiscale} onChange={e=>setVForm(f=>({...f,puissanceFiscale:e.target.value.replace(/\D/g,"")}))}/></div>
+                  {[["km","Km actuel"],["tarif","Tarif EUR/j"],["caution","Caution EUR"],["kmInclus","Km inclus/loc"],["prixKmSup","Prix km sup EUR"]].map(([k,l])=>(<div key={k}><label style={LBL}>{l}</label><input type="number" style={Inp()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:e.target.value.replace(/\D/g,"")}))} inputMode="numeric"/></div>))}
+                </div>
+                <div style={{marginTop:10}}>
+                  <label style={LBL}>Description du véhicule (visible sur la vitrine)</label>
+                  <textarea value={vForm.description} onChange={e=>setVForm(f=>({...f,description:e.target.value}))} placeholder="Ex: Véhicule récent, climatisation, GPS, parfait état..." rows={3} style={{...Inp(),resize:"vertical",fontFamily:"inherit"}}/>
+                </div>
+                <div style={{marginTop:10,display:"flex",gap:16,flexWrap:"wrap"}}>
+                  <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,cursor:"pointer"}}>
+                    <input type="checkbox" checked={vForm.locationMin48} onChange={e=>setVForm(f=>({...f,locationMin48:e.target.checked}))}/>
+                    <span>Location minimum 48h (pas de 24h)</span>
+                  </label>
+                  <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,cursor:"pointer"}}>
+                    <input type="checkbox" checked={vForm.kmIllimite} onChange={e=>setVForm(f=>({...f,kmIllimite:e.target.checked}))}/>
+                    <span>Kilométrage illimité</span>
+                  </label>
+                </div>
+                {/* Tarifs obligatoires */}
+                <div style={{marginTop:14,background:"#fff7ed",borderRadius:10,padding:12,border:"1px solid #fed7aa"}}>
+                  <div style={{fontWeight:700,fontSize:12,color:"#92400e",marginBottom:8}}>Tarifs obligatoires</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
+                    {[["tarif24h","24h (journée)"],["tarif48h","48h (week-end)"],["tarif72h","72h (WE long)"],["tarif5j","5 jours"],["tarif7j","7 jours (semaine)"],["tarif30j","30 jours (mois)"]].map(([k,l])=>(
+                      <div key={k}>
+                        <label style={LBL}>{l} EUR</label>
+                        <input type="number" style={Inp()} placeholder="0" value={vForm[k]||""} onChange={e=>setVForm(f=>({...f,[k]:e.target.value.replace(/\D/g,"")}))} inputMode="numeric"/>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div style={{display:"flex",gap:8,marginTop:12}}>
                   <button onClick={addV} style={{background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>{editV?"Mettre à jour":"Ajouter"}</button>
@@ -1403,17 +1474,33 @@ function AppContent(){
         )}
 
         {/* ── PLANNING ── */}
-        {page==="planning"&&(
+        {page==="planning"&&(()=>{
+          const[planView,setPlanView]=useState("calendrier");
+          // Gantt data
+          const allContrats=contrats.filter(c=>c.dateDebut&&c.dateFin);
+          const ganttStart=allContrats.length>0?new Date(Math.min(...allContrats.map(c=>new Date(c.dateDebut)))):new Date();
+          const ganttEnd=allContrats.length>0?new Date(Math.max(...allContrats.map(c=>new Date(c.dateFin)))):new Date();
+          const ganttDays=Math.max(30,Math.ceil((ganttEnd-ganttStart)/86400000)+7);
+          const ganttDates=Array.from({length:ganttDays},(_,i)=>{const d=new Date(ganttStart);d.setDate(d.getDate()+i);return d;});
+          const DAY_W=28;
+          return(
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Planning</h1>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()-1);setPlanMonth(new Date(d));}} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>◀</button>
-                <span style={{fontWeight:700,fontSize:13,minWidth:130,textAlign:"center",textTransform:"capitalize"}}>{planMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</span>
-                <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()+1);setPlanMonth(new Date(d));}} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>▶</button>
+                <div style={{display:"flex",background:"white",borderRadius:8,border:"1px solid #e5e7eb",overflow:"hidden"}}>
+                  <button onClick={()=>setPlanView("calendrier")} style={{padding:"6px 12px",fontSize:11,fontWeight:planView==="calendrier"?700:400,background:planView==="calendrier"?"#1e3a8a":"white",color:planView==="calendrier"?"white":"#374151",border:"none",cursor:"pointer"}}>📅 Calendrier</button>
+                  <button onClick={()=>setPlanView("gantt")} style={{padding:"6px 12px",fontSize:11,fontWeight:planView==="gantt"?700:400,background:planView==="gantt"?"#1e3a8a":"white",color:planView==="gantt"?"white":"#374151",border:"none",cursor:"pointer"}}>📊 Gantt</button>
+                </div>
+                {planView==="calendrier"&&<>
+                  <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()-1);setPlanMonth(new Date(d));}} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>◀</button>
+                  <span style={{fontWeight:700,fontSize:13,minWidth:130,textAlign:"center",textTransform:"capitalize"}}>{planMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</span>
+                  <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()+1);setPlanMonth(new Date(d));}} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>▶</button>
+                </>}
               </div>
             </div>
-            {vehicles.map(v=>{
+
+            {planView==="calendrier"&&vehicles.map(v=>{
               const vContrats=contrats.filter(c=>c.vehicleId===v.id);
               return(<div key={v.id} style={{background:"white",borderRadius:14,marginBottom:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #e5e7eb"}}>
                 <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -1421,13 +1508,13 @@ function AppContent(){
                   <Badge s={statut(v.id)}/>
                 </div>
                 <div style={{overflowX:"auto"}}>
-                  <div style={{display:"flex",minWidth:days.length*28+130}}>
+                  <div style={{display:"flex",minWidth:days.length*DAY_W+130}}>
                     <div style={{width:130,flexShrink:0}}/>
-                    {days.map(d=>{const isToday=d.toDateString()===new Date().toDateString();const isWE=d.getDay()===0||d.getDay()===6;return(<div key={d.getTime()} style={{width:28,flexShrink:0,textAlign:"center",padding:"5px 0",fontSize:10,fontWeight:isToday?800:400,color:isToday?"#2563eb":isWE?"#9ca3af":"#6b7280",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:"1px solid #f0f0f0"}}>{d.getDate()}</div>);})}
+                    {days.map(d=>{const isToday=d.toDateString()===new Date().toDateString();const isWE=d.getDay()===0||d.getDay()===6;return(<div key={d.getTime()} style={{width:DAY_W,flexShrink:0,textAlign:"center",padding:"5px 0",fontSize:10,fontWeight:isToday?800:400,color:isToday?"#2563eb":isWE?"#9ca3af":"#6b7280",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:"1px solid #f0f0f0"}}>{d.getDate()}</div>);})}
                   </div>
-                  <div style={{display:"flex",minWidth:days.length*28+130,padding:"4px 0"}}>
+                  <div style={{display:"flex",minWidth:days.length*DAY_W+130,padding:"4px 0"}}>
                     <div style={{width:130,flexShrink:0,padding:"0 8px",fontSize:10,fontWeight:600,color:"#374151",display:"flex",alignItems:"center"}}>Disponibilité</div>
-                    {days.map(d=>{const b=isBooked(v.id,d);const isToday=d.toDateString()===new Date().toDateString();return(<div key={d.getTime()} style={{width:28,flexShrink:0,height:28,display:"flex",alignItems:"center",justifyContent:"center",background:b?"#dbeafe":isToday?"#eff6ff":"white",borderLeft:"1px solid #f0f0f0"}}><div style={{width:20,height:20,borderRadius:4,background:b?"#2563eb":"#dcfce7"}}/></div>);})}
+                    {days.map(d=>{const b=isBooked(v.id,d);const isToday=d.toDateString()===new Date().toDateString();return(<div key={d.getTime()} style={{width:DAY_W,flexShrink:0,height:28,display:"flex",alignItems:"center",justifyContent:"center",background:b?"#dbeafe":isToday?"#eff6ff":"white",borderLeft:"1px solid #f0f0f0"}}><div style={{width:20,height:20,borderRadius:4,background:b?"#2563eb":"#dcfce7"}}/></div>);})}
                   </div>
                 </div>
                 {vContrats.length>0&&(<div style={{padding:"8px 12px",borderTop:"1px solid #f0f0f0",display:"flex",flexWrap:"wrap",gap:6}}>
@@ -1435,8 +1522,64 @@ function AppContent(){
                 </div>)}
               </div>);
             })}
+
+            {planView==="gantt"&&(
+              <div style={{background:"white",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+                <div style={{padding:"12px 16px",borderBottom:"1px solid #e5e7eb",fontWeight:700,fontSize:13}}>Diagramme de Gantt — Tous les véhicules</div>
+                <div style={{overflowX:"auto"}}>
+                  <div style={{minWidth:vehicles.length>0?150+ganttDays*DAY_W:400}}>
+                    {/* En-tête dates */}
+                    <div style={{display:"flex",borderBottom:"2px solid #e5e7eb",background:"#f8fafc"}}>
+                      <div style={{width:150,flexShrink:0,padding:"6px 10px",fontSize:11,fontWeight:700,color:"#374151",borderRight:"1px solid #e5e7eb"}}>Véhicule</div>
+                      {ganttDates.map((d,i)=>{
+                        const isToday=d.toDateString()===new Date().toDateString();
+                        const isWE=d.getDay()===0||d.getDay()===6;
+                        const show1st=d.getDate()===1;
+                        return(<div key={i} style={{width:DAY_W,flexShrink:0,textAlign:"center",padding:"4px 0",fontSize:9,fontWeight:isToday?800:400,color:isToday?"#2563eb":isWE?"#9ca3af":"#6b7280",background:isToday?"#dbeafe":isWE?"#f9fafb":"#f8fafc",borderLeft:"1px solid #f0f0f0",position:"relative"}}>
+                          {show1st?<span style={{position:"absolute",top:0,left:0,background:"#1e3a8a",color:"white",fontSize:8,padding:"1px 3px",borderRadius:2,whiteSpace:"nowrap"}}>{d.toLocaleDateString("fr-FR",{month:"short"})}</span>:null}
+                          {d.getDate()}
+                        </div>);
+                      })}
+                    </div>
+                    {/* Lignes véhicules */}
+                    {vehicles.map(v=>(
+                      <div key={v.id} style={{display:"flex",borderBottom:"1px solid #f0f0f0",position:"relative"}}>
+                        <div style={{width:150,flexShrink:0,padding:"8px 10px",fontSize:11,fontWeight:600,borderRight:"1px solid #e5e7eb",background:"#fafafa"}}>
+                          <div style={{fontWeight:700}}>{v.marque} {v.modele}</div>
+                          <div style={{fontSize:9,color:"#9ca3af"}}>{v.immat}</div>
+                        </div>
+                        <div style={{flex:1,position:"relative",height:44}}>
+                          {ganttDates.map((d,i)=>{
+                            const isToday=d.toDateString()===new Date().toDateString();
+                            const isWE=d.getDay()===0||d.getDay()===6;
+                            return(<div key={i} style={{position:"absolute",left:i*DAY_W,top:0,width:DAY_W,height:"100%",background:isToday?"rgba(37,99,235,.05)":isWE?"rgba(0,0,0,.02)":"transparent",borderLeft:"1px solid #f5f5f5"}}/>);
+                          })}
+                          {contrats.filter(c=>c.vehicleId===v.id&&c.dateDebut&&c.dateFin).map(c=>{
+                            const start=new Date(c.dateDebut);
+                            const end=new Date(c.dateFin);
+                            const offsetDays=Math.floor((start-ganttStart)/86400000);
+                            const widthDays=Math.ceil((end-start)/86400000)+1;
+                            const colors=["#2563eb","#7c3aed","#16a34a","#d97706","#dc2626","#0891b2"];
+                            const col=colors[contrats.indexOf(c)%colors.length];
+                            return(<div key={c.id} style={{position:"absolute",left:offsetDays*DAY_W+2,top:8,height:28,width:Math.max(widthDays*DAY_W-4,20),background:col,borderRadius:6,display:"flex",alignItems:"center",padding:"0 6px",overflow:"hidden",cursor:"default",zIndex:1}}
+                              title={`${c.locNom} — ${c.dateDebut} → ${c.dateFin} — ${c.totalCalc} EUR`}>
+                              <span style={{color:"white",fontSize:9,fontWeight:700,whiteSpace:"nowrap"}}>{c.locNom}</span>
+                            </div>);
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{padding:"8px 16px",display:"flex",gap:16,fontSize:11,color:"#6b7280",borderTop:"1px solid #f0f0f0"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:12,height:12,borderRadius:2,background:"#2563eb"}}/>Location</div>
+                  <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:12,height:12,borderRadius:2,background:"#dbeafe",border:"1px solid #bfdbfe"}}/>Aujourd'hui</div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+          );
+        })()}
 
         {/* ── CONTRATS ── */}
         {page==="contrats"&&(
@@ -1507,6 +1650,120 @@ function AppContent(){
           </div>
         )}
 
+        {/* ── AMENDES ── */}
+        {page==="amendes"&&(
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Amendes</h1>
+              <button onClick={()=>setShowAddAmende(!showAddAmende)} style={{background:"#dc2626",color:"white",border:"none",borderRadius:10,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
+            </div>
+
+            {showAddAmende&&(()=>{
+              const contratRef=findContratForAmende(amendeForm.vehicleId,amendeForm.date,amendeForm.heure);
+              return(
+              <div style={{background:"white",borderRadius:14,padding:18,marginBottom:16,boxShadow:"0 2px 12px rgba(0,0,0,.1)",border:"2px solid #fecaca"}}>
+                <h3 style={{fontWeight:700,fontSize:14,marginBottom:12,color:"#dc2626"}}>Nouvelle amende</h3>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:10}}>
+                  <div><label style={LBL}>Véhicule *</label>
+                    <select style={Inp()} value={amendeForm.vehicleId} onChange={e=>setAmendeForm(f=>({...f,vehicleId:e.target.value}))}>
+                      <option value="">-- Choisir --</option>
+                      {vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele} — {v.immat}</option>)}
+                    </select>
+                  </div>
+                  <div><label style={LBL}>Date *</label><input type="date" style={Inp()} value={amendeForm.date} onChange={e=>setAmendeForm(f=>({...f,date:e.target.value}))}/></div>
+                  <div><label style={LBL}>Heure</label><input type="time" style={Inp()} value={amendeForm.heure} onChange={e=>setAmendeForm(f=>({...f,heure:e.target.value}))}/></div>
+                  <div><label style={LBL}>Type</label>
+                    <select style={Inp()} value={amendeForm.type} onChange={e=>setAmendeForm(f=>({...f,type:e.target.value}))}>
+                      {TYPES_AMENDE.map(t=><option key={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div><label style={LBL}>Montant (EUR)</label><input type="number" style={Inp()} value={amendeForm.montant} onChange={e=>setAmendeForm(f=>({...f,montant:e.target.value.replace(/\D/g,"")}))} inputMode="numeric"/></div>
+                  <div><label style={LBL}>Statut</label>
+                    <select style={Inp()} value={amendeForm.statut} onChange={e=>setAmendeForm(f=>({...f,statut:e.target.value}))}>
+                      {STATUTS_AMENDE.map(s=><option key={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{marginBottom:10}}><label style={LBL}>Notes</label><textarea style={{...Inp(),resize:"vertical",fontFamily:"inherit"}} rows={2} value={amendeForm.notes} onChange={e=>setAmendeForm(f=>({...f,notes:e.target.value}))}/></div>
+
+                {/* Contrat référentiel trouvé automatiquement */}
+                {amendeForm.vehicleId&&amendeForm.date&&(
+                  <div style={{padding:"10px 14px",borderRadius:10,marginBottom:10,background:contratRef?"#f0fdf4":"#fef3c7",border:`1px solid ${contratRef?"#bbf7d0":"#fde68a"}`}}>
+                    {contratRef
+                      ?<div><div style={{fontWeight:700,fontSize:12,color:"#16a34a",marginBottom:2}}>Contrat trouvé automatiquement</div><div style={{fontSize:11,color:"#374151"}}><b>{contratRef.locNom}</b> — {contratRef.dateDebut} → {contratRef.dateFin} — {contratRef.vehicleLabel}</div><div style={{fontSize:10,color:"#6b7280",marginTop:2}}>Tel : {contratRef.locTel}</div></div>
+                      :<div style={{fontSize:12,color:"#92400e"}}>Aucun contrat actif à cette date pour ce véhicule.</div>
+                    }
+                  </div>
+                )}
+
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>{
+                    if(!amendeForm.vehicleId||!amendeForm.date){toast_("Choisissez un véhicule et une date","error");return;}
+                    const v=vehicles.find(x=>x.id===amendeForm.vehicleId);
+                    const newA={id:Date.now(),...amendeForm,vehicleLabel:v?v.marque+" "+v.modele+" - "+v.immat:"",contratId:contratRef?.id||null,locNom:contratRef?.locNom||"",locTel:contratRef?.locTel||""};
+                    setAmendes(a=>[newA,...a]);
+                    setAmendeForm({vehicleId:"",contratRef:"",date:"",heure:"",montant:"",type:"Excès de vitesse",statut:"A traiter",notes:""});
+                    setShowAddAmende(false);
+                    toast_("Amende ajoutée !");
+                  }} style={{background:"#dc2626",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>Enregistrer</button>
+                  <button onClick={()=>setShowAddAmende(false)} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:12}}>Annuler</button>
+                </div>
+              </div>
+              );
+            })()}
+
+            {/* Stats */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10,marginBottom:16}}>
+              {[["A traiter","#dc2626","🚨"],["En cours","#d97706","⏳"],["Confirmée","#2563eb","✅"],["Payée","#16a34a","💰"],["Contestée","#7c3aed","⚖️"]].map(([s,col,icon])=>(
+                <div key={s} style={{background:"white",borderRadius:12,padding:"10px 14px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:`4px solid ${col}`}}>
+                  <div style={{fontSize:10,color:"#6b7280"}}>{icon} {s}</div>
+                  <div style={{fontSize:22,fontWeight:800,color:col}}>{amendes.filter(a=>a.statut===s).length}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Liste amendes */}
+            {amendes.length===0
+              ?<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>🚨</div><p>Aucune amende enregistrée.</p></div>
+              :amendes.map(a=>{
+                const colStatut=a.statut==="A traiter"?"#dc2626":a.statut==="En cours"?"#d97706":a.statut==="Confirmée"?"#2563eb":a.statut==="Payée"?"#16a34a":"#7c3aed";
+                const contratLie=contrats.find(c=>c.id===a.contratId);
+                return(
+                  <div key={a.id} style={{background:"white",borderRadius:14,padding:14,marginBottom:10,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:`2px solid ${colStatut}22`}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                      <div>
+                        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
+                          <span style={{fontWeight:800,fontSize:14,color:"#1f2937"}}>{a.type}</span>
+                          <span style={{fontSize:10,background:colStatut+"22",color:colStatut,borderRadius:99,padding:"2px 8px",fontWeight:700}}>{a.statut}</span>
+                        </div>
+                        <div style={{fontSize:11,color:"#6b7280"}}>{a.vehicleLabel}</div>
+                        <div style={{fontSize:11,color:"#6b7280"}}>{a.date}{a.heure?" à "+a.heure:""}</div>
+                        {a.locNom&&<div style={{fontSize:11,color:"#374151",marginTop:4}}>Locataire : <b>{a.locNom}</b>{a.locTel?" — "+a.locTel:""}</div>}
+                        {a.notes&&<div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{a.notes}</div>}
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        {a.montant&&<div style={{fontWeight:900,fontSize:18,color:"#dc2626"}}>{a.montant} EUR</div>}
+                      </div>
+                    </div>
+                    {contratLie&&(
+                      <div style={{background:"#eff6ff",borderRadius:8,padding:"6px 10px",marginBottom:8,fontSize:11,border:"1px solid #bfdbfe"}}>
+                        Contrat ref : <b>{contratLie.locNom}</b> — {contratLie.dateDebut} → {contratLie.dateFin}
+                        <button onClick={()=>rePrint(contratLie)} style={{marginLeft:8,padding:"2px 8px",background:"#1e3a8a",color:"white",border:"none",borderRadius:5,fontSize:10,cursor:"pointer",fontWeight:700}}>PDF</button>
+                      </div>
+                    )}
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                      {STATUTS_AMENDE.filter(s=>s!==a.statut).map(s=>(
+                        <button key={s} onClick={()=>setAmendes(as=>as.map(x=>x.id===a.id?{...x,statut:s}:x))} style={{padding:"4px 10px",background:"#f1f5f9",color:"#374151",border:"1px solid #e5e7eb",borderRadius:7,fontSize:10,cursor:"pointer",fontWeight:600}}>{s}</button>
+                      ))}
+                      <button onClick={()=>setAmendes(as=>as.filter(x=>x.id!==a.id))} style={{padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:10,cursor:"pointer"}}>Supprimer</button>
+                    </div>
+                  </div>
+                );
+              })
+            }
+          </div>
+        )}
+
         {/* ── QUESTIONS ── */}
         {page==="questions"&&(
           <div>
@@ -1541,7 +1798,8 @@ function AppContent(){
                   <div key={q.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"1px solid #bbf7d0"}}>
                     <div style={{fontWeight:700,fontSize:13,color:"#1e3a8a",marginBottom:4}}>{q.vehicleLabel}</div>
                     <div style={{background:"#f8fafc",borderRadius:8,padding:"8px 10px",fontSize:11,marginBottom:8,color:"#374151"}}>Q : {q.question}</div>
-                    <div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 10px",fontSize:11,color:"#16a34a",border:"1px solid #bbf7d0"}}>R : {q.reponse}</div>
+                    <div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 10px",fontSize:11,color:"#16a34a",border:"1px solid #bbf7d0",marginBottom:6}}>R : {q.reponse}</div>
+                    <button onClick={async()=>{setQuestions(qs=>qs.filter(x=>x.id!==q.id));if(user)await supabase.from('questions').delete().eq('id',q.id).eq('user_id',user.id);}} style={{fontSize:10,padding:"3px 8px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:6,cursor:"pointer"}}>Supprimer</button>
                   </div>
                 ))}
               </div>

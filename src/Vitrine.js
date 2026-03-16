@@ -6,15 +6,15 @@ export default function Vitrine() {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const userId = window.location.pathname.split('/vitrine/')[1];
+  const slug = window.location.pathname.split('/vitrine/')[1];
 
   useEffect(() => {
-    if (!userId) return;
+    if (!slug) return;
     async function load() {
       const { data: profils } = await supabase
         .from('profils')
         .select('*')
-        .eq('user_id', userId)
+        .eq('slug', slug)
         .maybeSingle();
       setProfil(profils);
 
@@ -27,7 +27,7 @@ export default function Vitrine() {
       setLoading(false);
     }
     load();
-  }, [userId]);
+  }, [slug]);
 
   async function envoyerQuestion(vehicleId, vehicleLabel, question, tel) {
     await supabase.from('questions').insert([{

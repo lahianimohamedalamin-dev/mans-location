@@ -6,7 +6,7 @@ export default function Vitrine() {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const userId = window.location.pathname.split('/vitrine/')[1]?.slice(0, 8);
+  const userId = window.location.pathname.split('/vitrine/')[1];
 
   useEffect(() => {
     if (!userId) return;
@@ -14,7 +14,7 @@ export default function Vitrine() {
       const { data: profils } = await supabase
         .from('profils')
         .select('*')
-        .ilike('user_id', userId + '%')
+        .eq('user_id', userId)
         .maybeSingle();
       setProfil(profils);
 

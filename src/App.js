@@ -360,7 +360,6 @@ function DocsLocataire({docs,setDocs}){
   );
 }
 
-// ─── Vitrine demande ──────────────────────────────────────────────────────────
 function DemandeVehicule({vehicle,profil,userId}){
   const[open,setOpen]=useState(false);
   const[tab,setTab]=useState("resa");
@@ -436,7 +435,6 @@ function DemandeVehicule({vehicle,profil,userId}){
   );
 }
 
-// ─── RETOUR MODAL ─────────────────────────────────────────────────────────────
 function RetourModal({contrat,vehicle,profil,onClose,onSave}){
   const initC={};RETOUR_CHECKS.forEach(c=>{initC[c.id]=null;});
   const initCar={};CARRO_ELEMENTS.forEach(e=>{initCar[e.id]=null;});
@@ -670,15 +668,12 @@ function calcTarifAuto(vehicle,nbJours,heuresLoc){
   return{prix:(vehicle.tarif||0)*nbJours,label:`Standard — ${vehicle.tarif} EUR/j x ${nbJours}j`};
 }
 
-// ─────────────────────────────────────────────
-// APP CONTENT
-// ─────────────────────────────────────────────
 function AppContent(){
   const[user,setUser]=useState(null);
   const[vehicles,setVehicles]=useState([]);
   const[contrats,setContrats]=useState([]);
   const[depenses,setDepenses]=useState([]);
-  const[clients,setClients]=useState([]); // ← nouvel état clients
+  const[clients,setClients]=useState([]);
   const[profil,setProfil]=useState(INIT_PROFIL);
   const[page,setPage]=useState("dashboard");
   const[selId,setSelId]=useState(null);
@@ -697,7 +692,6 @@ function AppContent(){
   const[toast,setToast]=useState(null);
   const[planMonth,setPlanMonth]=useState(new Date());
   const[planView,setPlanView]=useState("calendrier");
-  // Gantt navigation
   const ganttRef=useRef(null);
   const[ganttStartDate,setGanttStartDate]=useState(()=>{const d=new Date();d.setDate(1);return d;});
   const[reponseModal,setReponseModal]=useState(null);
@@ -721,21 +715,17 @@ function AppContent(){
   const TYPES_AMENDE=["Excès de vitesse","Stationnement","Feu rouge","Téléphone au volant","Non port ceinture","Autre"];
   const STATUTS_AMENDE=["A traiter","En cours","Confirmée","Payée","Contestée"];
   const[reponseText,setReponseText]=useState("");
-  // Filtres contrats
   const[searchContrat,setSearchContrat]=useState("");
   const[filterVehicleContrat,setFilterVehicleContrat]=useState("");
   const[filterDateDebut,setFilterDateDebut]=useState("");
   const[filterDateFin,setFilterDateFin]=useState("");
-  // Filtres retours
   const[searchRetour,setSearchRetour]=useState("");
   const[filterVehicleRetour,setFilterVehicleRetour]=useState("");
   const[filterRetourDateDebut,setFilterRetourDateDebut]=useState("");
   const[filterRetourDateFin,setFilterRetourDateFin]=useState("");
-  // Clients
   const[searchClient,setSearchClient]=useState("");
   const[selectedClient,setSelectedClient]=useState(null);
   const[editingClient,setEditingClient]=useState(null);
-  // Recherche client dans contrat
   const[searchClientContrat,setSearchClientContrat]=useState("");
   const[showClientSuggestions,setShowClientSuggestions]=useState(false);
 
@@ -747,14 +737,11 @@ function AppContent(){
     return contrats.find(c=>c.vehicleId===vehicleId&&new Date(c.dateDebut)<=dt&&new Date(c.dateFin)>=dt)||null;
   }
 
-  // ── Créer/MAJ fiche client depuis un contrat ──────────────────────────────
   function upsertClient(contrat,docs){
     const key=(contrat.locNom||"").trim().toLowerCase()+"_"+(contrat.locTel||"").replace(/\D/g,"").slice(-6);
     setClients(prev=>{
       const existing=prev.find(c=>c.key===key);
-      if(existing){
-        return prev.map(c=>c.key===key?{...c,nom:contrat.locNom,tel:contrat.locTel,adresse:contrat.locAdresse,email:contrat.locEmail,permis:contrat.locPermis,docs:{...c.docs,...docs},updatedAt:new Date().toISOString()}:c);
-      }
+      if(existing){return prev.map(c=>c.key===key?{...c,nom:contrat.locNom,tel:contrat.locTel,adresse:contrat.locAdresse,email:contrat.locEmail,permis:contrat.locPermis,docs:{...c.docs,...docs},updatedAt:new Date().toISOString()}:c);}
       return[...prev,{id:Date.now(),key,nom:contrat.locNom,tel:contrat.locTel,adresse:contrat.locAdresse,email:contrat.locEmail||"",permis:contrat.locPermis||"",docs:{...docs},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}];
     });
   }
@@ -794,7 +781,6 @@ function AppContent(){
       if(vehRes.data){setVehicles(vehRes.data.map(v=>({id:v.id,marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],photosVehicule:v.photos_vehicule||[],publie:v.publie||false})));}
       let loadedContrats=[];
       if(conRes.data){loadedContrats=conRes.data.map(c=>({id:c.id,locNom:c.loc_nom||'',locAdresse:c.loc_adresse||'',locTel:c.loc_tel||'',locEmail:c.loc_email||'',locPermis:c.loc_permis||'',dateDebut:c.date_debut||'',heureDebut:c.heure_debut||'10:00',dateFin:c.date_fin||'',heureFin:c.heure_fin||'10:00',paiement:c.paiement||'especes',cautionMode:c.caution_mode||'especes',kmDepart:c.km_depart||'',nbJours:c.nb_jours||1,heuresLoc:c.heures_loc||24,carburantDepart:c.carburant_depart??100,exterieurPropre:c.exterieur_propre,interieurPropre:c.interieur_propre,vehicleId:c.vehicle_id,vehicleLabel:c.vehicle_label||'',immat:c.immat||'',sigL:c.sig_l||null,sigLoc:c.sig_loc||null,totalCalc:c.total_calc||0,tarifLabel:c.tarif_label||'',photosDepart:c.photos_depart||[],docsLocataire:c.docs_locataire||{},fraisSnap:c.frais_snap||[],clausesSnap:c.clauses_snap||[],kmInclus:c.km_inclus,prixKmSup:c.prix_km_sup}));setContrats(loadedContrats);
-        // Reconstruire clients depuis contrats
         const clientMap={};
         loadedContrats.forEach(c=>{
           const key=(c.locNom||"").trim().toLowerCase()+"_"+(c.locTel||"").replace(/\D/g,"").slice(-6);
@@ -845,7 +831,6 @@ function AppContent(){
   const inv=k=>touched[k]&&!form[k];
   const nbQSansReponse=questions.filter(q=>!q.reponse).length;
 
-  // Filtres contrats
   const contratsFiltres=contrats.filter(c=>{
     const q=searchContrat.toLowerCase();
     const matchQ=!q||(c.locNom.toLowerCase().includes(q)||c.immat.toLowerCase().includes(q)||c.locTel.includes(q));
@@ -855,7 +840,6 @@ function AppContent(){
     return matchQ&&matchV&&matchD&&matchF;
   });
 
-  // Filtres retours
   const retoursFiltres=contrats.filter(c=>retours[c.id]).filter(c=>{
     const q=searchRetour.toLowerCase();
     const r=retours[c.id];
@@ -867,7 +851,6 @@ function AppContent(){
     return matchQ&&matchV&&matchD&&matchF;
   });
 
-  // Suggestions clients pour contrat
   const clientSuggestions=searchClientContrat.length>1?clients.filter(c=>c.nom.toLowerCase().includes(searchClientContrat.toLowerCase())||c.tel.includes(searchClientContrat)):[];
 
   async function saveContrat(){
@@ -1031,7 +1014,6 @@ function AppContent(){
     </div>
   );
 
-  // ── Gantt config ──────────────────────────────────────────────────────────
   const ganttDays=90;
   const ganttDates=Array.from({length:ganttDays},(_,i)=>{const d=new Date(ganttStartDate);d.setDate(d.getDate()+i);return d;});
   const DW=32;
@@ -1048,6 +1030,9 @@ function AppContent(){
     const q=searchClient.toLowerCase();
     return !q||c.nom.toLowerCase().includes(q)||c.tel.includes(q)||(c.email||"").toLowerCase().includes(q);
   });
+
+  // ─── LIEN VITRINE — utilise user.id complet ───────────────────────────────
+  const vitrineUrl=`${window.location.origin}/vitrine/${user?.id}`;
 
   return(
     <div style={{minHeight:"100vh",background:"#f0f4f8"}}>
@@ -1090,7 +1075,6 @@ function AppContent(){
       {contratModalId&&contratV&&<ContratModal vehicle={contratV} onClose={()=>setContratModalId(null)} onSave={async(fr,cl)=>{setVehicles(vs=>vs.map(v=>v.id===contratModalId?{...v,frais:fr,clauses:cl}:v));setContratModalId(null);toast_("Mis à jour !");if(user)await supabase.from('vehicules').update({frais:fr,clauses:cl}).eq('id',contratModalId).eq('user_id',user.id);}}/>}
       {retourContratId&&retourContrat&&<RetourModal contrat={retourContrat} vehicle={retourVehicle} profil={profil} onClose={()=>setRetourContratId(null)} onSave={data=>saveRetour(retourContratId,data)}/>}
 
-      {/* Modal fiche client */}
       {selectedClient&&(
         <div onClick={e=>{if(e.target===e.currentTarget){setSelectedClient(null);setEditingClient(null);}}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
           <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:560,maxHeight:"90vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
@@ -1117,7 +1101,6 @@ function AppContent(){
                   {[["Adresse",selectedClient.adresse],["Email",selectedClient.email],["Permis",selectedClient.permis]].filter(([,v])=>v).map(([l,v])=>(<div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f0f0"}}><span style={{fontSize:11,color:"#6b7280"}}>{l}</span><span style={{fontSize:12,fontWeight:600}}>{v}</span></div>))}
                 </div>
               )}
-              {/* Docs du client */}
               {(selectedClient.docs?.cniRecto||selectedClient.docs?.cniVerso||selectedClient.docs?.justifDom||selectedClient.docs?.photoAr)&&(
                 <div style={{marginBottom:16}}>
                   <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>Documents</div>
@@ -1129,7 +1112,6 @@ function AppContent(){
                   </div>
                 </div>
               )}
-              {/* Historique contrats */}
               <div>
                 <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>Historique contrats</div>
                 {contrats.filter(c=>c.locNom===selectedClient.nom&&c.locTel===selectedClient.tel).length===0
@@ -1222,10 +1204,10 @@ function AppContent(){
             {vehicles.some(v=>v.publie)&&(
               <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",borderRadius:14,padding:16,marginBottom:16,color:"white"}}>
                 <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>Lien vitrine public</div>
-                <div style={{background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px",fontSize:11,wordBreak:"break-all",marginBottom:8}}>{window.location.origin}/vitrine/{user?.id?.slice(0,8)}</div>
+                <div style={{background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px",fontSize:11,wordBreak:"break-all",marginBottom:8}}>{vitrineUrl}</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  <button onClick={()=>{navigator.clipboard.writeText(window.location.origin+"/vitrine/"+user?.id?.slice(0,8));toast_("Lien copié !");}} style={{padding:"7px 14px",background:"white",color:"#1e3a8a",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Copier le lien</button>
-                  <button onClick={()=>{const msg="Bonjour, voici notre catalogue : "+window.location.origin+"/vitrine/"+user?.id?.slice(0,8);window.open("https://wa.me/"+(profil.whatsapp||profil.tel||"").replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");}} style={{padding:"7px 14px",background:"#25D366",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>WhatsApp</button>
+                  <button onClick={()=>{navigator.clipboard.writeText(vitrineUrl);toast_("Lien copié !");}} style={{padding:"7px 14px",background:"white",color:"#1e3a8a",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Copier le lien</button>
+                  <button onClick={()=>{const msg="Bonjour, voici notre catalogue : "+vitrineUrl;window.open("https://wa.me/"+(profil.whatsapp||profil.tel||"").replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");}} style={{padding:"7px 14px",background:"#25D366",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>WhatsApp</button>
                 </div>
               </div>
             )}
@@ -1318,7 +1300,7 @@ function AppContent(){
                   const nbContrats=contrats.filter(x=>x.locNom===c.nom&&x.locTel===c.tel).length;
                   const totalCA=contrats.filter(x=>x.locNom===c.nom&&x.locTel===c.tel).reduce((s,x)=>s+(x.totalCalc||0),0);
                   const hasDoc=c.docs&&(c.docs.cniRecto||c.docs.cniVerso||c.docs.justifDom);
-                  return(<div key={c.key} onClick={()=>setSelectedClient(c)} style={{background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #e5e7eb",cursor:"pointer",transition:"box-shadow .2s"}} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.12)"} onMouseLeave={e=>e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.07)"}>
+                  return(<div key={c.key} onClick={()=>setSelectedClient(c)} style={{background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #e5e7eb",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.12)"} onMouseLeave={e=>e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.07)"}>
                     <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
                       <div style={{width:44,height:44,borderRadius:"50%",background:"linear-gradient(135deg,#1e3a8a,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>👤</div>
                       <div style={{flex:1,minWidth:0}}>
@@ -1412,7 +1394,6 @@ function AppContent(){
               </div>
               <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <h3 style={{fontWeight:700,fontSize:13,marginBottom:10}}>Locataire</h3>
-                {/* Recherche client existant */}
                 <div style={{marginBottom:12,position:"relative"}}>
                   <label style={LBL}>🔍 Rechercher un client existant</label>
                   <input style={Inp({background:"#eff6ff",borderColor:"#bfdbfe"})} placeholder="Nom ou téléphone du client..." value={searchClientContrat} onChange={e=>{setSearchClientContrat(e.target.value);setShowClientSuggestions(true);}} onFocus={()=>setShowClientSuggestions(true)}/>
@@ -1546,7 +1527,7 @@ function AppContent(){
             {planView==="gantt"&&(
               <div style={{background:"white",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <div style={{padding:"10px 16px",borderBottom:"1px solid #e5e7eb",fontSize:12,color:"#6b7280"}}>
-                  Période : <b>{ganttStartDate.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</b> → <b>{ganttDates[ganttDates.length-1].toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</b> · Faites défiler horizontalement →
+                  Période : <b>{ganttStartDate.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</b> → <b>{ganttDates[ganttDates.length-1].toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</b>
                 </div>
                 <div ref={ganttRef} style={{overflowX:"auto"}}>
                   <div style={{minWidth:150+ganttDays*DW}}>
@@ -1576,7 +1557,7 @@ function AppContent(){
                             const off=Math.floor((s-ganttStartDate)/86400000);
                             const w=Math.max(Math.ceil((e-s)/86400000)+1,1);
                             if(off>ganttDays||off+w<0)return null;
-                            return(<div key={c.id} style={{position:"absolute",left:Math.max(0,off)*DW+2,top:8,height:28,width:Math.max(Math.min(w+off,ganttDays)-Math.max(off,0),1)*DW-4,background:ganttColors[ci%ganttColors.length],borderRadius:6,display:"flex",alignItems:"center",padding:"0 6px",overflow:"hidden",zIndex:1,cursor:"pointer"}} title={c.locNom+" — "+c.dateDebut+" → "+c.dateFin} onClick={()=>{setRetourContratId(null);setPage("contrats");}}>
+                            return(<div key={c.id} style={{position:"absolute",left:Math.max(0,off)*DW+2,top:8,height:28,width:Math.max(Math.min(w+off,ganttDays)-Math.max(off,0),1)*DW-4,background:ganttColors[ci%ganttColors.length],borderRadius:6,display:"flex",alignItems:"center",padding:"0 6px",overflow:"hidden",zIndex:1,cursor:"pointer"}} title={c.locNom+" — "+c.dateDebut+" → "+c.dateFin} onClick={()=>setPage("contrats")}>
                               <span style={{color:"white",fontSize:9,fontWeight:700,whiteSpace:"nowrap"}}>{c.locNom}</span>
                             </div>);
                           })}
@@ -1652,7 +1633,6 @@ function AppContent(){
             {contrats.filter(c=>retours[c.id]).length>0&&(
               <div>
                 <h2 style={{fontSize:13,fontWeight:700,color:"#6b7280",marginBottom:8}}>Retours effectués</h2>
-                {/* Filtres retours */}
                 <div style={{background:"white",borderRadius:12,padding:12,marginBottom:12,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                   <div style={{gridColumn:"span 2"}}><input placeholder="🔍 Nom, immat..." style={Inp()} value={searchRetour} onChange={e=>setSearchRetour(e.target.value)}/></div>
                   <div><label style={LBL}>Véhicule</label><select style={Inp()} value={filterVehicleRetour} onChange={e=>setFilterVehicleRetour(e.target.value)}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele}</option>)}</select></div>
@@ -1707,195 +1687,4 @@ function AppContent(){
                   <div><label style={LBL}>Heure</label><input type="time" style={Inp()} value={amendeForm.heure} onChange={e=>setAmendeForm(f=>({...f,heure:e.target.value}))}/></div>
                   <div><label style={LBL}>Type</label><select style={Inp()} value={amendeForm.type} onChange={e=>setAmendeForm(f=>({...f,type:e.target.value}))}>{TYPES_AMENDE.map(t=><option key={t}>{t}</option>)}</select></div>
                   <div><label style={LBL}>Montant (EUR)</label><input type="number" style={Inp()} value={amendeForm.montant} onChange={e=>setAmendeForm(f=>({...f,montant:e.target.value.replace(/\D/g,"")}))} inputMode="numeric"/></div>
-                  <div><label style={LBL}>Statut</label><select style={Inp()} value={amendeForm.statut} onChange={e=>setAmendeForm(f=>({...f,statut:e.target.value}))}>{STATUTS_AMENDE.map(s=><option key={s}>{s}</option>)}</select></div>
-                </div>
-                <div style={{marginBottom:10}}><label style={LBL}>Notes</label><textarea style={{...Inp(),resize:"vertical",fontFamily:"inherit"}} rows={2} value={amendeForm.notes} onChange={e=>setAmendeForm(f=>({...f,notes:e.target.value}))}/></div>
-                {amendeForm.vehicleId&&amendeForm.date&&(
-                  <div style={{padding:"10px 14px",borderRadius:10,marginBottom:10,background:contratRef?"#f0fdf4":"#fef3c7",border:`1px solid ${contratRef?"#bbf7d0":"#fde68a"}`}}>
-                    {contratRef?<div><div style={{fontWeight:700,fontSize:12,color:"#16a34a",marginBottom:2}}>Contrat trouvé automatiquement</div><div style={{fontSize:11}}><b>{contratRef.locNom}</b> — {contratRef.dateDebut} → {contratRef.dateFin}</div><div style={{fontSize:10,color:"#6b7280"}}>Tel : {contratRef.locTel}</div></div>:<div style={{fontSize:12,color:"#92400e"}}>Aucun contrat actif à cette date.</div>}
-                  </div>
-                )}
-                <div style={{display:"flex",gap:8}}>
-                  <button onClick={()=>{if(!amendeForm.vehicleId||!amendeForm.date){toast_("Choisissez un véhicule et une date","error");return;}const v=vehicles.find(x=>x.id===amendeForm.vehicleId);const newA={id:Date.now(),...amendeForm,vehicleLabel:v?v.marque+" "+v.modele+" - "+v.immat:"",contratId:contratRef?.id||null,locNom:contratRef?.locNom||"",locTel:contratRef?.locTel||""};setAmendes(a=>[newA,...a]);setAmendeForm({vehicleId:"",contratRef:"",date:"",heure:"",montant:"",type:"Excès de vitesse",statut:"A traiter",notes:""});setShowAddAmende(false);toast_("Amende ajoutée !");}} style={{background:"#dc2626",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>Enregistrer</button>
-                  <button onClick={()=>setShowAddAmende(false)} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:12}}>Annuler</button>
-                </div>
-              </div>);
-            })()}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10,marginBottom:16}}>
-              {[["A traiter","#dc2626","🚨"],["En cours","#d97706","⏳"],["Confirmée","#2563eb","✅"],["Payée","#16a34a","💰"],["Contestée","#7c3aed","⚖️"]].map(([s,col,icon])=>(<div key={s} style={{background:"white",borderRadius:12,padding:"10px 14px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:`4px solid ${col}`}}><div style={{fontSize:10,color:"#6b7280"}}>{icon} {s}</div><div style={{fontSize:22,fontWeight:800,color:col}}>{amendes.filter(a=>a.statut===s).length}</div></div>))}
-            </div>
-            {amendes.length===0?<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>🚨</div><p>Aucune amende enregistrée.</p></div>
-              :amendes.map(a=>{
-                const colStatut=a.statut==="A traiter"?"#dc2626":a.statut==="En cours"?"#d97706":a.statut==="Confirmée"?"#2563eb":a.statut==="Payée"?"#16a34a":"#7c3aed";
-                const contratLie=contrats.find(c=>c.id===a.contratId);
-                return(<div key={a.id} style={{background:"white",borderRadius:14,padding:14,marginBottom:10,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:`2px solid ${colStatut}22`}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                    <div>
-                      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}><span style={{fontWeight:800,fontSize:14}}>{a.type}</span><span style={{fontSize:10,background:colStatut+"22",color:colStatut,borderRadius:99,padding:"2px 8px",fontWeight:700}}>{a.statut}</span></div>
-                      <div style={{fontSize:11,color:"#6b7280"}}>{a.vehicleLabel}</div>
-                      <div style={{fontSize:11,color:"#6b7280"}}>{a.date}{a.heure?" à "+a.heure:""}</div>
-                      {a.locNom&&<div style={{fontSize:11,marginTop:4}}>Locataire : <b>{a.locNom}</b>{a.locTel?" — "+a.locTel:""}</div>}
-                      {a.notes&&<div style={{fontSize:11,color:"#9ca3af",marginTop:2}}>{a.notes}</div>}
-                    </div>
-                    <div>{a.montant&&<div style={{fontWeight:900,fontSize:18,color:"#dc2626"}}>{a.montant} EUR</div>}</div>
-                  </div>
-                  {contratLie&&<div style={{background:"#eff6ff",borderRadius:8,padding:"6px 10px",marginBottom:8,fontSize:11,border:"1px solid #bfdbfe"}}>Contrat : <b>{contratLie.locNom}</b> — {contratLie.dateDebut} → {contratLie.dateFin}<button onClick={()=>rePrint(contratLie)} style={{marginLeft:8,padding:"2px 8px",background:"#1e3a8a",color:"white",border:"none",borderRadius:5,fontSize:10,cursor:"pointer",fontWeight:700}}>PDF</button></div>}
-                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                    {STATUTS_AMENDE.filter(s=>s!==a.statut).map(s=>(<button key={s} onClick={()=>setAmendes(as=>as.map(x=>x.id===a.id?{...x,statut:s}:x))} style={{padding:"4px 10px",background:"#f1f5f9",color:"#374151",border:"1px solid #e5e7eb",borderRadius:7,fontSize:10,cursor:"pointer",fontWeight:600}}>{s}</button>))}
-                    <button onClick={()=>setAmendes(as=>as.filter(x=>x.id!==a.id))} style={{padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:10,cursor:"pointer"}}>Supprimer</button>
-                  </div>
-                </div>);
-              })}
-          </div>
-        )}
-
-        {/* ── QUESTIONS ── */}
-        {page==="questions"&&(
-          <div>
-            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:4}}>Questions clients</h1>
-            <p style={{fontSize:12,color:"#6b7280",marginBottom:16}}>Questions posées depuis la vitrine.</p>
-            {questions.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>❓</div><p>Aucune question pour l'instant.</p></div>}
-            {questions.filter(q=>!q.reponse).length>0&&(
-              <div style={{marginBottom:20}}>
-                <h2 style={{fontSize:13,fontWeight:700,color:"#dc2626",marginBottom:8}}>Sans réponse ({questions.filter(q=>!q.reponse).length})</h2>
-                {questions.filter(q=>!q.reponse).map(q=>(
-                  <div key={q.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"2px solid #fde68a"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                      <div><div style={{fontWeight:700,fontSize:13,color:"#1e3a8a"}}>{q.vehicleLabel}</div><div style={{fontSize:10,color:"#9ca3af"}}>{new Date(q.createdAt).toLocaleDateString("fr-FR")}</div></div>
-                      <span style={{fontSize:10,background:"#fef3c7",color:"#d97706",borderRadius:99,padding:"2px 8px",fontWeight:700}}>En attente</span>
-                    </div>
-                    <div style={{background:"#f8fafc",borderRadius:8,padding:"10px 12px",fontSize:12,marginBottom:10,border:"1px solid #e5e7eb"}}>{q.question}</div>
-                    <div style={{display:"flex",gap:8}}>
-                      <button onClick={()=>{setReponseModal(q);setReponseText("");}} style={{padding:"7px 14px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Répondre</button>
-                      <button onClick={()=>supprimerQuestion(q)} style={{padding:"7px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:12,cursor:"pointer"}}>Supprimer</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {questions.filter(q=>q.reponse).length>0&&(
-              <div>
-                <h2 style={{fontSize:13,fontWeight:700,color:"#16a34a",marginBottom:8}}>Répondues ({questions.filter(q=>q.reponse).length})</h2>
-                {questions.filter(q=>q.reponse).map(q=>(
-                  <div key={q.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"1px solid #bbf7d0"}}>
-                    <div style={{fontWeight:700,fontSize:13,color:"#1e3a8a",marginBottom:4}}>{q.vehicleLabel}</div>
-                    <div style={{background:"#f8fafc",borderRadius:8,padding:"8px 10px",fontSize:11,marginBottom:8}}>Q : {q.question}</div>
-                    <div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 10px",fontSize:11,color:"#16a34a",border:"1px solid #bbf7d0",marginBottom:8}}>R : {q.reponse}</div>
-                    <button onClick={()=>supprimerQuestion(q)} style={{fontSize:11,padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer"}}>Supprimer</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── FINANCES ── */}
-        {page==="finances"&&(
-          <div>
-            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>Finances</h1>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:16}}>
-              {KPI("CA Total",caT+" EUR","💶","#2563eb")}
-              {KPI("Extras",(totalRetenues+totalSurplusKm).toFixed(0)+" EUR","🔒","#d97706")}
-              {KPI("Dépenses",dT.toFixed(0)+" EUR","📤","#ef4444")}
-              {KPI("Bénéfice net",bT.toFixed(0)+" EUR",bT>=0?"📈":"📉",bT>=0?"#16a34a":"#dc2626",null,bT<0)}
-            </div>
-            <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                <h2 style={{fontWeight:700,fontSize:14}}>Dépenses</h2>
-                <button onClick={()=>setShowAddD(!showAddD)} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
-              </div>
-              {showAddD&&(<div style={{background:"#f8fafc",borderRadius:10,padding:12,marginBottom:12,border:"1px solid #e5e7eb"}}>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8,marginBottom:8}}>
-                  <div><label style={LBL}>Libellé</label><input style={Inp()} value={dForm.label} onChange={e=>setDForm(f=>({...f,label:e.target.value}))}/></div>
-                  <div><label style={LBL}>Montant EUR</label><input type="number" style={Inp()} value={dForm.montant} onChange={e=>setDForm(f=>({...f,montant:e.target.value}))}/></div>
-                  <div><label style={LBL}>Catégorie</label><select style={Inp()} value={dForm.categorie} onChange={e=>setDForm(f=>({...f,categorie:e.target.value}))}>{CAT_DEP.map(c=><option key={c}>{c}</option>)}</select></div>
-                  <div><label style={LBL}>Date</label><input type="date" style={Inp()} value={dForm.date} onChange={e=>setDForm(f=>({...f,date:e.target.value}))}/></div>
-                  <div><label style={LBL}>Véhicule</label><select style={Inp()} value={dForm.vehicleId} onChange={e=>setDForm(f=>({...f,vehicleId:e.target.value}))}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele}</option>)}</select></div>
-                </div>
-                <button onClick={async()=>{if(!dForm.label||!dForm.montant){toast_("Remplissez libellé et montant","error");return;}const localId=Date.now();const newDep={id:localId,...dForm};setDepenses(d=>[newDep,...d]);setDForm({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});setShowAddD(false);toast_("Dépense ajoutée");if(user){const{data:ins,error:err}=await supabase.from('depenses').insert([{user_id:user.id,label:newDep.label,montant:parseFloat(newDep.montant),categorie:newDep.categorie,date:newDep.date,vehicle_id:newDep.vehicleId||null}]).select().single();if(!err&&ins)setDepenses(ds=>ds.map(x=>x.id===localId?{...x,id:ins.id}:x));}}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
-              </div>)}
-              {depenses.length===0?<p style={{color:"#9ca3af",fontSize:12,textAlign:"center",padding:16}}>Aucune dépense</p>
-                :depenses.map(d=>(<div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px",borderRadius:8,background:"#f9fafb",marginBottom:5}}>
-                  <div><div style={{fontWeight:600,fontSize:12}}>{d.label}</div><div style={{fontSize:10,color:"#9ca3af"}}>{d.categorie} · {d.date}</div></div>
-                  <div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontWeight:700,color:"#ef4444"}}>-{d.montant} EUR</span><button onClick={async()=>{setDepenses(ds=>ds.filter(x=>x.id!==d.id));if(user)await supabase.from('depenses').delete().eq('id',d.id).eq('user_id',user.id);}} style={{padding:"2px 6px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:10}}>X</button></div>
-                </div>))}
-            </div>
-          </div>
-        )}
-
-        {/* ── PROFIL ── */}
-        {page==="profil"&&(
-          <div style={{maxWidth:520,margin:"0 auto"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-              <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Profil</h1>
-              <button onClick={()=>{setProfilEdit(!profilEdit);setProfilForm({...profil});}} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>{profilEdit?"Annuler":"Modifier"}</button>
-            </div>
-            {profilEdit?(<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
-              {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(<div key={k} style={{marginBottom:10}}><label style={LBL}>{l}</label><input style={Inp()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>))}
-              {[["tel","Téléphone"],["whatsapp","WhatsApp"]].map(([k,l])=>(<div key={k} style={{marginBottom:10}}><label style={LBL}>{l}</label><TelInput value={profilForm[k]||""} onChange={v=>setProfilForm(p=>({...p,[k]:v}))} placeholder={l}/></div>))}
-              <div style={{marginBottom:10}}><label style={LBL}>Snapchat</label><input style={Inp()} placeholder="Nom d'utilisateur Snapchat" value={profilForm.snap||""} onChange={e=>setProfilForm(p=>({...p,snap:e.target.value}))}/></div>
-              <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user)await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
-              <button onClick={()=>supabase.auth.signOut()} style={{marginTop:10,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
-            </div>):(<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
-              <div style={{textAlign:"center",marginBottom:16}}>
-                <div style={{width:60,height:60,borderRadius:"50%",background:"#1e3a8a",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:24}}>👤</div>
-                <div style={{fontWeight:800,fontSize:16}}>{profil.nom}</div>
-                <div style={{color:"#6b7280",fontSize:12}}>{profil.entreprise}</div>
-              </div>
-              {[["SIREN",profil.siren],["SIRET",profil.siret],["KBIS",profil.kbis],["Téléphone",profil.tel],["WhatsApp",profil.whatsapp],["Snapchat",profil.snap],["Email",profil.email],["Adresse",profil.adresse],["Ville",profil.ville],["IBAN",profil.iban]].filter(([,v])=>v).map(([l,v])=>(<div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f0f0"}}><span style={{fontSize:11,color:"#6b7280"}}>{l}</span><span style={{fontSize:12,fontWeight:600}}>{v}</span></div>))}
-              <button onClick={()=>supabase.auth.signOut()} style={{marginTop:14,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
-            </div>)}
-          </div>
-        )}
-
-      </div>
-    </div>
-  );
-}
-
-function AuthPage(){
-  const[mode,setMode]=useState("login");
-  const[email,setEmail]=useState("");
-  const[password,setPassword]=useState("");
-  const[showPassword,setShowPassword]=useState(false);
-  const[loading,setLoading]=useState(false);
-  const[error,setError]=useState("");
-  const[success,setSuccess]=useState("");
-  async function handleSubmit(){
-    setLoading(true);setError("");setSuccess("");
-    if(mode==="forgot"){const{error:err}=await supabase.auth.resetPasswordForEmail(email);if(err)setError(err.message);else setSuccess("Email envoyé.");setLoading(false);return;}
-    let result;
-    if(mode==="login")result=await supabase.auth.signInWithPassword({email,password});
-    else result=await supabase.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin}});
-    if(result.error)setError(result.error.message);
-    else if(mode==="signup")setSuccess("Compte créé ! Vérifiez votre email.");
-    setLoading(false);
-  }
-  return(
-    <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"#f1f5f9"}}>
-      <div style={{background:"white",borderRadius:16,padding:"40px 32px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
-        <h1 style={{textAlign:"center",marginBottom:8,fontSize:22,fontWeight:700}}>MAN'S LOCATION</h1>
-        <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:14}}>Accès réservé aux professionnels</p>
-        {mode!=="forgot"&&(<div style={{display:"flex",marginBottom:24,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
-          {["login","signup"].map(m=>(<button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600}}>{m==="login"?"Connexion":"Inscription"}</button>))}
-        </div>)}
-        <input placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
-        {mode!=="forgot"&&(<div style={{position:"relative",marginBottom:16}}>
-          <input placeholder="Mot de passe" type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} style={{width:"100%",padding:"10px 12px",paddingRight:40,border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
-          <span onClick={()=>setShowPassword(!showPassword)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:18,color:"#6b7280",userSelect:"none"}}>{showPassword?"🙈":"👁️"}</span>
-        </div>)}
-        {error&&<p style={{color:"red",fontSize:13,marginBottom:12}}>{error}</p>}
-        {success&&<p style={{color:"#16a34a",fontSize:13,marginBottom:12}}>{success}</p>}
-        <button onClick={handleSubmit} disabled={loading} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:"pointer"}}>
-          {loading?"...":(mode==="login"?"Se connecter":mode==="signup"?"Créer mon compte":"Envoyer le lien")}
-        </button>
-        {mode==="login"&&<p style={{textAlign:"center",marginTop:14,fontSize:13}}><span onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Mot de passe oublié ?</span></p>}
-        {mode==="forgot"&&<p style={{textAlign:"center",marginTop:14,fontSize:13}}><span onClick={()=>{setMode("login");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Retour</span></p>}
-      </div>
-    </div>
-  );
-}
-
-export default function App(){
-  return <AppContent/>;
-}
+                  <div><label style={LBL}>Statut</label><select style={Inp()} value={amendeForm.statut} onChange={e=>setAmendeForm(f=>({...f,statut:e.target.value}))}>{STATUTS_AMENDE.map(s=><option key={s}

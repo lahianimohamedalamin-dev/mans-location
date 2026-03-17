@@ -989,7 +989,7 @@ function AppContent(){
     {id:"dashboard",icon:"📊",label:"Dashboard"},
     {id:"clients",icon:"👥",label:"Clients"},
     {id:"vehicles",icon:"🚗",label:"Flotte"},
-    {id:"nouveau",icon:"📝",label:"Contrat"},
+    {id:"nouveau",icon:"📝",label:"NVX Contrat"},
     {id:"planning",icon:"📅",label:"Planning"},
     {id:"contrats",icon:"📋",label:"Contrats"},
     {id:"retours",icon:"🔄",label:"Retours"},

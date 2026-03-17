@@ -1028,7 +1028,6 @@ function AppContent(){
 
   const PAGES=[
     {id:"vitrine",icon:"🏪",label:"Vitrine"},
-    {id:"dashboard",icon:"📊",label:"Dashboard"},
     {id:"clients",icon:"👥",label:"Clients"},
     {id:"vehicles",icon:"🚗",label:"Flotte"},
     {id:"contrats_hub",icon:"📋",label:"Contrats"},
@@ -1047,8 +1046,6 @@ function AppContent(){
 
   if(!user)return <AuthPage/>;
   if(!dataLoaded)return(<div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"#f1f5f9"}}><div style={{textAlign:"center"}}><div style={{fontSize:36,marginBottom:12}}>⏳</div><p style={{color:"#6b7280",fontSize:14}}>Chargement...</p></div></div>);
-
-  const profilVide=!profil.nom&&!profil.entreprise&&!profil.tel;
   if(profilVide)return(
     <div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"#f1f5f9",padding:16}}>
       <div style={{background:"white",borderRadius:16,padding:"32px 28px",width:"100%",maxWidth:480,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
@@ -1083,17 +1080,17 @@ function AppContent(){
   return(
     <div style={{minHeight:"100vh",background:"#f0f4f8"}}>
       <nav style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",boxShadow:"0 2px 12px rgba(0,0,0,.3)",position:"sticky",top:0,zIndex:100}}>
-        <div style={{maxWidth:1100,margin:"0 auto",padding:"0 10px",height:50,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-            <div style={{background:"white",borderRadius:6,padding:"2px 7px"}}><span style={{color:"#0a1940",fontWeight:900,fontSize:11,letterSpacing:1}}>MAN'S</span></div>
-            <span style={{color:"white",fontWeight:700,fontSize:11}}>LOCATION</span>
+        <div style={{maxWidth:1100,margin:"0 auto",padding:"0 8px",height:54,display:"flex",alignItems:"center",justifyContent:"space-between",gap:4}}>
+          <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+            <div style={{background:"white",borderRadius:6,padding:"2px 6px"}}><span style={{color:"#0a1940",fontWeight:900,fontSize:10,letterSpacing:1}}>MAN'S</span></div>
+            <span style={{color:"white",fontWeight:700,fontSize:10,whiteSpace:"nowrap"}}>LOCATION</span>
           </div>
-          <div style={{display:"flex",gap:1,flexWrap:"wrap"}}>
+          <div style={{display:"flex",overflowX:"auto",gap:0,WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
             {PAGES.map(p=>(
-              <button key={p.id} onClick={()=>setPage(p.id)} style={{padding:"5px 7px",borderRadius:7,fontSize:11,fontWeight:page===p.id?700:400,background:page===p.id?"rgba(255,255,255,0.2)":"transparent",color:page===p.id?"white":"rgba(255,255,255,0.65)",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:1,position:"relative"}}>
-                <span style={{fontSize:14}}>{p.icon}</span>
-                <span style={{fontSize:9}}>{p.label}</span>
-                {p.id==="questions"&&nbQSansReponse>0&&<span style={{position:"absolute",top:2,right:2,background:"#ef4444",color:"white",borderRadius:"50%",width:14,height:14,fontSize:8,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{nbQSansReponse}</span>}
+              <button key={p.id} onClick={()=>setPage(p.id)} style={{flexShrink:0,padding:"4px 6px",borderRadius:6,fontSize:10,fontWeight:page===p.id?700:400,background:page===p.id?"rgba(255,255,255,0.2)":"transparent",color:page===p.id?"white":"rgba(255,255,255,0.65)",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:1,position:"relative",minWidth:44}}>
+                <span style={{fontSize:16}}>{p.icon}</span>
+                <span style={{fontSize:8,whiteSpace:"nowrap"}}>{p.label}</span>
+                {p.id==="questions"&&nbQSansReponse>0&&<span style={{position:"absolute",top:1,right:1,background:"#ef4444",color:"white",borderRadius:"50%",width:13,height:13,fontSize:7,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{nbQSansReponse}</span>}
               </button>
             ))}
           </div>
@@ -1241,9 +1238,21 @@ function AppContent(){
         </div>
       )}
 
-      <div style={{maxWidth:1100,margin:"0 auto",width:"100%",padding:"16px 12px"}}>
+      <div style={{maxWidth:1100,margin:"0 auto",width:"100%",padding:"12px 10px",boxSizing:"border-box"}}>
 
-        {/* ── CONTRATS HUB ── */}
+        {/* ── VITRINE ── */}
+        {page==="vitrine"&&(
+          <div>
+            {/* Greeting (ex-dashboard) */}
+            <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",borderRadius:14,padding:"14px 16px",marginBottom:14,color:"white"}}>
+              <div style={{fontSize:16,fontWeight:800,marginBottom:2}}>Bonjour, {profil.nom.split(" ")[0]} 👋</div>
+              <div style={{fontSize:11,opacity:.7,textTransform:"capitalize"}}>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginTop:12}}>
+                <div style={{background:"rgba(255,255,255,.12)",borderRadius:10,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,opacity:.7}}>CA total</div><div style={{fontWeight:800,fontSize:14}}>{caT} {sym}</div></div>
+                <div style={{background:"rgba(255,255,255,.12)",borderRadius:10,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,opacity:.7}}>Véhicules</div><div style={{fontWeight:800,fontSize:14}}>{vehicles.length}</div></div>
+                <div style={{background:"rgba(255,255,255,.12)",borderRadius:10,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,opacity:.7}}>Contrats</div><div style={{fontWeight:800,fontSize:14}}>{contrats.length}</div></div>
+              </div>
+            </div>
         {page==="contrats_hub"&&(
           <div>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:20}}>Contrats</h1>
@@ -1333,28 +1342,6 @@ function AppContent(){
                 </div>
               </div>
             )}
-          </div>
-        )}
-
-        {page==="dashboard"&&(
-          <div>
-            <div style={{marginBottom:16}}>
-              <h1 style={{fontSize:20,fontWeight:800,color:"#1f2937"}}>Bonjour, {profil.nom.split(" ")[0]} 👋</h1>
-              <p style={{fontSize:12,color:"#6b7280",textTransform:"capitalize"}}>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(155px,1fr))",gap:12,marginBottom:16}}>
-              {KPI("CA Locations",caT+" EUR","💶","#2563eb","Ce mois : "+caM+" EUR")}
-              {KPI("Extras",(totalRetenues+totalSurplusKm).toFixed(0)+" EUR","🔒","#d97706")}
-              {KPI("Bénéfice net",bT.toFixed(0)+" EUR",bT>=0?"📈":"📉",bT>=0?"#16a34a":"#dc2626",null,bT<0)}
-              {KPI("Clients",clients.length,"👥","#7c3aed")}
-              {KPI("Véhicules",vehicles.length,"🚗","#0891b2",vehicles.filter(v=>statut(v.id)==="loué").length+" en location")}
-              {KPI("Cautions non rendues",cautionsNonRendues+" EUR","🔓","#dc2626")}
-            </div>
-            <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)",marginBottom:16}}>
-              <div style={{display:"flex",alignItems:"flex-end",gap:8,height:110}}>
-                {caP.map((m,i)=>(<div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}><div style={{width:"100%",display:"flex",gap:2,alignItems:"flex-end",height:88}}><div style={{flex:1,borderRadius:"3px 3px 0 0",background:"#3b82f6",height:(m.ca/maxCA*88)+"px",minHeight:m.ca>0?3:0}}/><div style={{flex:1,borderRadius:"3px 3px 0 0",background:"#f87171",height:(m.dep/maxCA*88)+"px",minHeight:m.dep>0?3:0}}/></div><span style={{fontSize:9,color:"#6b7280",textTransform:"capitalize"}}>{m.label}</span></div>))}
-              </div>
-            </div>
           </div>
         )}
 
@@ -1879,12 +1866,13 @@ function AppContent(){
 
         {page==="finances"&&(
           <div>
-            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>Finances</h1>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:16}}>
+            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:14}}>Finances</h1>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
               {KPI("CA Total",caT+" "+sym,"💶","#2563eb")}
               {KPI("Extras",(totalRetenues+totalSurplusKm).toFixed(0)+" "+sym,"🔒","#d97706")}
               {KPI("Dépenses",dT.toFixed(0)+" "+sym,"📤","#ef4444")}
               {KPI("Bénéfice net",bT.toFixed(0)+" "+sym,bT>=0?"📈":"📉",bT>=0?"#16a34a":"#dc2626",null,bT<0)}
+              <div style={{gridColumn:"span 2"}}>{KPI("Cautions non rendues",cautionsNonRendues+" "+sym,"🔓","#dc2626","En attente de retour")}</div>
             </div>
 
             {/* Évolution CA mensuelle */}

@@ -1824,6 +1824,257 @@ function AppContent(){
         </div>}
 
         {page==="contrats"&&<div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+            <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
+            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Historique ({contratsFiltres.length}/{contrats.length})</h1>
+          </div>
+          <div style={{background:"white",borderRadius:12,padding:14,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)",display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div style={{gridColumn:"span 2"}}><input placeholder="🔍 Nom, immat, téléphone..." style={INP_STYLE()} value={searchContrat} onChange={e=>setSearchContrat(e.target.value)}/></div>
+            <div><label style={LBL_STYLE}>Véhicule</label><select style={INP_STYLE()} value={filterVehicleContrat} onChange={e=>setFilterVehicleContrat(e.target.value)}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele} — {v.immat}</option>)}</select></div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <div><label style={LBL_STYLE}>Début après</label><input type="date" style={INP_STYLE()} value={filterDateDebut} onChange={e=>setFilterDateDebut(e.target.value)}/></div>
+              <div><label style={LBL_STYLE}>Fin avant</label><input type="date" style={INP_STYLE()} value={filterDateFin} onChange={e=>setFilterDateFin(e.target.value)}/></div>
+            </div>
+            {(searchContrat||filterVehicleContrat||filterDateDebut||filterDateFin)&&<div style={{gridColumn:"span 2"}}><button onClick={()=>{setSearchContrat("");setFilterVehicleContrat("");setFilterDateDebut("");setFilterDateFin("");}} style={{padding:"5px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>✕ Effacer</button></div>}
+          </div>
+          {contratsFiltres.length===0
+            ?<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><p>Aucun contrat trouvé</p></div>
+            :contratsFiltres.map(c=>{
+              const r=retours[c.id];
+              const dl=c.docsLocataire||{};
+              const nbDocs=[dl.cniRecto,dl.cniVerso,dl.justifDom,dl.photoAr].filter(Boolean).length;
+              return <div key={c.id} style={{background:"white",borderRadius:14,padding:14,marginBottom:10,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #e5e7eb"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                  <div>
+                    <div style={{fontWeight:800,fontSize:14}}>{c.locNom.toUpperCase()}</div>
+                    <div style={{fontSize:11,color:"#6b7280"}}>{c.vehicleLabel} · {c.immat}</div>
+                    <div style={{fontSize:11,color:"#6b7280"}}>{c.dateDebut} → {c.dateFin} · {c.nbJours}j</div>
+                    <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
+                      {nbDocs>0&&<span style={{fontSize:10,background:"#f5f3ff",color:"#7c3aed",borderRadius:6,padding:"2px 7px",fontWeight:600}}>{nbDocs} doc{nbDocs>1?"s":""}</span>}
+                      {(c.photosDepart||[]).length>0&&<span style={{fontSize:10,background:"#f0fdf4",color:"#16a34a",borderRadius:6,padding:"2px 7px",fontWeight:600}}>{c.photosDepart.length} photo{c.photosDepart.length>1?"s":""}</span>}
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontWeight:900,fontSize:18,color:"#1e3a8a"}}>{c.totalCalc} {sym}</div>
+                    {r&&<div style={{fontSize:10,color:"#16a34a",fontWeight:600}}>✅ Retour OK</div>}
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  <button onClick={()=>rePrint(c)} style={{padding:"5px 10px",background:"#eff6ff",color:"#2563eb",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>📄 PDF</button>
+                  {!r&&<button onClick={()=>setRetourContratId(c.id)} style={{padding:"5px 10px",background:"#f0fdf4",color:"#16a34a",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>Retour</button>}
+                  {r&&<button onClick={()=>reDownloadPV(c)} style={{padding:"5px 10px",background:"#fef3c7",color:"#d97706",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>📄 PV</button>}
+                  <button onClick={()=>{const cl=clients.find(x=>x.nom===c.locNom&&x.tel===c.locTel);if(cl)setSelectedClient(cl);}} style={{padding:"5px 10px",background:"#f5f3ff",color:"#7c3aed",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>👤 Fiche</button>
+                  <button onClick={async()=>{if(window.confirm("Supprimer ?")){setContrats(cs=>cs.filter(x=>x.id!==c.id));if(user)await supabase.from('contrats').delete().eq('id',c.id).eq('user_id',user.id);}}} style={{padding:"5px 10px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:7,fontSize:11,cursor:"pointer"}}>Supprimer</button>
+                </div>
+              </div>;
+            })}
+        </div>}
+
+        {page==="retours"&&<div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+            <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
+            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Retours</h1>
+          </div>
+          {contrats.filter(c=>!retours[c.id]).length>0&&<div style={{marginBottom:16}}>
+            <h2 style={{fontSize:13,fontWeight:700,color:"#6b7280",marginBottom:8}}>En attente ({contrats.filter(c=>!retours[c.id]).length})</h2>
+            {contrats.filter(c=>!retours[c.id]).map(c=><div key={c.id} style={{background:"white",borderRadius:12,padding:12,marginBottom:8,border:"1px solid #fde68a",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><div style={{fontWeight:700}}>{c.locNom}</div><div style={{fontSize:11,color:"#6b7280"}}>{c.vehicleLabel} · {c.dateDebut} → {c.dateFin}</div></div>
+              <button onClick={()=>setRetourContratId(c.id)} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"7px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Faire le retour</button>
+            </div>)}
+          </div>}
+          {contrats.filter(c=>retours[c.id]).length>0&&<div>
+            <h2 style={{fontSize:13,fontWeight:700,color:"#6b7280",marginBottom:8}}>Retours effectués</h2>
+            <div style={{background:"white",borderRadius:12,padding:12,marginBottom:12,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <div style={{gridColumn:"span 2"}}><input placeholder="🔍 Nom, immat..." style={INP_STYLE()} value={searchRetour} onChange={e=>setSearchRetour(e.target.value)}/></div>
+              <div><label style={LBL_STYLE}>Véhicule</label><select style={INP_STYLE()} value={filterVehicleRetour} onChange={e=>setFilterVehicleRetour(e.target.value)}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele}</option>)}</select></div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                <div><label style={LBL_STYLE}>Après</label><input type="date" style={INP_STYLE()} value={filterRetourDateDebut} onChange={e=>setFilterRetourDateDebut(e.target.value)}/></div>
+                <div><label style={LBL_STYLE}>Avant</label><input type="date" style={INP_STYLE()} value={filterRetourDateFin} onChange={e=>setFilterRetourDateFin(e.target.value)}/></div>
+              </div>
+              {(searchRetour||filterVehicleRetour||filterRetourDateDebut||filterRetourDateFin)&&<div style={{gridColumn:"span 2"}}><button onClick={()=>{setSearchRetour("");setFilterVehicleRetour("");setFilterRetourDateDebut("");setFilterRetourDateFin("");}} style={{padding:"5px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>✕ Effacer</button></div>}
+            </div>
+            {retoursFiltres.map(c=>{
+              const r=retours[c.id];
+              return <div key={c.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"1px solid #e5e7eb"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                  <div>
+                    <div style={{fontWeight:700}}>{c.locNom}</div>
+                    <div style={{fontSize:11,color:"#6b7280"}}>{c.vehicleLabel} · {c.dateDebut} → {c.dateFin}</div>
+                    {r.date&&<div style={{fontSize:10,color:"#9ca3af"}}>Retour le {new Date(r.date).toLocaleDateString("fr-FR")}</div>}
+                    <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
+                      {r.kmRetour&&<span style={{fontSize:10,background:"#eff6ff",color:"#2563eb",borderRadius:6,padding:"2px 7px",fontWeight:600}}>{r.kmRetour} km</span>}
+                      {r.montantRetenu>0&&<span style={{fontSize:10,background:"#fef2f2",color:"#dc2626",borderRadius:6,padding:"2px 7px",fontWeight:600}}>Retenu : {r.montantRetenu} {sym}</span>}
+                      {r.cautionRestituee&&<span style={{fontSize:10,background:"#f0fdf4",color:"#16a34a",borderRadius:6,padding:"2px 7px",fontWeight:600}}>Caution OK</span>}
+                    </div>
+                  </div>
+                  <div style={{fontWeight:900,fontSize:16,color:"#16a34a"}}>{((c.totalCalc||0)+(r.surplusKm||0)+(r.montantRetenu||0)).toFixed(0)} {sym}</div>
+                </div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  <button onClick={()=>reDownloadPV(c)} style={{padding:"6px 12px",background:"#fbbf24",color:"#1f2937",border:"none",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>📄 PV PDF</button>
+                  <button onClick={()=>supprimerRetour(c.id)} style={{padding:"6px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>🗑️ Supprimer</button>
+                </div>
+              </div>;
+            })}
+          </div>}
+          {contrats.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:40}}><p>Aucun contrat enregistré.</p></div>}
+        </div>}
+
+        {page==="amendes"&&<div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Amendes</h1>
+            <button onClick={()=>setShowAddAmende(!showAddAmende)} style={{background:"#dc2626",color:"white",border:"none",borderRadius:10,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
+          </div>
+          {showAddAmende&&(()=>{
+            const contratRef=findContratForAmende(amendeForm.vehicleId,amendeForm.date,amendeForm.heure);
+            return <div style={{background:"white",borderRadius:14,padding:18,marginBottom:16,boxShadow:"0 2px 12px rgba(0,0,0,.1)",border:"2px solid #fecaca"}}>
+              <h3 style={{fontWeight:700,fontSize:14,marginBottom:12,color:"#dc2626"}}>Nouvelle amende</h3>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:10}}>
+                <div><label style={LBL_STYLE}>Véhicule *</label><select style={INP_STYLE()} value={amendeForm.vehicleId} onChange={e=>setAmendeForm(f=>({...f,vehicleId:e.target.value}))}><option value="">-- Choisir --</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele} — {v.immat}</option>)}</select></div>
+                <div><label style={LBL_STYLE}>Date *</label><input type="date" style={INP_STYLE()} value={amendeForm.date} onChange={e=>setAmendeForm(f=>({...f,date:e.target.value}))}/></div>
+                <div><label style={LBL_STYLE}>Heure</label><input type="time" style={INP_STYLE()} value={amendeForm.heure} onChange={e=>setAmendeForm(f=>({...f,heure:e.target.value}))}/></div>
+                <div><label style={LBL_STYLE}>Type</label><select style={INP_STYLE()} value={amendeForm.type} onChange={e=>setAmendeForm(f=>({...f,type:e.target.value}))}>{TYPES_AMENDE.map(t=><option key={t}>{t}</option>)}</select></div>
+                <div><label style={LBL_STYLE}>Montant ({sym})</label><input type="number" style={INP_STYLE()} value={amendeForm.montant} onChange={e=>setAmendeForm(f=>({...f,montant:e.target.value.replace(/\D/g,"")}))} inputMode="numeric"/></div>
+                <div><label style={LBL_STYLE}>Statut</label><select style={INP_STYLE()} value={amendeForm.statut} onChange={e=>setAmendeForm(f=>({...f,statut:e.target.value}))}>{STATUTS_AMENDE.map(s=><option key={s}>{s}</option>)}</select></div>
+              </div>
+              <div style={{marginBottom:10}}><label style={LBL_STYLE}>Notes</label><textarea style={{...INP_STYLE(),resize:"vertical",fontFamily:"inherit"}} rows={2} value={amendeForm.notes} onChange={e=>setAmendeForm(f=>({...f,notes:e.target.value}))}/></div>
+              {amendeForm.vehicleId&&amendeForm.date&&<div style={{padding:"10px 14px",borderRadius:10,marginBottom:10,background:contratRef?"#f0fdf4":"#fef3c7",border:`1px solid ${contratRef?"#bbf7d0":"#fde68a"}`}}>
+                {contratRef?<div><div style={{fontWeight:700,fontSize:12,color:"#16a34a",marginBottom:2}}>Contrat trouvé</div><div style={{fontSize:11}}><b>{contratRef.locNom}</b> — {contratRef.dateDebut} → {contratRef.dateFin}</div></div>:<div style={{fontSize:12,color:"#92400e"}}>Aucun contrat actif à cette date.</div>}
+              </div>}
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>{if(!amendeForm.vehicleId||!amendeForm.date){toast_("Choisissez un véhicule et une date","error");return;}const v=vehicles.find(x=>x.id===amendeForm.vehicleId);const newA={id:Date.now(),...amendeForm,vehicleLabel:v?v.marque+" "+v.modele+" - "+v.immat:"",contratId:contratRef?.id||null,locNom:contratRef?.locNom||"",locTel:contratRef?.locTel||""};setAmendes(a=>[newA,...a]);setAmendeForm({vehicleId:"",contratRef:"",date:"",heure:"",montant:"",type:"Excès de vitesse",statut:"A traiter",notes:""});setShowAddAmende(false);toast_("Amende ajoutée !");}} style={{background:"#dc2626",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>Enregistrer</button>
+                <button onClick={()=>setShowAddAmende(false)} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:12}}>Annuler</button>
+              </div>
+            </div>;
+          })()}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10,marginBottom:16}}>
+            {[["A traiter","#dc2626","🚨"],["En cours","#d97706","⏳"],["Confirmée","#2563eb","✅"],["Payée","#16a34a","💰"],["Contestée","#7c3aed","⚖️"]].map(([s,col,icon])=><div key={s} style={{background:"white",borderRadius:12,padding:"10px 14px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:`4px solid ${col}`}}><div style={{fontSize:10,color:"#6b7280"}}>{icon} {s}</div><div style={{fontSize:22,fontWeight:800,color:col}}>{amendes.filter(a=>a.statut===s).length}</div></div>)}
+          </div>
+          {amendes.length===0?<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>🚨</div><p>Aucune amende.</p></div>
+            :amendes.map(a=>{
+              const colStatut=a.statut==="A traiter"?"#dc2626":a.statut==="En cours"?"#d97706":a.statut==="Confirmée"?"#2563eb":a.statut==="Payée"?"#16a34a":"#7c3aed";
+              const contratLie=contrats.find(c=>c.id===a.contratId);
+              return <div key={a.id} style={{background:"white",borderRadius:14,padding:14,marginBottom:10,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:`2px solid ${colStatut}22`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                  <div>
+                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}><span style={{fontWeight:800,fontSize:14}}>{a.type}</span><span style={{fontSize:10,background:colStatut+"22",color:colStatut,borderRadius:99,padding:"2px 8px",fontWeight:700}}>{a.statut}</span></div>
+                    <div style={{fontSize:11,color:"#6b7280"}}>{a.vehicleLabel}</div>
+                    <div style={{fontSize:11,color:"#6b7280"}}>{a.date}{a.heure?" à "+a.heure:""}</div>
+                    {a.locNom&&<div style={{fontSize:11,marginTop:4}}>Locataire : <b>{a.locNom}</b></div>}
+                  </div>
+                  {a.montant&&<div style={{fontWeight:900,fontSize:18,color:"#dc2626"}}>{a.montant} {sym}</div>}
+                </div>
+                {contratLie&&<div style={{background:"#eff6ff",borderRadius:8,padding:"6px 10px",marginBottom:8,fontSize:11,border:"1px solid #bfdbfe"}}>Contrat : <b>{contratLie.locNom}</b> — {contratLie.dateDebut} → {contratLie.dateFin}<button onClick={()=>rePrint(contratLie)} style={{marginLeft:8,padding:"2px 8px",background:"#1e3a8a",color:"white",border:"none",borderRadius:5,fontSize:10,cursor:"pointer",fontWeight:700}}>PDF</button></div>}
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {STATUTS_AMENDE.filter(s=>s!==a.statut).map(s=><button key={s} onClick={()=>setAmendes(as=>as.map(x=>x.id===a.id?{...x,statut:s}:x))} style={{padding:"4px 10px",background:"#f1f5f9",color:"#374151",border:"1px solid #e5e7eb",borderRadius:7,fontSize:10,cursor:"pointer",fontWeight:600}}>{s}</button>)}
+                  <button onClick={()=>setAmendes(as=>as.filter(x=>x.id!==a.id))} style={{padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:10,cursor:"pointer"}}>Supprimer</button>
+                </div>
+              </div>;
+            })}
+        </div>}
+
+        {page==="questions"&&<div>
+          <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:4}}>Questions clients</h1>
+          <p style={{fontSize:12,color:"#6b7280",marginBottom:16}}>Questions posées depuis la vitrine.</p>
+          {questions.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>❓</div><p>Aucune question.</p></div>}
+          {questions.filter(q=>!q.reponse).length>0&&<div style={{marginBottom:20}}>
+            <h2 style={{fontSize:13,fontWeight:700,color:"#dc2626",marginBottom:8}}>Sans réponse ({questions.filter(q=>!q.reponse).length})</h2>
+            {questions.filter(q=>!q.reponse).map(q=><div key={q.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"2px solid #fde68a"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div><div style={{fontWeight:700,fontSize:13,color:"#1e3a8a"}}>{q.vehicleLabel}</div><div style={{fontSize:10,color:"#9ca3af"}}>{new Date(q.createdAt).toLocaleDateString("fr-FR")}</div></div>
+                <span style={{fontSize:10,background:"#fef3c7",color:"#d97706",borderRadius:99,padding:"2px 8px",fontWeight:700}}>En attente</span>
+              </div>
+              <div style={{background:"#f8fafc",borderRadius:8,padding:"10px 12px",fontSize:12,marginBottom:10,border:"1px solid #e5e7eb"}}>{q.question}</div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>{setReponseModal(q);setReponseText("");}} style={{padding:"7px 14px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Répondre</button>
+                <button onClick={()=>supprimerQuestion(q)} style={{padding:"7px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:12,cursor:"pointer"}}>Supprimer</button>
+              </div>
+            </div>)}
+          </div>}
+          {questions.filter(q=>q.reponse).length>0&&<div>
+            <h2 style={{fontSize:13,fontWeight:700,color:"#16a34a",marginBottom:8}}>Répondues ({questions.filter(q=>q.reponse).length})</h2>
+            {questions.filter(q=>q.reponse).map(q=><div key={q.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"1px solid #bbf7d0"}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#1e3a8a",marginBottom:4}}>{q.vehicleLabel}</div>
+              <div style={{background:"#f8fafc",borderRadius:8,padding:"8px 10px",fontSize:11,marginBottom:8}}>Q : {q.question}</div>
+              <div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 10px",fontSize:11,color:"#16a34a",border:"1px solid #bbf7d0",marginBottom:8}}>R : {q.reponse}</div>
+              <button onClick={()=>supprimerQuestion(q)} style={{fontSize:11,padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer"}}>Supprimer</button>
+            </div>)}
+          </div>}
+        </div>}
+
+        {page==="profil"&&<div style={{maxWidth:520,margin:"0 auto"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Profil</h1>
+            <button onClick={()=>{setProfilEdit(!profilEdit);setProfilForm({...profil});}} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>{profilEdit?"Annuler":"Modifier"}</button>
+          </div>
+          {profilEdit?<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+            {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=><div key={k} style={{marginBottom:10}}><label style={LBL_STYLE}>{l}</label><input style={INP_STYLE()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>)}
+            {[["tel","Téléphone"],["whatsapp","WhatsApp"]].map(([k,l])=><div key={k} style={{marginBottom:10}}><label style={LBL_STYLE}>{l}</label><TelInput value={profilForm[k]||""} onChange={v=>setProfilForm(p=>({...p,[k]:v}))} placeholder={l}/></div>)}
+            <div style={{marginBottom:10}}><label style={LBL_STYLE}>Snapchat</label><input style={INP_STYLE()} value={profilForm.snap||""} onChange={e=>setProfilForm(p=>({...p,snap:e.target.value}))}/></div>
+            <div style={{marginBottom:14}}><label style={LBL_STYLE}>💱 Devise</label><select style={INP_STYLE()} value={profilForm.devise||"EUR"} onChange={e=>setProfilForm(p=>({...p,devise:e.target.value}))}>{DEVISES.map(d=><option key={d.code} value={d.code}>{d.label}</option>)}</select></div>
+            <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user)await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+            <button onClick={()=>supabase.auth.signOut()} style={{marginTop:10,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
+          </div>:<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+            <div style={{textAlign:"center",marginBottom:16}}>
+              <div style={{width:60,height:60,borderRadius:"50%",background:"#1e3a8a",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:24}}>👤</div>
+              <div style={{fontWeight:800,fontSize:16}}>{profil.nom}</div>
+              <div style={{color:"#6b7280",fontSize:12}}>{profil.entreprise}</div>
+            </div>
+            {[["SIREN",profil.siren],["SIRET",profil.siret],["KBIS",profil.kbis],["Téléphone",profil.tel],["WhatsApp",profil.whatsapp],["Snapchat",profil.snap],["Email",profil.email],["Adresse",profil.adresse],["Ville",profil.ville],["IBAN",profil.iban],["Devise",profil.devise]].filter(([,v])=>v).map(([l,v])=><div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f0f0"}}><span style={{fontSize:11,color:"#6b7280"}}>{l}</span><span style={{fontSize:12,fontWeight:600}}>{v}</span></div>)}
+            <button onClick={()=>supabase.auth.signOut()} style={{marginTop:14,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
+          </div>}
+        </div>}
+
+      </div>
+    </div>
+  );
+}
+
+function AuthPage(){
+  const[mode,setMode]=useState("login");
+  const[email,setEmail]=useState("");
+  const[password,setPassword]=useState("");
+  const[showPassword,setShowPassword]=useState(false);
+  const[loading,setLoading]=useState(false);
+  const[error,setError]=useState("");
+  const[success,setSuccess]=useState("");
+  async function handleSubmit(){
+    setLoading(true);setError("");setSuccess("");
+    if(mode==="forgot"){const{error:err}=await supabase.auth.resetPasswordForEmail(email);if(err)setError(err.message);else setSuccess("Email envoyé.");setLoading(false);return;}
+    let result;
+    if(mode==="login")result=await supabase.auth.signInWithPassword({email,password});
+    else result=await supabase.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin}});
+    if(result.error)setError(result.error.message);
+    else if(mode==="signup")setSuccess("Compte créé ! Vérifiez votre email.");
+    setLoading(false);
+  }
+  return(
+    <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"#f1f5f9"}}>
+      <div style={{background:"white",borderRadius:16,padding:"40px 32px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
+        <h1 style={{textAlign:"center",marginBottom:8,fontSize:22,fontWeight:700}}>MAN'S LOCATION</h1>
+        <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:14}}>Accès réservé aux professionnels</p>
+        {mode!=="forgot"&&<div style={{display:"flex",marginBottom:24,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
+          {["login","signup"].map(m=><button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600}}>{m==="login"?"Connexion":"Inscription"}</button>)}
+        </div>}
+        <input placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
+        {mode!=="forgot"&&<div style={{position:"relative",marginBottom:16}}>
+          <input placeholder="Mot de passe" type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} style={{width:"100%",padding:"10px 12px",paddingRight:40,border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
+          <span onClick={()=>setShowPassword(!showPassword)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:18,color:"#6b7280",userSelect:"none"}}>{showPassword?"🙈":"👁️"}</span>
+        </div>}
+        {error&&<p style={{color:"red",fontSize:13,marginBottom:12}}>{error}</p>}
+        {success&&<p style={{color:"#16a34a",fontSize:13,marginBottom:12}}>{success}</p>}
+        <button onClick={handleSubmit} disabled={loading} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:"pointer"}}>
+          {loading?"...":(mode==="login"?"Se connecter":mode==="signup"?"Créer mon compte":"Envoyer le lien")}
+        </button>
+        {mode==="login"&&<p style={{textAlign:"center",marginTop:14,fontSize:13}}><span onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Mot de passe oublié ?</span></p>}
+        {mode==="forgot"&&<p style={{textAlign:"center",marginTop:14,fontSize:13}}><span onClick={()=>{setMode("login");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Retour</span></p>}
+      </div>
+    </div>
+  );
+}
+
+export default function App(){
+  return <AppContent/>;
+}
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
               <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Historique contrats ({contratsFiltres.length}/{contrats.length})</h1>

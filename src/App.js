@@ -1009,10 +1009,8 @@ function AppContent(){
     {id:"dashboard",icon:"📊",label:"Dashboard"},
     {id:"clients",icon:"👥",label:"Clients"},
     {id:"vehicles",icon:"🚗",label:"Flotte"},
-    {id:"nouveau",icon:"📝",label:"Contrat"},
+    {id:"contrats_hub",icon:"📋",label:"Contrats"},
     {id:"planning",icon:"📅",label:"Planning"},
-    {id:"contrats",icon:"📋",label:"Contrats"},
-    {id:"retours",icon:"🔄",label:"Retours"},
     {id:"amendes",icon:"🚨",label:"Amendes"},
     {id:"questions",icon:"❓",label:"Questions"},
     {id:"finances",icon:"💰",label:"Finances"},
@@ -1223,6 +1221,35 @@ function AppContent(){
 
       <div style={{maxWidth:1100,margin:"0 auto",width:"100%",padding:"16px 12px"}}>
 
+        {/* ── CONTRATS HUB ── */}
+        {page==="contrats_hub"&&(
+          <div>
+            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:20}}>Contrats</h1>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:16,marginBottom:32}}>
+              {[
+                {id:"nouveau",icon:"📝",label:"Nouveau contrat",desc:"Créer un contrat de location",color:"#1e3a8a",bg:"#eff6ff",border:"#bfdbfe"},
+                {id:"retours",icon:"🔄",label:"Retours",desc:"Gérer les retours de véhicules",color:"#16a34a",bg:"#f0fdf4",border:"#bbf7d0"},
+                {id:"contrats",icon:"📋",label:"Historique",desc:"Voir tous les contrats",color:"#7c3aed",bg:"#f5f3ff",border:"#ddd6fe"},
+              ].map(({id,icon,label,desc,color,bg,border})=>(
+                <div key={id} onClick={()=>setPage(id)} style={{background:bg,borderRadius:16,padding:24,border:`2px solid ${border}`,cursor:"pointer",transition:"transform .15s,box-shadow .15s",boxShadow:"0 2px 8px rgba(0,0,0,.06)"}}
+                  onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.12)";}}
+                  onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
+                  <div style={{fontSize:40,marginBottom:12}}>{icon}</div>
+                  <div style={{fontWeight:800,fontSize:15,color,marginBottom:4}}>{label}</div>
+                  <div style={{fontSize:12,color:"#6b7280"}}>{desc}</div>
+                </div>
+              ))}
+            </div>
+            {/* Stats rapides */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
+              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #1e3a8a"}}><div style={{fontSize:10,color:"#6b7280"}}>Total contrats</div><div style={{fontSize:22,fontWeight:800,color:"#1f2937"}}>{contrats.length}</div></div>
+              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #16a34a"}}><div style={{fontSize:10,color:"#6b7280"}}>Retours effectués</div><div style={{fontSize:22,fontWeight:800,color:"#1f2937"}}>{Object.keys(retours).length}</div></div>
+              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #d97706"}}><div style={{fontSize:10,color:"#6b7280"}}>En attente retour</div><div style={{fontSize:22,fontWeight:800,color:"#d97706"}}>{contrats.filter(c=>!retours[c.id]).length}</div></div>
+              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #2563eb"}}><div style={{fontSize:10,color:"#6b7280"}}>CA total</div><div style={{fontSize:22,fontWeight:800,color:"#2563eb"}}>{contrats.reduce((s,c)=>s+(c.totalCalc||0),0)} €</div></div>
+            </div>
+          </div>
+        )}
+
         {page==="vitrine"&&(
           <div>
             <div style={{marginBottom:16}}><h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>🏪 Vitrine</h1></div>
@@ -1398,7 +1425,10 @@ function AppContent(){
 
         {page==="nouveau"&&(
           <div style={{maxWidth:680,margin:"0 auto"}}>
-            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>Nouveau contrat</h1>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+              <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
+              <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Nouveau contrat</h1>
+            </div>
             <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
               <h3 style={{fontWeight:700,fontSize:13,marginBottom:10}}>Véhicule</h3>
               <div style={{display:"flex",flexDirection:"column",gap:7}}>
@@ -1592,8 +1622,9 @@ function AppContent(){
 
         {page==="contrats"&&(
           <div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-              <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Contrats ({contratsFiltres.length}/{contrats.length})</h1>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+              <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
+              <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Historique contrats ({contratsFiltres.length}/{contrats.length})</h1>
             </div>
             <div style={{background:"white",borderRadius:12,padding:14,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)",display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div style={{gridColumn:"span 2"}}><input placeholder="🔍 Nom, immat, téléphone..." style={INP_STYLE()} value={searchContrat} onChange={e=>setSearchContrat(e.target.value)}/></div>
@@ -1639,7 +1670,10 @@ function AppContent(){
 
         {page==="retours"&&(
           <div>
-            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:12}}>Retours</h1>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+              <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
+              <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Retours</h1>
+            </div>
             {contrats.filter(c=>!retours[c.id]).length>0&&(<div style={{marginBottom:16}}>
               <h2 style={{fontSize:13,fontWeight:700,color:"#6b7280",marginBottom:8}}>En attente de retour ({contrats.filter(c=>!retours[c.id]).length})</h2>
               {contrats.filter(c=>!retours[c.id]).map(c=>(<div key={c.id} style={{background:"white",borderRadius:12,padding:12,marginBottom:8,border:"1px solid #fde68a",display:"flex",justifyContent:"space-between",alignItems:"center"}}>

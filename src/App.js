@@ -1370,8 +1370,6 @@ function AppContent(){
           </div>
         )}
 
-        </div>}
-
         {page==="nouveau"&&<div style={{maxWidth:680,margin:"0 auto"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
               <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>

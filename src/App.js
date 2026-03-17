@@ -1002,7 +1002,7 @@ function AppContent(){
   const retourContrat=contrats.find(c=>c.id===retourContratId);
   const retourVehicle=retourContrat?vehicles.find(v=>v.id===retourContrat.vehicleId):null;
 
-  const Inp=(ex={})=>({width:"100%",border:"1px solid #d1d5db",borderRadius:8,padding:"7px 10px",fontSize:12,boxSizing:"border-box",...ex});
+
 
   const PAGES=[
     {id:"vitrine",icon:"🏪",label:"Vitrine"},

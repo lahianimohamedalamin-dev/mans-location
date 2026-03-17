@@ -1380,6 +1380,137 @@ function AppContent(){
             <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
               <h3 style={{fontWeight:700,fontSize:13,marginBottom:10}}>Véhicule</h3>
               <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                {vehicles.map(v=><div key={v.id} onClick={()=>setSelId(v.id===selId?null:v.id)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",borderRadius:10,border:`2px solid ${selId===v.id?"#2563eb":"#e5e7eb"}`,background:selId===v.id?"#eff6ff":"#f9fafb",cursor:"pointer"}}>
+                  <div><div style={{fontWeight:700,fontSize:13}}>{v.marque} {v.modele}</div><div style={{fontSize:10,color:"#6b7280"}}>{v.immat} · {v.couleur}</div></div>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}><Badge s={statut(v.id)}/><span style={{fontWeight:700,fontSize:12,color:"#2563eb"}}>{v.tarif} {sym}/j</span></div>
+                </div>)}
+              </div>
+            </div>
+            {sel&&<div>
+              <div style={{background:"#1e3a8a",borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div><div style={{color:"rgba(255,255,255,.7)",fontSize:10}}>Tarif calculé</div><div style={{color:"white",fontSize:11,marginTop:2}}>{tarifAuto.label}</div></div>
+                <div style={{color:"#4ade80",fontWeight:900,fontSize:22}}>{tarifAuto.prix} {sym}</div>
+              </div>
+              <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+                <h3 style={{fontWeight:700,fontSize:13,marginBottom:10}}>Locataire</h3>
+                <div style={{marginBottom:12,position:"relative"}}>
+                  <label style={LBL_STYLE}>🔍 Rechercher un client existant</label>
+                  <input style={INP_STYLE({background:"#eff6ff",borderColor:"#bfdbfe"})} placeholder="Nom ou téléphone du client..." value={searchClientContrat} onChange={e=>{setSearchClientContrat(e.target.value);setShowClientSuggestions(true);}} onFocus={()=>setShowClientSuggestions(true)}/>
+                  {showClientSuggestions&&clientSuggestions.length>0&&<div style={{position:"absolute",top:"100%",left:0,right:0,background:"white",border:"1px solid #e5e7eb",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,.12)",zIndex:100,maxHeight:200,overflowY:"auto"}}>
+                    {clientSuggestions.map(c=><div key={c.key} onClick={()=>{const parts=(c.nom||"").trim().split(" ");const prenom=parts[0]||"";const nom=parts.slice(1).join(" ")||"";setForm(f=>({...f,locPrenom:prenom,locNom:nom,locTel:c.tel,locAdresse:c.adresse||"",locEmail:c.email||"",locPermis:c.permis||""}));setDocsLocataire({...c.docs});setSearchClientContrat(c.nom);setShowClientSuggestions(false);toast_("Client "+c.nom+" chargé !");}} style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid #f0f0f0",display:"flex",justifyContent:"space-between",alignItems:"center"}} onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"} onMouseLeave={e=>e.currentTarget.style.background="white"}>
+                      <div><div style={{fontWeight:700,fontSize:13}}>{c.nom}</div><div style={{fontSize:11,color:"#6b7280"}}>{c.tel}{c.adresse?" · "+c.adresse:""}</div></div>
+                      <div style={{fontSize:10,background:"#eff6ff",color:"#2563eb",borderRadius:6,padding:"2px 6px"}}>{contrats.filter(x=>x.locNom===c.nom).length} contrat{contrats.filter(x=>x.locNom===c.nom).length>1?"s":""}</div>
+                    </div>)}
+                  </div>}
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  <div><label style={LBL_STYLE}>Prénom *</label><input style={INP_STYLE()} placeholder="Prénom" value={form.locPrenom} onChange={e=>setForm(f=>({...f,locPrenom:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>Nom *</label><input style={INP_STYLE(inv("locNom")?{borderColor:"#f87171",background:"#fef2f2"}:{})} placeholder="Nom" value={form.locNom} onChange={e=>setForm(f=>({...f,locNom:e.target.value}))} onBlur={()=>setTouched(t=>({...t,locNom:true}))}/>{inv("locNom")&&<p style={{color:"#ef4444",fontSize:10,marginTop:2}}>Obligatoire</p>}</div>
+                  <div style={{gridColumn:"span 2"}}><label style={LBL_STYLE}>Entreprise (optionnel)</label><input style={INP_STYLE()} placeholder="Nom de la société" value={form.locEntreprise||""} onChange={e=>setForm(f=>({...f,locEntreprise:e.target.value}))}/></div>
+                  <F k="locAdresse" label="Adresse *" span2 form={form} setForm={setForm} touched={touched} setTouched={setTouched} req={req}/>
+                  <div style={{gridColumn:"span 2"}}>
+                    <label style={LBL_STYLE}>Téléphone *</label>
+                    <TelInput value={form.locTel} onChange={v=>setForm(f=>({...f,locTel:v}))} placeholder="06 12 34 56 78"/>
+                    {inv("locTel")&&<p style={{color:"#ef4444",fontSize:10,marginTop:2}}>Obligatoire</p>}
+                  </div>
+                  <F k="locEmail" label="Email" type="email" form={form} setForm={setForm} touched={touched} setTouched={setTouched} req={req}/>
+                  <F k="locPermis" label="N° Permis" form={form} setForm={setForm} touched={touched} setTouched={setTouched} req={req}/>
+                  <div style={{gridColumn:"span 2"}}><label style={LBL_STYLE}>Réseaux sociaux</label><input style={INP_STYLE()} placeholder="Instagram, Snapchat..." value={form.locReseaux||""} onChange={e=>setForm(f=>({...f,locReseaux:e.target.value}))}/></div>
+                </div>
+                <div style={{marginTop:12,padding:12,background:"#f8fafc",borderRadius:10,border:"1px solid #e5e7eb"}}>
+                  <div style={{fontWeight:600,fontSize:12,color:"#6b7280",marginBottom:8}}>Deuxième conducteur (optionnel)</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <div><label style={LBL_STYLE}>Prénom</label><input style={INP_STYLE()} placeholder="Prénom" value={form.loc2Prenom||""} onChange={e=>setForm(f=>({...f,loc2Prenom:e.target.value}))}/></div>
+                    <div><label style={LBL_STYLE}>Nom</label><input style={INP_STYLE()} placeholder="Nom" value={form.loc2Nom||""} onChange={e=>setForm(f=>({...f,loc2Nom:e.target.value}))}/></div>
+                  </div>
+                </div>
+              </div>
+              <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+                <h3 style={{fontWeight:700,fontSize:13,marginBottom:4}}>Documents du locataire</h3>
+                <p style={{fontSize:11,color:"#6b7280",marginBottom:12}}>CNI/Passeport · Justificatif domicile · Photo arrière</p>
+                <DocsLocataire docs={docsLocataire} setDocs={setDocsLocataire}/>
+              </div>
+              <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+                <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>Durée</h3>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  <div><label style={LBL_STYLE}>Début *</label><input type="date" style={INP_STYLE(inv("dateDebut")?{borderColor:"#f87171",background:"#fef2f2"}:{})} value={form.dateDebut} onChange={e=>setForm(f=>({...f,dateDebut:e.target.value}))} onBlur={()=>setTouched(t=>({...t,dateDebut:true}))}/></div>
+                  <div><label style={LBL_STYLE}>Heure départ</label><input type="time" style={INP_STYLE()} value={form.heureDebut} onChange={e=>setForm(f=>({...f,heureDebut:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>Fin *</label><input type="date" style={INP_STYLE(inv("dateFin")?{borderColor:"#f87171",background:"#fef2f2"}:{})} value={form.dateFin} onChange={e=>setForm(f=>({...f,dateFin:e.target.value}))} onBlur={()=>setTouched(t=>({...t,dateFin:true}))}/></div>
+                  <div><label style={LBL_STYLE}>Heure retour</label><input type="time" style={INP_STYLE()} value={form.heureFin} onChange={e=>setForm(f=>({...f,heureFin:e.target.value}))}/></div>
+                </div>
+                <div style={{marginTop:10,background:"#f0fdf4",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#16a34a",fontWeight:600}}>Durée : {form.nbJours} jour(s) ({form.heuresLoc}h)</div>
+              </div>
+              <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+                <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>État au départ</h3>
+                <div style={{marginBottom:12}}><label style={LBL_STYLE}>Kilométrage départ</label><input type="number" style={INP_STYLE()} placeholder={sel.km} value={form.kmDepart} onChange={e=>setForm(f=>({...f,kmDepart:e.target.value}))}/></div>
+                <div style={{marginBottom:12}}><label style={LBL_STYLE}>Carburant au départ</label><FuelGauge value={form.carburantDepart} onChange={v=>setForm(f=>({...f,carburantDepart:v}))}/></div>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  <CheckBool label="Extérieur propre" icon="🚿" val={form.exterieurPropre} onChange={v=>setForm(f=>({...f,exterieurPropre:v}))}/>
+                  <CheckBool label="Intérieur propre" icon="🧹" val={form.interieurPropre} onChange={v=>setForm(f=>({...f,interieurPropre:v}))}/>
+                </div>
+              </div>
+              <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+                <h3 style={{fontWeight:700,fontSize:13,marginBottom:4}}>Photos au départ</h3>
+                <p style={{fontSize:11,color:"#6b7280",marginBottom:12}}>{photosDepart.length} photo{photosDepart.length>1?"s":""}</p>
+                <PhotosDepart photos={photosDepart} setPhotos={setPhotosDepart}/>
+              </div>
+              <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+                <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>💰 Récapitulatif du prix</h3>
+                <div style={{background:"#eff6ff",borderRadius:10,padding:12,marginBottom:12,border:"1px solid #bfdbfe"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                    <div style={{fontSize:12,fontWeight:700,color:"#1e3a8a"}}>💲 Tarification</div>
+                    <div style={{fontSize:10,color:"#6b7280"}}>{tarifAuto.label}</div>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <div><label style={LBL_STYLE}>Prix/jour modifié ({sym})</label><input type="number" style={INP_STYLE({background:"white"})} placeholder={sel?.tarif||"0"} value={form.prixJourModifie||""} onChange={e=>setForm(f=>({...f,prixJourModifie:e.target.value}))}/></div>
+                    <div style={{display:"flex",alignItems:"flex-end"}}><div style={{width:"100%",background:"#1e3a8a",borderRadius:8,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,color:"rgba(255,255,255,.6)"}}>Sous-total</div><div style={{fontSize:18,fontWeight:900,color:"#4ade80"}}>{tarifAuto.prix} {sym}</div></div></div>
+                  </div>
+                </div>
+                <div style={{background:"#fef3c7",borderRadius:10,padding:12,marginBottom:10,border:"1px solid #fde68a"}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#92400e",marginBottom:6}}>🛡️ Caution — {sel?.caution||0} {sym}</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <div><label style={LBL_STYLE}>Mode paiement</label><select style={INP_STYLE({background:"white"})} value={form.paiement} onChange={e=>setForm(f=>({...f,paiement:e.target.value}))}><option value="especes">💵 Espèces</option><option value="cb">💳 CB</option><option value="cheque">📄 Chèque</option><option value="virement">🏦 Virement</option><option value="autre">… Autre</option></select></div>
+                    <div><label style={LBL_STYLE}>Mode caution</label><select style={INP_STYLE({background:"white"})} value={form.cautionMode} onChange={e=>setForm(f=>({...f,cautionMode:e.target.value}))}><option value="especes">💵 Espèces</option><option value="cb">💳 CB</option><option value="cheque">📄 Chèque</option><option value="virement">🏦 Virement</option><option value="emprunt">🤝 Emprunt</option><option value="autre">… Autre</option></select></div>
+                  </div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                  <div><label style={LBL_STYLE}>💳 Accompte ({sym})</label><input type="number" style={INP_STYLE()} placeholder="0" value={form.accompte||""} onChange={e=>setForm(f=>({...f,accompte:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>🏷️ Remise ({sym})</label><input type="number" style={INP_STYLE()} placeholder="0" value={form.remise||""} onChange={e=>setForm(f=>({...f,remise:e.target.value}))}/></div>
+                  <div style={{gridColumn:"span 2"}}><label style={LBL_STYLE}>🎟️ Code promo</label><input style={INP_STYLE()} placeholder="Ex: PROMO10" value={form.codePromo||""} onChange={e=>setForm(f=>({...f,codePromo:e.target.value.toUpperCase()}))}/></div>
+                </div>
+                <div style={{background:"#0a1940",borderRadius:10,padding:12,color:"white"}}>
+                  {remise>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:11,opacity:.7,marginBottom:4}}><span>Remise</span><span>- {remise} {sym}</span></div>}
+                  {accompte>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:11,opacity:.7,marginBottom:4}}><span>Accompte versé</span><span>- {accompte} {sym}</span></div>}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:12}}>Total ({form.nbJours}j)</span><span style={{fontWeight:900,fontSize:18,color:"#4ade80"}}>{totalNet} {sym}</span></div>
+                  {accompte>0&&<div style={{display:"flex",justifyContent:"space-between",borderTop:"1px solid rgba(255,255,255,.2)",marginTop:6,paddingTop:6}}><span style={{fontSize:12,fontWeight:700}}>Reste à payer</span><span style={{fontWeight:900,fontSize:16,color:"#fbbf24"}}>{resteAPayer} {sym}</span></div>}
+                </div>
+              </div>
+              <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+                <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>Signatures</h3>
+                <div style={{display:"flex",gap:12,flexWrap:"wrap",justifyContent:"center"}}>
+                  <SigPad label="Signature du loueur" onSave={setSigL}/>
+                  <SigPad label="Signature du locataire" onSave={setSigLoc}/>
+                </div>
+              </div>
+              <button onClick={saveContrat} style={{width:"100%",background:"linear-gradient(135deg,#0a1940,#1e3a8a)",color:"white",border:"none",borderRadius:12,padding:14,fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 14px rgba(0,0,0,.2)"}}>
+                Créer le contrat — {totalNet} {sym}
+              </button>
+            </div>}
+            {lastContrat&&<div style={{marginTop:16,background:"#f0fdf4",borderRadius:14,padding:16,border:"2px solid #86efac"}}>
+              <div style={{fontWeight:700,color:"#16a34a",marginBottom:8}}>✅ Contrat créé pour {lastContrat.contrat.locNom}</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                <button onClick={()=>dlPDF(lastContrat.html)} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>📄 Imprimer / PDF</button>
+                <button onClick={()=>setLastContrat(null)} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"8px 12px",fontSize:12,cursor:"pointer"}}>Fermer</button>
+              </div>
+            </div>}
+        </div>}
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+              <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
+              <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Nouveau contrat</h1>
+            </div>
+            <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+              <h3 style={{fontWeight:700,fontSize:13,marginBottom:10}}>Véhicule</h3>
+              <div style={{display:"flex",flexDirection:"column",gap:7}}>
                 {vehicles.map(v=>(<div key={v.id} onClick={()=>setSelId(v.id===selId?null:v.id)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",borderRadius:10,border:`2px solid ${selId===v.id?"#2563eb":"#e5e7eb"}`,background:selId===v.id?"#eff6ff":"#f9fafb",cursor:"pointer"}}>
                   <div><div style={{fontWeight:700,fontSize:13}}>{v.marque} {v.modele}</div><div style={{fontSize:10,color:"#6b7280"}}>{v.immat} · {v.couleur}</div></div>
                   <div style={{display:"flex",gap:8,alignItems:"center"}}><Badge s={statut(v.id)}/><span style={{fontWeight:700,fontSize:12,color:"#2563eb"}}>{v.tarif} EUR/j</span></div>

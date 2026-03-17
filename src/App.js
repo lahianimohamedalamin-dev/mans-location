@@ -233,6 +233,41 @@ table th{background:#e8edf5;font-weight:700}table tr:nth-child(even){background:
 }
 
 // ─── COMPOSANTS UI ─────────────────────────────────────────────────────────────
+
+// ⚠️ F et CheckBool sont définis ICI, EN DEHORS de AppContent
+// → leur référence est stable entre les renders → plus de perte de focus
+const LBL_STYLE={fontSize:11,fontWeight:600,color:"#6b7280",display:"block",marginBottom:3};
+const INP_STYLE=(extra={})=>({width:"100%",border:"1px solid #d1d5db",borderRadius:8,padding:"7px 10px",fontSize:12,boxSizing:"border-box",...extra});
+
+function F({k,label,type,span2,form,setForm,touched,setTouched,req}){
+  const inv=touched[k]&&!form[k];
+  return(
+    <div style={span2?{gridColumn:"span 2"}:{}}>
+      <label style={LBL_STYLE}>{label}</label>
+      <input
+        type={type||"text"}
+        placeholder={label}
+        style={INP_STYLE(inv?{borderColor:"#f87171",background:"#fef2f2"}:{})}
+        value={form[k]}
+        onChange={e=>setForm(f=>({...f,[k]:e.target.value}))}
+        onBlur={()=>{if(req.includes(k))setTouched(t=>({...t,[k]:true}));}}
+      />
+      {inv&&<p style={{color:"#ef4444",fontSize:10,marginTop:2}}>Obligatoire</p>}
+    </div>
+  );
+}
+
+function CheckBool({label,icon,val,onChange}){
+  return(
+    <div style={{borderRadius:10,border:`2px solid ${val===true?"#16a34a":val===false?"#ef4444":"#e5e7eb"}`,background:val===true?"#f0fdf4":val===false?"#fef2f2":"white",padding:"8px 12px",display:"flex",alignItems:"center",gap:8}}>
+      <span style={{fontSize:18}}>{icon}</span>
+      <span style={{flex:1,fontSize:12,fontWeight:600}}>{label}</span>
+      <button onClick={()=>onChange(true)} style={{padding:"4px 10px",borderRadius:7,border:"none",cursor:"pointer",fontWeight:700,fontSize:11,background:val===true?"#16a34a":"#e5e7eb",color:val===true?"white":"#374151"}}>Oui</button>
+      <button onClick={()=>onChange(false)} style={{padding:"4px 10px",borderRadius:7,border:"none",cursor:"pointer",fontWeight:700,fontSize:11,background:val===false?"#ef4444":"#e5e7eb",color:val===false?"white":"#374151"}}>Non</button>
+    </div>
+  );
+}
+
 function TelInput({value,onChange,placeholder,style}){
   const parts=(value||"").match(/^(\+\d+)\s(.*)$/);
   const code=parts?parts[1]:"+33";
@@ -360,7 +395,6 @@ function DocsLocataire({docs,setDocs}){
   );
 }
 
-// ─── Vitrine demande ──────────────────────────────────────────────────────────
 function DemandeVehicule({vehicle,profil,userId}){
   const[open,setOpen]=useState(false);
   const[tab,setTab]=useState("resa");
@@ -369,7 +403,6 @@ function DemandeVehicule({vehicle,profil,userId}){
   const[sent,setSent]=useState(false);
   const[qSent,setQSent]=useState(false);
   const wa=(profil.whatsapp||profil.tel||"").replace(/\D/g,"");
-
   function sendWhatsApp(){
     const nbJ=form.dateDebut&&form.dateFin?Math.max(1,Math.ceil((new Date(form.dateFin)-new Date(form.dateDebut))/86400000)):null;
     const msg="Bonjour, je vous contacte pour louer un vehicule.\n\nJe m'appelle "+form.prenom+" "+form.nom+", j'ai "+form.age+" ans.\nTel : "+form.tel+"\nEmail : "+form.email+"\n\nJe souhaite louer le "+vehicle.marque+" "+vehicle.modele+" du "+form.dateDebut+" au "+form.dateFin+(nbJ?" ("+nbJ+"j)\n":"\n")+(form.message?"\nMessage : "+form.message+"\n":"")+"\nMerci !";
@@ -381,7 +414,6 @@ function DemandeVehicule({vehicle,profil,userId}){
     if(userId)await supabase.from('questions').insert([{user_id:userId,vehicle_id:vehicle.id,vehicle_label:vehicle.marque+" "+vehicle.modele,client_nom:"Client vitrine",client_tel:"",question:question,lu:false}]);
     setQSent(true);setQuestion("");
   }
-
   if(!open)return(
     <div style={{display:"flex",gap:6,marginTop:6}}>
       <button onClick={()=>{setOpen(true);setTab("resa");setSent(false);setQSent(false);}} style={{flex:1,padding:"8px 0",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📅 Réserver</button>
@@ -436,7 +468,6 @@ function DemandeVehicule({vehicle,profil,userId}){
   );
 }
 
-// ─── RETOUR MODAL ─────────────────────────────────────────────────────────────
 function RetourModal({contrat,vehicle,profil,onClose,onSave}){
   const initC={};RETOUR_CHECKS.forEach(c=>{initC[c.id]=null;});
   const initCar={};CARRO_ELEMENTS.forEach(e=>{initCar[e.id]=null;});
@@ -678,7 +709,7 @@ function AppContent(){
   const[vehicles,setVehicles]=useState([]);
   const[contrats,setContrats]=useState([]);
   const[depenses,setDepenses]=useState([]);
-  const[clients,setClients]=useState([]); // ← nouvel état clients
+  const[clients,setClients]=useState([]);
   const[profil,setProfil]=useState(INIT_PROFIL);
   const[page,setPage]=useState("dashboard");
   const[selId,setSelId]=useState(null);
@@ -697,7 +728,6 @@ function AppContent(){
   const[toast,setToast]=useState(null);
   const[planMonth,setPlanMonth]=useState(new Date());
   const[planView,setPlanView]=useState("calendrier");
-  // Gantt navigation
   const ganttRef=useRef(null);
   const[ganttStartDate,setGanttStartDate]=useState(()=>{const d=new Date();d.setDate(1);return d;});
   const[reponseModal,setReponseModal]=useState(null);
@@ -721,25 +751,22 @@ function AppContent(){
   const TYPES_AMENDE=["Excès de vitesse","Stationnement","Feu rouge","Téléphone au volant","Non port ceinture","Autre"];
   const STATUTS_AMENDE=["A traiter","En cours","Confirmée","Payée","Contestée"];
   const[reponseText,setReponseText]=useState("");
-  // Filtres contrats
   const[searchContrat,setSearchContrat]=useState("");
   const[filterVehicleContrat,setFilterVehicleContrat]=useState("");
   const[filterDateDebut,setFilterDateDebut]=useState("");
   const[filterDateFin,setFilterDateFin]=useState("");
-  // Filtres retours
   const[searchRetour,setSearchRetour]=useState("");
   const[filterVehicleRetour,setFilterVehicleRetour]=useState("");
   const[filterRetourDateDebut,setFilterRetourDateDebut]=useState("");
   const[filterRetourDateFin,setFilterRetourDateFin]=useState("");
-  // Clients
   const[searchClient,setSearchClient]=useState("");
   const[selectedClient,setSelectedClient]=useState(null);
   const[editingClient,setEditingClient]=useState(null);
-  // Recherche client dans contrat
   const[searchClientContrat,setSearchClientContrat]=useState("");
   const[showClientSuggestions,setShowClientSuggestions]=useState(false);
 
   const activeUserIdRef=useRef(null);
+  const req=["locNom","locAdresse","locTel","dateDebut","dateFin"];
 
   function findContratForAmende(vehicleId,date,heure){
     if(!vehicleId||!date)return null;
@@ -747,14 +774,11 @@ function AppContent(){
     return contrats.find(c=>c.vehicleId===vehicleId&&new Date(c.dateDebut)<=dt&&new Date(c.dateFin)>=dt)||null;
   }
 
-  // ── Créer/MAJ fiche client depuis un contrat ──────────────────────────────
   function upsertClient(contrat,docs){
     const key=(contrat.locNom||"").trim().toLowerCase()+"_"+(contrat.locTel||"").replace(/\D/g,"").slice(-6);
     setClients(prev=>{
       const existing=prev.find(c=>c.key===key);
-      if(existing){
-        return prev.map(c=>c.key===key?{...c,nom:contrat.locNom,tel:contrat.locTel,adresse:contrat.locAdresse,email:contrat.locEmail,permis:contrat.locPermis,docs:{...c.docs,...docs},updatedAt:new Date().toISOString()}:c);
-      }
+      if(existing){return prev.map(c=>c.key===key?{...c,nom:contrat.locNom,tel:contrat.locTel,adresse:contrat.locAdresse,email:contrat.locEmail,permis:contrat.locPermis,docs:{...c.docs,...docs},updatedAt:new Date().toISOString()}:c);}
       return[...prev,{id:Date.now(),key,nom:contrat.locNom,tel:contrat.locTel,adresse:contrat.locAdresse,email:contrat.locEmail||"",permis:contrat.locPermis||"",docs:{...docs},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}];
     });
   }
@@ -793,8 +817,9 @@ function AppContent(){
       setProfil(profData);setProfilForm(profData);
       if(vehRes.data){setVehicles(vehRes.data.map(v=>({id:v.id,marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],photosVehicule:v.photos_vehicule||[],publie:v.publie||false})));}
       let loadedContrats=[];
-      if(conRes.data){loadedContrats=conRes.data.map(c=>({id:c.id,locNom:c.loc_nom||'',locAdresse:c.loc_adresse||'',locTel:c.loc_tel||'',locEmail:c.loc_email||'',locPermis:c.loc_permis||'',dateDebut:c.date_debut||'',heureDebut:c.heure_debut||'10:00',dateFin:c.date_fin||'',heureFin:c.heure_fin||'10:00',paiement:c.paiement||'especes',cautionMode:c.caution_mode||'especes',kmDepart:c.km_depart||'',nbJours:c.nb_jours||1,heuresLoc:c.heures_loc||24,carburantDepart:c.carburant_depart??100,exterieurPropre:c.exterieur_propre,interieurPropre:c.interieur_propre,vehicleId:c.vehicle_id,vehicleLabel:c.vehicle_label||'',immat:c.immat||'',sigL:c.sig_l||null,sigLoc:c.sig_loc||null,totalCalc:c.total_calc||0,tarifLabel:c.tarif_label||'',photosDepart:c.photos_depart||[],docsLocataire:c.docs_locataire||{},fraisSnap:c.frais_snap||[],clausesSnap:c.clauses_snap||[],kmInclus:c.km_inclus,prixKmSup:c.prix_km_sup}));setContrats(loadedContrats);
-        // Reconstruire clients depuis contrats
+      if(conRes.data){
+        loadedContrats=conRes.data.map(c=>({id:c.id,locNom:c.loc_nom||'',locAdresse:c.loc_adresse||'',locTel:c.loc_tel||'',locEmail:c.loc_email||'',locPermis:c.loc_permis||'',dateDebut:c.date_debut||'',heureDebut:c.heure_debut||'10:00',dateFin:c.date_fin||'',heureFin:c.heure_fin||'10:00',paiement:c.paiement||'especes',cautionMode:c.caution_mode||'especes',kmDepart:c.km_depart||'',nbJours:c.nb_jours||1,heuresLoc:c.heures_loc||24,carburantDepart:c.carburant_depart??100,exterieurPropre:c.exterieur_propre,interieurPropre:c.interieur_propre,vehicleId:c.vehicle_id,vehicleLabel:c.vehicle_label||'',immat:c.immat||'',sigL:c.sig_l||null,sigLoc:c.sig_loc||null,totalCalc:c.total_calc||0,tarifLabel:c.tarif_label||'',photosDepart:c.photos_depart||[],docsLocataire:c.docs_locataire||{},fraisSnap:c.frais_snap||[],clausesSnap:c.clauses_snap||[],kmInclus:c.km_inclus,prixKmSup:c.prix_km_sup}));
+        setContrats(loadedContrats);
         const clientMap={};
         loadedContrats.forEach(c=>{
           const key=(c.locNom||"").trim().toLowerCase()+"_"+(c.locTel||"").replace(/\D/g,"").slice(-6);
@@ -841,11 +866,9 @@ function AppContent(){
   const bT=caT+totalRetenues+totalSurplusKm-dT;
   const cautionsNonRendues=contrats.filter(c=>!retours[c.id]).reduce((s,c)=>{const v=vehicles.find(x=>x.id===c.vehicleId);return s+(v?v.caution:0);},0);
   const tarifAuto=sel?calcTarifAuto(sel,form.nbJours,form.heuresLoc):{prix:0,label:"—"};
-  const req=["locNom","locAdresse","locTel","dateDebut","dateFin"];
   const inv=k=>touched[k]&&!form[k];
   const nbQSansReponse=questions.filter(q=>!q.reponse).length;
 
-  // Filtres contrats
   const contratsFiltres=contrats.filter(c=>{
     const q=searchContrat.toLowerCase();
     const matchQ=!q||(c.locNom.toLowerCase().includes(q)||c.immat.toLowerCase().includes(q)||c.locTel.includes(q));
@@ -855,7 +878,6 @@ function AppContent(){
     return matchQ&&matchV&&matchD&&matchF;
   });
 
-  // Filtres retours
   const retoursFiltres=contrats.filter(c=>retours[c.id]).filter(c=>{
     const q=searchRetour.toLowerCase();
     const r=retours[c.id];
@@ -867,7 +889,6 @@ function AppContent(){
     return matchQ&&matchV&&matchD&&matchF;
   });
 
-  // Suggestions clients pour contrat
   const clientSuggestions=searchClientContrat.length>1?clients.filter(c=>c.nom.toLowerCase().includes(searchClientContrat.toLowerCase())||c.tel.includes(searchClientContrat)):[];
 
   async function saveContrat(){
@@ -982,14 +1003,13 @@ function AppContent(){
   const retourVehicle=retourContrat?vehicles.find(v=>v.id===retourContrat.vehicleId):null;
 
   const Inp=(ex={})=>({width:"100%",border:"1px solid #d1d5db",borderRadius:8,padding:"7px 10px",fontSize:12,boxSizing:"border-box",...ex});
-  const LBL={fontSize:11,fontWeight:600,color:"#6b7280",display:"block",marginBottom:3};
 
   const PAGES=[
     {id:"vitrine",icon:"🏪",label:"Vitrine"},
     {id:"dashboard",icon:"📊",label:"Dashboard"},
     {id:"clients",icon:"👥",label:"Clients"},
     {id:"vehicles",icon:"🚗",label:"Flotte"},
-    {id:"nouveau",icon:"📝",label:"NVX Contrat"},
+    {id:"nouveau",icon:"📝",label:"Contrat"},
     {id:"planning",icon:"📅",label:"Planning"},
     {id:"contrats",icon:"📋",label:"Contrats"},
     {id:"retours",icon:"🔄",label:"Retours"},
@@ -1001,14 +1021,6 @@ function AppContent(){
 
   function KPI(label,val,icon,color,sub,red){
     return(<div style={{background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 8px rgba(0,0,0,.07)",borderLeft:`4px solid ${color}`}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div><p style={{fontSize:10,color:"#6b7280",marginBottom:3}}>{label}</p><p style={{fontSize:20,fontWeight:800,color:red?"#dc2626":"#1f2937"}}>{val}</p>{sub&&<p style={{fontSize:10,color:"#9ca3af",marginTop:2}}>{sub}</p>}</div><span style={{fontSize:22}}>{icon}</span></div></div>);
-  }
-
-  function F({k,label,type,span2}){
-    return(<div style={span2?{gridColumn:"span 2"}:{}}><label style={LBL}>{label}</label><input type={type||"text"} placeholder={label} style={Inp(inv(k)?{borderColor:"#f87171",background:"#fef2f2"}:{})} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} onBlur={()=>{if(req.includes(k))setTouched(t=>({...t,[k]:true}));}}/>{inv(k)&&<p style={{color:"#ef4444",fontSize:10,marginTop:2}}>Obligatoire</p>}</div>);
-  }
-
-  function CheckBool({label,icon,val,onChange}){
-    return(<div style={{borderRadius:10,border:`2px solid ${val===true?"#16a34a":val===false?"#ef4444":"#e5e7eb"}`,background:val===true?"#f0fdf4":val===false?"#fef2f2":"white",padding:"8px 12px",display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:18}}>{icon}</span><span style={{flex:1,fontSize:12,fontWeight:600}}>{label}</span><button onClick={()=>onChange(true)} style={{padding:"4px 10px",borderRadius:7,border:"none",cursor:"pointer",fontWeight:700,fontSize:11,background:val===true?"#16a34a":"#e5e7eb",color:val===true?"white":"#374151"}}>Oui</button><button onClick={()=>onChange(false)} style={{padding:"4px 10px",borderRadius:7,border:"none",cursor:"pointer",fontWeight:700,fontSize:11,background:val===false?"#ef4444":"#e5e7eb",color:val===false?"white":"#374151"}}>Non</button></div>);
   }
 
   function pickDocFile(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setNewDoc(d=>({...d,file:f.name,fileData:ev.target.result}));r.readAsDataURL(f);}
@@ -1031,7 +1043,6 @@ function AppContent(){
     </div>
   );
 
-  // ── Gantt config ──────────────────────────────────────────────────────────
   const ganttDays=90;
   const ganttDates=Array.from({length:ganttDays},(_,i)=>{const d=new Date(ganttStartDate);d.setDate(d.getDate()+i);return d;});
   const DW=32;
@@ -1090,7 +1101,6 @@ function AppContent(){
       {contratModalId&&contratV&&<ContratModal vehicle={contratV} onClose={()=>setContratModalId(null)} onSave={async(fr,cl)=>{setVehicles(vs=>vs.map(v=>v.id===contratModalId?{...v,frais:fr,clauses:cl}:v));setContratModalId(null);toast_("Mis à jour !");if(user)await supabase.from('vehicules').update({frais:fr,clauses:cl}).eq('id',contratModalId).eq('user_id',user.id);}}/>}
       {retourContratId&&retourContrat&&<RetourModal contrat={retourContrat} vehicle={retourVehicle} profil={profil} onClose={()=>setRetourContratId(null)} onSave={data=>saveRetour(retourContratId,data)}/>}
 
-      {/* Modal fiche client */}
       {selectedClient&&(
         <div onClick={e=>{if(e.target===e.currentTarget){setSelectedClient(null);setEditingClient(null);}}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
           <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:560,maxHeight:"90vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
@@ -1105,8 +1115,8 @@ function AppContent(){
               {editingClient?(
                 <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
                   <div style={{fontWeight:700,fontSize:13,marginBottom:4}}>Modifier les informations</div>
-                  {[["nom","Nom complet"],["adresse","Adresse"],["email","Email"],["permis","N° Permis"]].map(([k,l])=>(<div key={k}><label style={LBL}>{l}</label><input style={Inp()} value={editingClient[k]||""} onChange={e=>setEditingClient(c=>({...c,[k]:e.target.value}))}/></div>))}
-                  <div><label style={LBL}>Téléphone</label><TelInput value={editingClient.tel||""} onChange={v=>setEditingClient(c=>({...c,tel:v}))}/></div>
+                  {[["nom","Nom complet"],["adresse","Adresse"],["email","Email"],["permis","N° Permis"]].map(([k,l])=>(<div key={k}><label style={LBL_STYLE}>{l}</label><input style={INP_STYLE()} value={editingClient[k]||""} onChange={e=>setEditingClient(c=>({...c,[k]:e.target.value}))}/></div>))}
+                  <div><label style={LBL_STYLE}>Téléphone</label><TelInput value={editingClient.tel||""} onChange={v=>setEditingClient(c=>({...c,tel:v}))}/></div>
                   <div style={{display:"flex",gap:8}}>
                     <button onClick={()=>{setClients(cs=>cs.map(c=>c.key===editingClient.key?{...editingClient}:c));setSelectedClient({...editingClient});setEditingClient(null);toast_("Client mis à jour !");}} style={{flex:1,background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
                     <button onClick={()=>setEditingClient(null)} style={{padding:"8px 14px",background:"#e5e7eb",border:"none",borderRadius:8,cursor:"pointer"}}>Annuler</button>
@@ -1117,7 +1127,6 @@ function AppContent(){
                   {[["Adresse",selectedClient.adresse],["Email",selectedClient.email],["Permis",selectedClient.permis]].filter(([,v])=>v).map(([l,v])=>(<div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f0f0"}}><span style={{fontSize:11,color:"#6b7280"}}>{l}</span><span style={{fontSize:12,fontWeight:600}}>{v}</span></div>))}
                 </div>
               )}
-              {/* Docs du client */}
               {(selectedClient.docs?.cniRecto||selectedClient.docs?.cniVerso||selectedClient.docs?.justifDom||selectedClient.docs?.photoAr)&&(
                 <div style={{marginBottom:16}}>
                   <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>Documents</div>
@@ -1129,7 +1138,6 @@ function AppContent(){
                   </div>
                 </div>
               )}
-              {/* Historique contrats */}
               <div>
                 <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>Historique contrats</div>
                 {contrats.filter(c=>c.locNom===selectedClient.nom&&c.locTel===selectedClient.tel).length===0
@@ -1167,10 +1175,10 @@ function AppContent(){
               <div style={{background:"#eff6ff",borderRadius:12,padding:14,border:"1px solid #bfdbfe",marginTop:8}}>
                 <p style={{fontSize:12,fontWeight:700,color:"#1d4ed8",marginBottom:10}}>+ Nouveau tarif</p>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                  <div><label style={LBL}>Durée</label><select style={Inp()} value={ntarif.type} onChange={e=>setNtarif(x=>({...x,type:e.target.value}))}>{TARIFS_PRESETS.map(p=><option key={p.type}>{p.type}</option>)}</select></div>
-                  <div><label style={LBL}>Nom affiché</label><input style={Inp()} placeholder="ex: WE 48h" value={ntarif.label} onChange={e=>setNtarif(x=>({...x,label:e.target.value}))}/></div>
-                  <div><label style={LBL}>Prix (EUR)</label><input type="number" style={Inp()} placeholder="ex: 130" value={ntarif.prix} onChange={e=>setNtarif(x=>({...x,prix:e.target.value}))}/></div>
-                  <div><label style={LBL}>Unité</label><select style={Inp()} value={ntarif.unite} onChange={e=>setNtarif(x=>({...x,unite:e.target.value}))}><option value="forfait">Forfait total</option><option value="jour">Par jour</option></select></div>
+                  <div><label style={LBL_STYLE}>Durée</label><select style={INP_STYLE()} value={ntarif.type} onChange={e=>setNtarif(x=>({...x,type:e.target.value}))}>{TARIFS_PRESETS.map(p=><option key={p.type}>{p.type}</option>)}</select></div>
+                  <div><label style={LBL_STYLE}>Nom affiché</label><input style={INP_STYLE()} placeholder="ex: WE 48h" value={ntarif.label} onChange={e=>setNtarif(x=>({...x,label:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>Prix (EUR)</label><input type="number" style={INP_STYLE()} placeholder="ex: 130" value={ntarif.prix} onChange={e=>setNtarif(x=>({...x,prix:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>Unité</label><select style={INP_STYLE()} value={ntarif.unite} onChange={e=>setNtarif(x=>({...x,unite:e.target.value}))}><option value="forfait">Forfait total</option><option value="jour">Par jour</option></select></div>
                 </div>
                 <button onClick={()=>{if(!ntarif.prix||parseFloat(ntarif.prix)<=0){toast_("Prix invalide","error");return;}setTarifsTemp(ts=>[...ts,{id:Date.now(),...ntarif,label:ntarif.label||ntarif.type}]);setNtarif({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});}} style={{width:"100%",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
               </div>
@@ -1193,10 +1201,10 @@ function AppContent(){
             <div style={{overflowY:"auto",flex:1,padding:14}}>
               <div style={{background:"#eff6ff",borderRadius:10,padding:12,marginBottom:12,border:"1px solid #bfdbfe"}}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                  <div><label style={LBL}>Type</label><select style={Inp()} value={newDoc.type} onChange={e=>setNewDoc(d=>({...d,type:e.target.value}))}>{DOC_TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
-                  <div><label style={LBL}>Nom *</label><input style={Inp()} value={newDoc.nom} onChange={e=>setNewDoc(d=>({...d,nom:e.target.value}))}/></div>
-                  <div><label style={LBL}>Expiration</label><input type="date" style={Inp()} value={newDoc.expiration} onChange={e=>setNewDoc(d=>({...d,expiration:e.target.value}))}/></div>
-                  <div><label style={LBL}>Fichier</label><input type="file" accept=".pdf,image/*" style={{width:"100%",fontSize:11}} onChange={pickDocFile}/></div>
+                  <div><label style={LBL_STYLE}>Type</label><select style={INP_STYLE()} value={newDoc.type} onChange={e=>setNewDoc(d=>({...d,type:e.target.value}))}>{DOC_TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
+                  <div><label style={LBL_STYLE}>Nom *</label><input style={INP_STYLE()} value={newDoc.nom} onChange={e=>setNewDoc(d=>({...d,nom:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>Expiration</label><input type="date" style={INP_STYLE()} value={newDoc.expiration} onChange={e=>setNewDoc(d=>({...d,expiration:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>Fichier</label><input type="file" accept=".pdf,image/*" style={{width:"100%",fontSize:11}} onChange={pickDocFile}/></div>
                 </div>
                 <button onClick={async()=>{if(!newDoc.nom){toast_("Donnez un nom","error");return;}const docEntry={id:Date.now(),...newDoc};const updatedDocs=[...(docsV.docs||[]),docEntry];setVehicles(vs=>vs.map(v=>v.id===docsId?{...v,docs:updatedDocs}:v));setNewDoc({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});toast_("Document ajouté !");if(user)await supabase.from('vehicules').update({docs:updatedDocs}).eq('id',docsId).eq('user_id',user.id);}} style={{marginTop:8,background:"#2563eb",color:"white",border:"none",borderRadius:7,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
               </div>
@@ -1215,7 +1223,6 @@ function AppContent(){
 
       <div style={{maxWidth:1100,margin:"0 auto",width:"100%",padding:"16px 12px"}}>
 
-        {/* ── VITRINE ── */}
         {page==="vitrine"&&(
           <div>
             <div style={{marginBottom:16}}><h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>🏪 Vitrine</h1></div>
@@ -1280,7 +1287,6 @@ function AppContent(){
           </div>
         )}
 
-        {/* ── DASHBOARD ── */}
         {page==="dashboard"&&(
           <div>
             <div style={{marginBottom:16}}>
@@ -1303,14 +1309,13 @@ function AppContent(){
           </div>
         )}
 
-        {/* ── CLIENTS ── */}
         {page==="clients"&&(
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Clients ({clients.length})</h1>
             </div>
             <div style={{marginBottom:14}}>
-              <input placeholder="🔍 Rechercher par nom, téléphone, email..." style={Inp()} value={searchClient} onChange={e=>setSearchClient(e.target.value)}/>
+              <input placeholder="🔍 Rechercher par nom, téléphone, email..." style={INP_STYLE()} value={searchClient} onChange={e=>setSearchClient(e.target.value)}/>
             </div>
             {clientsFiltres.length===0?<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>👥</div><p>Aucun client{searchClient?" trouvé":". Les clients sont créés automatiquement lors des contrats."}</p></div>
               :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
@@ -1318,7 +1323,7 @@ function AppContent(){
                   const nbContrats=contrats.filter(x=>x.locNom===c.nom&&x.locTel===c.tel).length;
                   const totalCA=contrats.filter(x=>x.locNom===c.nom&&x.locTel===c.tel).reduce((s,x)=>s+(x.totalCalc||0),0);
                   const hasDoc=c.docs&&(c.docs.cniRecto||c.docs.cniVerso||c.docs.justifDom);
-                  return(<div key={c.key} onClick={()=>setSelectedClient(c)} style={{background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #e5e7eb",cursor:"pointer",transition:"box-shadow .2s"}} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.12)"} onMouseLeave={e=>e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.07)"}>
+                  return(<div key={c.key} onClick={()=>setSelectedClient(c)} style={{background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #e5e7eb",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.12)"} onMouseLeave={e=>e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.07)"}>
                     <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
                       <div style={{width:44,height:44,borderRadius:"50%",background:"linear-gradient(135deg,#1e3a8a,#7c3aed)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>👤</div>
                       <div style={{flex:1,minWidth:0}}>
@@ -1338,7 +1343,6 @@ function AppContent(){
           </div>
         )}
 
-        {/* ── VEHICULES ── */}
         {page==="vehicles"&&(
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -1349,16 +1353,16 @@ function AppContent(){
               <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 12px rgba(0,0,0,.1)",marginBottom:16,border:"2px solid #bfdbfe"}}>
                 <h3 style={{fontWeight:700,marginBottom:12,fontSize:14}}>{editV?"Modifier":"Nouveau véhicule"}</h3>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
-                  <div><label style={LBL}>Marque *</label><select style={Inp()} value={vForm.marque} onChange={e=>setVForm(f=>({...f,marque:e.target.value,modele:""}))}><option value="">-- Choisir --</option>{Object.keys(CAR_BRANDS).sort().map(b=><option key={b} value={b}>{b}</option>)}</select></div>
-                  <div><label style={LBL}>Modèle *</label><select style={Inp()} value={vForm.modele} onChange={e=>setVForm(f=>({...f,modele:e.target.value}))} disabled={!vForm.marque}><option value="">-- Choisir --</option>{(CAR_BRANDS[vForm.marque]||[]).map(m=><option key={m} value={m}>{m}</option>)}</select></div>
-                  <div><label style={LBL}>Immatriculation *</label><input style={Inp()} value={vForm.immat} onChange={e=>setVForm(f=>({...f,immat:e.target.value.toUpperCase()}))}/></div>
-                  <div><label style={LBL}>Couleur</label><select style={Inp()} value={vForm.couleur} onChange={e=>setVForm(f=>({...f,couleur:e.target.value}))}><option value="">-- Choisir --</option>{CAR_COLORS.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
-                  <div><label style={LBL}>Année</label><select style={Inp()} value={vForm.annee} onChange={e=>setVForm(f=>({...f,annee:e.target.value}))}><option value="">-- Choisir --</option>{CAR_YEARS.map(y=><option key={y} value={y}>{y}</option>)}</select></div>
-                  <div><label style={LBL}>Motorisation</label><select style={Inp()} value={vForm.motorisation} onChange={e=>setVForm(f=>({...f,motorisation:e.target.value}))}>{MOTORISATIONS.map(m=><option key={m}>{m}</option>)}</select></div>
-                  <div><label style={LBL}>Boîte</label><select style={Inp()} value={vForm.boite} onChange={e=>setVForm(f=>({...f,boite:e.target.value}))}>{BOITES.map(b=><option key={b}>{b}</option>)}</select></div>
-                  {[["km","Km actuel"],["tarif","Tarif EUR/j"],["caution","Caution EUR"],["kmInclus","Km inclus/loc"],["prixKmSup","Prix km sup EUR"]].map(([k,l])=>(<div key={k}><label style={LBL}>{l}</label><input type="number" style={Inp()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:e.target.value.replace(/\D/g,"")}))} inputMode="numeric"/></div>))}
+                  <div><label style={LBL_STYLE}>Marque *</label><select style={INP_STYLE()} value={vForm.marque} onChange={e=>setVForm(f=>({...f,marque:e.target.value,modele:""}))}><option value="">-- Choisir --</option>{Object.keys(CAR_BRANDS).sort().map(b=><option key={b} value={b}>{b}</option>)}</select></div>
+                  <div><label style={LBL_STYLE}>Modèle *</label><select style={INP_STYLE()} value={vForm.modele} onChange={e=>setVForm(f=>({...f,modele:e.target.value}))} disabled={!vForm.marque}><option value="">-- Choisir --</option>{(CAR_BRANDS[vForm.marque]||[]).map(m=><option key={m} value={m}>{m}</option>)}</select></div>
+                  <div><label style={LBL_STYLE}>Immatriculation *</label><input style={INP_STYLE()} value={vForm.immat} onChange={e=>setVForm(f=>({...f,immat:e.target.value.toUpperCase()}))}/></div>
+                  <div><label style={LBL_STYLE}>Couleur</label><select style={INP_STYLE()} value={vForm.couleur} onChange={e=>setVForm(f=>({...f,couleur:e.target.value}))}><option value="">-- Choisir --</option>{CAR_COLORS.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+                  <div><label style={LBL_STYLE}>Année</label><select style={INP_STYLE()} value={vForm.annee} onChange={e=>setVForm(f=>({...f,annee:e.target.value}))}><option value="">-- Choisir --</option>{CAR_YEARS.map(y=><option key={y} value={y}>{y}</option>)}</select></div>
+                  <div><label style={LBL_STYLE}>Motorisation</label><select style={INP_STYLE()} value={vForm.motorisation} onChange={e=>setVForm(f=>({...f,motorisation:e.target.value}))}>{MOTORISATIONS.map(m=><option key={m}>{m}</option>)}</select></div>
+                  <div><label style={LBL_STYLE}>Boîte</label><select style={INP_STYLE()} value={vForm.boite} onChange={e=>setVForm(f=>({...f,boite:e.target.value}))}>{BOITES.map(b=><option key={b}>{b}</option>)}</select></div>
+                  {[["km","Km actuel"],["tarif","Tarif EUR/j"],["caution","Caution EUR"],["kmInclus","Km inclus/loc"],["prixKmSup","Prix km sup EUR"]].map(([k,l])=>(<div key={k}><label style={LBL_STYLE}>{l}</label><input type="number" style={INP_STYLE()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:e.target.value.replace(/\D/g,"")}))} inputMode="numeric"/></div>))}
                 </div>
-                <div style={{marginTop:10}}><label style={LBL}>Description</label><textarea value={vForm.description} onChange={e=>setVForm(f=>({...f,description:e.target.value}))} rows={2} style={{...Inp(),resize:"vertical",fontFamily:"inherit"}}/></div>
+                <div style={{marginTop:10}}><label style={LBL_STYLE}>Description</label><textarea value={vForm.description} onChange={e=>setVForm(f=>({...f,description:e.target.value}))} rows={2} style={{...INP_STYLE(),resize:"vertical",fontFamily:"inherit"}}/></div>
                 <div style={{marginTop:10,display:"flex",gap:16,flexWrap:"wrap"}}>
                   <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,cursor:"pointer"}}><input type="checkbox" checked={vForm.kmIllimite} onChange={e=>setVForm(f=>({...f,kmIllimite:e.target.checked}))}/><span>Km illimité</span></label>
                 </div>
@@ -1392,7 +1396,6 @@ function AppContent(){
           </div>
         )}
 
-        {/* ── NOUVEAU CONTRAT ── */}
         {page==="nouveau"&&(
           <div style={{maxWidth:680,margin:"0 auto"}}>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>Nouveau contrat</h1>
@@ -1412,10 +1415,9 @@ function AppContent(){
               </div>
               <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <h3 style={{fontWeight:700,fontSize:13,marginBottom:10}}>Locataire</h3>
-                {/* Recherche client existant */}
                 <div style={{marginBottom:12,position:"relative"}}>
-                  <label style={LBL}>🔍 Rechercher un client existant</label>
-                  <input style={Inp({background:"#eff6ff",borderColor:"#bfdbfe"})} placeholder="Nom ou téléphone du client..." value={searchClientContrat} onChange={e=>{setSearchClientContrat(e.target.value);setShowClientSuggestions(true);}} onFocus={()=>setShowClientSuggestions(true)}/>
+                  <label style={LBL_STYLE}>🔍 Rechercher un client existant</label>
+                  <input style={INP_STYLE({background:"#eff6ff",borderColor:"#bfdbfe"})} placeholder="Nom ou téléphone du client..." value={searchClientContrat} onChange={e=>{setSearchClientContrat(e.target.value);setShowClientSuggestions(true);}} onFocus={()=>setShowClientSuggestions(true)}/>
                   {showClientSuggestions&&clientSuggestions.length>0&&(
                     <div style={{position:"absolute",top:"100%",left:0,right:0,background:"white",border:"1px solid #e5e7eb",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,.12)",zIndex:100,maxHeight:200,overflowY:"auto"}}>
                       {clientSuggestions.map(c=>(<div key={c.key} onClick={()=>{setForm(f=>({...f,locNom:c.nom,locTel:c.tel,locAdresse:c.adresse||"",locEmail:c.email||"",locPermis:c.permis||""}));setDocsLocataire({...c.docs});setSearchClientContrat(c.nom);setShowClientSuggestions(false);toast_("Client "+c.nom+" chargé !");}} style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid #f0f0f0",display:"flex",justifyContent:"space-between",alignItems:"center"}} onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"} onMouseLeave={e=>e.currentTarget.style.background="white"}>
@@ -1426,15 +1428,16 @@ function AppContent(){
                   )}
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  <F k="locNom" label="Nom complet *" span2/>
-                  <F k="locAdresse" label="Adresse *" span2/>
+                  {/* ✅ FIX : F reçoit maintenant form/setForm/touched/setTouched/req en props */}
+                  <F k="locNom" label="Nom complet *" span2 form={form} setForm={setForm} touched={touched} setTouched={setTouched} req={req}/>
+                  <F k="locAdresse" label="Adresse *" span2 form={form} setForm={setForm} touched={touched} setTouched={setTouched} req={req}/>
                   <div style={{gridColumn:"span 2"}}>
-                    <label style={LBL}>Téléphone *</label>
+                    <label style={LBL_STYLE}>Téléphone *</label>
                     <TelInput value={form.locTel} onChange={v=>setForm(f=>({...f,locTel:v}))} placeholder="06 12 34 56 78"/>
                     {inv("locTel")&&<p style={{color:"#ef4444",fontSize:10,marginTop:2}}>Obligatoire</p>}
                   </div>
-                  <F k="locEmail" label="Email" type="email"/>
-                  <F k="locPermis" label="N° Permis"/>
+                  <F k="locEmail" label="Email" type="email" form={form} setForm={setForm} touched={touched} setTouched={setTouched} req={req}/>
+                  <F k="locPermis" label="N° Permis" form={form} setForm={setForm} touched={touched} setTouched={setTouched} req={req}/>
                 </div>
               </div>
               <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
@@ -1445,17 +1448,17 @@ function AppContent(){
               <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>Durée</h3>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  <div><label style={LBL}>Début *</label><input type="date" style={Inp(inv("dateDebut")?{borderColor:"#f87171",background:"#fef2f2"}:{})} value={form.dateDebut} onChange={e=>setForm(f=>({...f,dateDebut:e.target.value}))} onBlur={()=>setTouched(t=>({...t,dateDebut:true}))}/></div>
-                  <div><label style={LBL}>Heure départ</label><input type="time" style={Inp()} value={form.heureDebut} onChange={e=>setForm(f=>({...f,heureDebut:e.target.value}))}/></div>
-                  <div><label style={LBL}>Fin *</label><input type="date" style={Inp(inv("dateFin")?{borderColor:"#f87171",background:"#fef2f2"}:{})} value={form.dateFin} onChange={e=>setForm(f=>({...f,dateFin:e.target.value}))} onBlur={()=>setTouched(t=>({...t,dateFin:true}))}/></div>
-                  <div><label style={LBL}>Heure retour</label><input type="time" style={Inp()} value={form.heureFin} onChange={e=>setForm(f=>({...f,heureFin:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>Début *</label><input type="date" style={INP_STYLE(inv("dateDebut")?{borderColor:"#f87171",background:"#fef2f2"}:{})} value={form.dateDebut} onChange={e=>setForm(f=>({...f,dateDebut:e.target.value}))} onBlur={()=>setTouched(t=>({...t,dateDebut:true}))}/></div>
+                  <div><label style={LBL_STYLE}>Heure départ</label><input type="time" style={INP_STYLE()} value={form.heureDebut} onChange={e=>setForm(f=>({...f,heureDebut:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>Fin *</label><input type="date" style={INP_STYLE(inv("dateFin")?{borderColor:"#f87171",background:"#fef2f2"}:{})} value={form.dateFin} onChange={e=>setForm(f=>({...f,dateFin:e.target.value}))} onBlur={()=>setTouched(t=>({...t,dateFin:true}))}/></div>
+                  <div><label style={LBL_STYLE}>Heure retour</label><input type="time" style={INP_STYLE()} value={form.heureFin} onChange={e=>setForm(f=>({...f,heureFin:e.target.value}))}/></div>
                 </div>
                 <div style={{marginTop:10,background:"#f0fdf4",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#16a34a",fontWeight:600}}>Durée : {form.nbJours} jour(s) ({form.heuresLoc}h)</div>
               </div>
               <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>État au départ</h3>
-                <div style={{marginBottom:12}}><label style={LBL}>Kilométrage départ</label><input type="number" style={Inp()} placeholder={sel.km} value={form.kmDepart} onChange={e=>setForm(f=>({...f,kmDepart:e.target.value}))}/></div>
-                <div style={{marginBottom:12}}><label style={LBL}>Carburant au départ</label><FuelGauge value={form.carburantDepart} onChange={v=>setForm(f=>({...f,carburantDepart:v}))}/></div>
+                <div style={{marginBottom:12}}><label style={LBL_STYLE}>Kilométrage départ</label><input type="number" style={INP_STYLE()} placeholder={sel.km} value={form.kmDepart} onChange={e=>setForm(f=>({...f,kmDepart:e.target.value}))}/></div>
+                <div style={{marginBottom:12}}><label style={LBL_STYLE}>Carburant au départ</label><FuelGauge value={form.carburantDepart} onChange={v=>setForm(f=>({...f,carburantDepart:v}))}/></div>
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   <CheckBool label="Extérieur propre" icon="🚿" val={form.exterieurPropre} onChange={v=>setForm(f=>({...f,exterieurPropre:v}))}/>
                   <CheckBool label="Intérieur propre" icon="🧹" val={form.interieurPropre} onChange={v=>setForm(f=>({...f,interieurPropre:v}))}/>
@@ -1469,8 +1472,8 @@ function AppContent(){
               <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>Paiement & Caution</h3>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  <div><label style={LBL}>Mode de paiement</label><select style={Inp()} value={form.paiement} onChange={e=>setForm(f=>({...f,paiement:e.target.value}))}><option value="especes">Espèces</option><option value="virement">Virement</option><option value="autre">Autre</option></select></div>
-                  <div><label style={LBL}>Mode de caution</label><select style={Inp()} value={form.cautionMode} onChange={e=>setForm(f=>({...f,cautionMode:e.target.value}))}><option value="especes">Espèces</option><option value="virement">Virement</option><option value="emprunt">Emprunt</option><option value="autre">Autre</option></select></div>
+                  <div><label style={LBL_STYLE}>Mode de paiement</label><select style={INP_STYLE()} value={form.paiement} onChange={e=>setForm(f=>({...f,paiement:e.target.value}))}><option value="especes">Espèces</option><option value="virement">Virement</option><option value="autre">Autre</option></select></div>
+                  <div><label style={LBL_STYLE}>Mode de caution</label><select style={INP_STYLE()} value={form.cautionMode} onChange={e=>setForm(f=>({...f,cautionMode:e.target.value}))}><option value="especes">Espèces</option><option value="virement">Virement</option><option value="emprunt">Emprunt</option><option value="autre">Autre</option></select></div>
                 </div>
               </div>
               <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
@@ -1494,7 +1497,6 @@ function AppContent(){
           </div>
         )}
 
-        {/* ── PLANNING ── */}
         {page==="planning"&&(
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
@@ -1519,7 +1521,6 @@ function AppContent(){
                 </>}
               </div>
             </div>
-
             {planView==="calendrier"&&vehicles.map(v=>{
               const vContrats=contrats.filter(c=>c.vehicleId===v.id);
               return(<div key={v.id} style={{background:"white",borderRadius:14,marginBottom:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #e5e7eb"}}>
@@ -1542,11 +1543,10 @@ function AppContent(){
                 </div>)}
               </div>);
             })}
-
             {planView==="gantt"&&(
               <div style={{background:"white",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <div style={{padding:"10px 16px",borderBottom:"1px solid #e5e7eb",fontSize:12,color:"#6b7280"}}>
-                  Période : <b>{ganttStartDate.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</b> → <b>{ganttDates[ganttDates.length-1].toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</b> · Faites défiler horizontalement →
+                  Période : <b>{ganttStartDate.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</b> → <b>{ganttDates[ganttDates.length-1].toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</b>
                 </div>
                 <div ref={ganttRef} style={{overflowX:"auto"}}>
                   <div style={{minWidth:150+ganttDays*DW}}>
@@ -1576,7 +1576,7 @@ function AppContent(){
                             const off=Math.floor((s-ganttStartDate)/86400000);
                             const w=Math.max(Math.ceil((e-s)/86400000)+1,1);
                             if(off>ganttDays||off+w<0)return null;
-                            return(<div key={c.id} style={{position:"absolute",left:Math.max(0,off)*DW+2,top:8,height:28,width:Math.max(Math.min(w+off,ganttDays)-Math.max(off,0),1)*DW-4,background:ganttColors[ci%ganttColors.length],borderRadius:6,display:"flex",alignItems:"center",padding:"0 6px",overflow:"hidden",zIndex:1,cursor:"pointer"}} title={c.locNom+" — "+c.dateDebut+" → "+c.dateFin} onClick={()=>{setRetourContratId(null);setPage("contrats");}}>
+                            return(<div key={c.id} style={{position:"absolute",left:Math.max(0,off)*DW+2,top:8,height:28,width:Math.max(Math.min(w+off,ganttDays)-Math.max(off,0),1)*DW-4,background:ganttColors[ci%ganttColors.length],borderRadius:6,display:"flex",alignItems:"center",padding:"0 6px",overflow:"hidden",zIndex:1,cursor:"pointer"}} title={c.locNom+" — "+c.dateDebut+" → "+c.dateFin}>
                               <span style={{color:"white",fontSize:9,fontWeight:700,whiteSpace:"nowrap"}}>{c.locNom}</span>
                             </div>);
                           })}
@@ -1590,18 +1590,17 @@ function AppContent(){
           </div>
         )}
 
-        {/* ── CONTRATS ── */}
         {page==="contrats"&&(
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Contrats ({contratsFiltres.length}/{contrats.length})</h1>
             </div>
             <div style={{background:"white",borderRadius:12,padding:14,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)",display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <div style={{gridColumn:"span 2"}}><input placeholder="🔍 Nom, immat, téléphone..." style={Inp()} value={searchContrat} onChange={e=>setSearchContrat(e.target.value)}/></div>
-              <div><label style={LBL}>Véhicule</label><select style={Inp()} value={filterVehicleContrat} onChange={e=>setFilterVehicleContrat(e.target.value)}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele} — {v.immat}</option>)}</select></div>
+              <div style={{gridColumn:"span 2"}}><input placeholder="🔍 Nom, immat, téléphone..." style={INP_STYLE()} value={searchContrat} onChange={e=>setSearchContrat(e.target.value)}/></div>
+              <div><label style={LBL_STYLE}>Véhicule</label><select style={INP_STYLE()} value={filterVehicleContrat} onChange={e=>setFilterVehicleContrat(e.target.value)}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele} — {v.immat}</option>)}</select></div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                <div><label style={LBL}>Début après</label><input type="date" style={Inp()} value={filterDateDebut} onChange={e=>setFilterDateDebut(e.target.value)}/></div>
-                <div><label style={LBL}>Fin avant</label><input type="date" style={Inp()} value={filterDateFin} onChange={e=>setFilterDateFin(e.target.value)}/></div>
+                <div><label style={LBL_STYLE}>Début après</label><input type="date" style={INP_STYLE()} value={filterDateDebut} onChange={e=>setFilterDateDebut(e.target.value)}/></div>
+                <div><label style={LBL_STYLE}>Fin avant</label><input type="date" style={INP_STYLE()} value={filterDateFin} onChange={e=>setFilterDateFin(e.target.value)}/></div>
               </div>
               {(searchContrat||filterVehicleContrat||filterDateDebut||filterDateFin)&&<div style={{gridColumn:"span 2"}}><button onClick={()=>{setSearchContrat("");setFilterVehicleContrat("");setFilterDateDebut("");setFilterDateFin("");}} style={{padding:"5px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>✕ Effacer filtres</button></div>}
             </div>
@@ -1638,7 +1637,6 @@ function AppContent(){
           </div>
         )}
 
-        {/* ── RETOURS ── */}
         {page==="retours"&&(
           <div>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:12}}>Retours</h1>
@@ -1652,17 +1650,15 @@ function AppContent(){
             {contrats.filter(c=>retours[c.id]).length>0&&(
               <div>
                 <h2 style={{fontSize:13,fontWeight:700,color:"#6b7280",marginBottom:8}}>Retours effectués</h2>
-                {/* Filtres retours */}
                 <div style={{background:"white",borderRadius:12,padding:12,marginBottom:12,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                  <div style={{gridColumn:"span 2"}}><input placeholder="🔍 Nom, immat..." style={Inp()} value={searchRetour} onChange={e=>setSearchRetour(e.target.value)}/></div>
-                  <div><label style={LBL}>Véhicule</label><select style={Inp()} value={filterVehicleRetour} onChange={e=>setFilterVehicleRetour(e.target.value)}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele}</option>)}</select></div>
+                  <div style={{gridColumn:"span 2"}}><input placeholder="🔍 Nom, immat..." style={INP_STYLE()} value={searchRetour} onChange={e=>setSearchRetour(e.target.value)}/></div>
+                  <div><label style={LBL_STYLE}>Véhicule</label><select style={INP_STYLE()} value={filterVehicleRetour} onChange={e=>setFilterVehicleRetour(e.target.value)}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele}</option>)}</select></div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                    <div><label style={LBL}>Retour après</label><input type="date" style={Inp()} value={filterRetourDateDebut} onChange={e=>setFilterRetourDateDebut(e.target.value)}/></div>
-                    <div><label style={LBL}>Retour avant</label><input type="date" style={Inp()} value={filterRetourDateFin} onChange={e=>setFilterRetourDateFin(e.target.value)}/></div>
+                    <div><label style={LBL_STYLE}>Retour après</label><input type="date" style={INP_STYLE()} value={filterRetourDateDebut} onChange={e=>setFilterRetourDateDebut(e.target.value)}/></div>
+                    <div><label style={LBL_STYLE}>Retour avant</label><input type="date" style={INP_STYLE()} value={filterRetourDateFin} onChange={e=>setFilterRetourDateFin(e.target.value)}/></div>
                   </div>
                   {(searchRetour||filterVehicleRetour||filterRetourDateDebut||filterRetourDateFin)&&<div style={{gridColumn:"span 2"}}><button onClick={()=>{setSearchRetour("");setFilterVehicleRetour("");setFilterRetourDateDebut("");setFilterRetourDateFin("");}} style={{padding:"5px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>✕ Effacer</button></div>}
                 </div>
-                <div style={{fontSize:11,color:"#6b7280",marginBottom:8}}>{retoursFiltres.length} retour{retoursFiltres.length>1?"s":""} trouvé{retoursFiltres.length>1?"s":""}</div>
                 {retoursFiltres.map(c=>{const r=retours[c.id];return(<div key={c.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"1px solid #e5e7eb"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
                     <div>
@@ -1690,7 +1686,6 @@ function AppContent(){
           </div>
         )}
 
-        {/* ── AMENDES ── */}
         {page==="amendes"&&(
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -1702,14 +1697,14 @@ function AppContent(){
               return(<div style={{background:"white",borderRadius:14,padding:18,marginBottom:16,boxShadow:"0 2px 12px rgba(0,0,0,.1)",border:"2px solid #fecaca"}}>
                 <h3 style={{fontWeight:700,fontSize:14,marginBottom:12,color:"#dc2626"}}>Nouvelle amende</h3>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:10}}>
-                  <div><label style={LBL}>Véhicule *</label><select style={Inp()} value={amendeForm.vehicleId} onChange={e=>setAmendeForm(f=>({...f,vehicleId:e.target.value}))}><option value="">-- Choisir --</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele} — {v.immat}</option>)}</select></div>
-                  <div><label style={LBL}>Date *</label><input type="date" style={Inp()} value={amendeForm.date} onChange={e=>setAmendeForm(f=>({...f,date:e.target.value}))}/></div>
-                  <div><label style={LBL}>Heure</label><input type="time" style={Inp()} value={amendeForm.heure} onChange={e=>setAmendeForm(f=>({...f,heure:e.target.value}))}/></div>
-                  <div><label style={LBL}>Type</label><select style={Inp()} value={amendeForm.type} onChange={e=>setAmendeForm(f=>({...f,type:e.target.value}))}>{TYPES_AMENDE.map(t=><option key={t}>{t}</option>)}</select></div>
-                  <div><label style={LBL}>Montant (EUR)</label><input type="number" style={Inp()} value={amendeForm.montant} onChange={e=>setAmendeForm(f=>({...f,montant:e.target.value.replace(/\D/g,"")}))} inputMode="numeric"/></div>
-                  <div><label style={LBL}>Statut</label><select style={Inp()} value={amendeForm.statut} onChange={e=>setAmendeForm(f=>({...f,statut:e.target.value}))}>{STATUTS_AMENDE.map(s=><option key={s}>{s}</option>)}</select></div>
+                  <div><label style={LBL_STYLE}>Véhicule *</label><select style={INP_STYLE()} value={amendeForm.vehicleId} onChange={e=>setAmendeForm(f=>({...f,vehicleId:e.target.value}))}><option value="">-- Choisir --</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele} — {v.immat}</option>)}</select></div>
+                  <div><label style={LBL_STYLE}>Date *</label><input type="date" style={INP_STYLE()} value={amendeForm.date} onChange={e=>setAmendeForm(f=>({...f,date:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>Heure</label><input type="time" style={INP_STYLE()} value={amendeForm.heure} onChange={e=>setAmendeForm(f=>({...f,heure:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>Type</label><select style={INP_STYLE()} value={amendeForm.type} onChange={e=>setAmendeForm(f=>({...f,type:e.target.value}))}>{TYPES_AMENDE.map(t=><option key={t}>{t}</option>)}</select></div>
+                  <div><label style={LBL_STYLE}>Montant (EUR)</label><input type="number" style={INP_STYLE()} value={amendeForm.montant} onChange={e=>setAmendeForm(f=>({...f,montant:e.target.value.replace(/\D/g,"")}))} inputMode="numeric"/></div>
+                  <div><label style={LBL_STYLE}>Statut</label><select style={INP_STYLE()} value={amendeForm.statut} onChange={e=>setAmendeForm(f=>({...f,statut:e.target.value}))}>{STATUTS_AMENDE.map(s=><option key={s}>{s}</option>)}</select></div>
                 </div>
-                <div style={{marginBottom:10}}><label style={LBL}>Notes</label><textarea style={{...Inp(),resize:"vertical",fontFamily:"inherit"}} rows={2} value={amendeForm.notes} onChange={e=>setAmendeForm(f=>({...f,notes:e.target.value}))}/></div>
+                <div style={{marginBottom:10}}><label style={LBL_STYLE}>Notes</label><textarea style={{...INP_STYLE(),resize:"vertical",fontFamily:"inherit"}} rows={2} value={amendeForm.notes} onChange={e=>setAmendeForm(f=>({...f,notes:e.target.value}))}/></div>
                 {amendeForm.vehicleId&&amendeForm.date&&(
                   <div style={{padding:"10px 14px",borderRadius:10,marginBottom:10,background:contratRef?"#f0fdf4":"#fef3c7",border:`1px solid ${contratRef?"#bbf7d0":"#fde68a"}`}}>
                     {contratRef?<div><div style={{fontWeight:700,fontSize:12,color:"#16a34a",marginBottom:2}}>Contrat trouvé automatiquement</div><div style={{fontSize:11}}><b>{contratRef.locNom}</b> — {contratRef.dateDebut} → {contratRef.dateFin}</div><div style={{fontSize:10,color:"#6b7280"}}>Tel : {contratRef.locTel}</div></div>:<div style={{fontSize:12,color:"#92400e"}}>Aucun contrat actif à cette date.</div>}
@@ -1749,7 +1744,6 @@ function AppContent(){
           </div>
         )}
 
-        {/* ── QUESTIONS ── */}
         {page==="questions"&&(
           <div>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:4}}>Questions clients</h1>
@@ -1789,7 +1783,6 @@ function AppContent(){
           </div>
         )}
 
-        {/* ── FINANCES ── */}
         {page==="finances"&&(
           <div>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>Finances</h1>
@@ -1806,11 +1799,11 @@ function AppContent(){
               </div>
               {showAddD&&(<div style={{background:"#f8fafc",borderRadius:10,padding:12,marginBottom:12,border:"1px solid #e5e7eb"}}>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8,marginBottom:8}}>
-                  <div><label style={LBL}>Libellé</label><input style={Inp()} value={dForm.label} onChange={e=>setDForm(f=>({...f,label:e.target.value}))}/></div>
-                  <div><label style={LBL}>Montant EUR</label><input type="number" style={Inp()} value={dForm.montant} onChange={e=>setDForm(f=>({...f,montant:e.target.value}))}/></div>
-                  <div><label style={LBL}>Catégorie</label><select style={Inp()} value={dForm.categorie} onChange={e=>setDForm(f=>({...f,categorie:e.target.value}))}>{CAT_DEP.map(c=><option key={c}>{c}</option>)}</select></div>
-                  <div><label style={LBL}>Date</label><input type="date" style={Inp()} value={dForm.date} onChange={e=>setDForm(f=>({...f,date:e.target.value}))}/></div>
-                  <div><label style={LBL}>Véhicule</label><select style={Inp()} value={dForm.vehicleId} onChange={e=>setDForm(f=>({...f,vehicleId:e.target.value}))}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele}</option>)}</select></div>
+                  <div><label style={LBL_STYLE}>Libellé</label><input style={INP_STYLE()} value={dForm.label} onChange={e=>setDForm(f=>({...f,label:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>Montant EUR</label><input type="number" style={INP_STYLE()} value={dForm.montant} onChange={e=>setDForm(f=>({...f,montant:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>Catégorie</label><select style={INP_STYLE()} value={dForm.categorie} onChange={e=>setDForm(f=>({...f,categorie:e.target.value}))}>{CAT_DEP.map(c=><option key={c}>{c}</option>)}</select></div>
+                  <div><label style={LBL_STYLE}>Date</label><input type="date" style={INP_STYLE()} value={dForm.date} onChange={e=>setDForm(f=>({...f,date:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>Véhicule</label><select style={INP_STYLE()} value={dForm.vehicleId} onChange={e=>setDForm(f=>({...f,vehicleId:e.target.value}))}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele}</option>)}</select></div>
                 </div>
                 <button onClick={async()=>{if(!dForm.label||!dForm.montant){toast_("Remplissez libellé et montant","error");return;}const localId=Date.now();const newDep={id:localId,...dForm};setDepenses(d=>[newDep,...d]);setDForm({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});setShowAddD(false);toast_("Dépense ajoutée");if(user){const{data:ins,error:err}=await supabase.from('depenses').insert([{user_id:user.id,label:newDep.label,montant:parseFloat(newDep.montant),categorie:newDep.categorie,date:newDep.date,vehicle_id:newDep.vehicleId||null}]).select().single();if(!err&&ins)setDepenses(ds=>ds.map(x=>x.id===localId?{...x,id:ins.id}:x));}}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
               </div>)}
@@ -1823,7 +1816,6 @@ function AppContent(){
           </div>
         )}
 
-        {/* ── PROFIL ── */}
         {page==="profil"&&(
           <div style={{maxWidth:520,margin:"0 auto"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -1831,9 +1823,9 @@ function AppContent(){
               <button onClick={()=>{setProfilEdit(!profilEdit);setProfilForm({...profil});}} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>{profilEdit?"Annuler":"Modifier"}</button>
             </div>
             {profilEdit?(<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
-              {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(<div key={k} style={{marginBottom:10}}><label style={LBL}>{l}</label><input style={Inp()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>))}
-              {[["tel","Téléphone"],["whatsapp","WhatsApp"]].map(([k,l])=>(<div key={k} style={{marginBottom:10}}><label style={LBL}>{l}</label><TelInput value={profilForm[k]||""} onChange={v=>setProfilForm(p=>({...p,[k]:v}))} placeholder={l}/></div>))}
-              <div style={{marginBottom:10}}><label style={LBL}>Snapchat</label><input style={Inp()} placeholder="Nom d'utilisateur Snapchat" value={profilForm.snap||""} onChange={e=>setProfilForm(p=>({...p,snap:e.target.value}))}/></div>
+              {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(<div key={k} style={{marginBottom:10}}><label style={LBL_STYLE}>{l}</label><input style={INP_STYLE()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>))}
+              {[["tel","Téléphone"],["whatsapp","WhatsApp"]].map(([k,l])=>(<div key={k} style={{marginBottom:10}}><label style={LBL_STYLE}>{l}</label><TelInput value={profilForm[k]||""} onChange={v=>setProfilForm(p=>({...p,[k]:v}))} placeholder={l}/></div>))}
+              <div style={{marginBottom:10}}><label style={LBL_STYLE}>Snapchat</label><input style={INP_STYLE()} placeholder="Nom d'utilisateur Snapchat" value={profilForm.snap||""} onChange={e=>setProfilForm(p=>({...p,snap:e.target.value}))}/></div>
               <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user)await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
               <button onClick={()=>supabase.auth.signOut()} style={{marginTop:10,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
             </div>):(<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>

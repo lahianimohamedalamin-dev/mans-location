@@ -1370,8 +1370,9 @@ function AppContent(){
           </div>
         )}
 
-        {page==="nouveau"&&(
-          <div style={{maxWidth:680,margin:"0 auto"}}>
+        </div>}
+
+        {page==="nouveau"&&<div style={{maxWidth:680,margin:"0 auto"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
               <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Nouveau contrat</h1>
@@ -1512,8 +1513,9 @@ function AppContent(){
           </div>
         )}
 
-        {page==="planning"&&(
-          <div>
+        </div>}
+
+        {page==="planning"&&<div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Planning</h1>
               <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
@@ -1605,8 +1607,9 @@ function AppContent(){
           </div>
         )}
 
-        {page==="contrats"&&(
-          <div>
+        </div>}
+
+        {page==="contrats"&&<div>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
               <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Historique contrats ({contratsFiltres.length}/{contrats.length})</h1>
@@ -1653,8 +1656,9 @@ function AppContent(){
           </div>
         )}
 
-        {page==="retours"&&(
-          <div>
+        </div>}
+
+        {page==="retours"&&<div>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
               <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Retours</h1>
@@ -1705,8 +1709,9 @@ function AppContent(){
           </div>
         )}
 
-        {page==="amendes"&&(
-          <div>
+        </div>}
+
+        {page==="amendes"&&<div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Amendes</h1>
               <button onClick={()=>setShowAddAmende(!showAddAmende)} style={{background:"#dc2626",color:"white",border:"none",borderRadius:10,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
@@ -1763,8 +1768,9 @@ function AppContent(){
           </div>
         )}
 
-        {page==="questions"&&(
-          <div>
+        </div>}
+
+        {page==="questions"&&<div>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:4}}>Questions clients</h1>
             <p style={{fontSize:12,color:"#6b7280",marginBottom:16}}>Questions posées depuis la vitrine.</p>
             {questions.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>❓</div><p>Aucune question pour l'instant.</p></div>}
@@ -1903,8 +1909,9 @@ function AppContent(){
           </div>
         )}
 
-        {page==="profil"&&(
-          <div style={{maxWidth:520,margin:"0 auto"}}>
+        </div>}
+
+        {page==="profil"&&<div style={{maxWidth:520,margin:"0 auto"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Profil</h1>
               <button onClick={()=>{setProfilEdit(!profilEdit);setProfilForm({...profil});}} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>{profilEdit?"Annuler":"Modifier"}</button>
@@ -1925,8 +1932,7 @@ function AppContent(){
               {[["SIREN",profil.siren],["SIRET",profil.siret],["KBIS",profil.kbis],["Téléphone",profil.tel],["WhatsApp",profil.whatsapp],["Snapchat",profil.snap],["Email",profil.email],["Adresse",profil.adresse],["Ville",profil.ville],["IBAN",profil.iban]].filter(([,v])=>v).map(([l,v])=>(<div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f0f0"}}><span style={{fontSize:11,color:"#6b7280"}}>{l}</span><span style={{fontSize:12,fontWeight:600}}>{v}</span></div>))}
               <button onClick={()=>supabase.auth.signOut()} style={{marginTop:14,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
             </div>)}
-          </div>
-        )}
+          </div>}
 
       </div>
     </div>

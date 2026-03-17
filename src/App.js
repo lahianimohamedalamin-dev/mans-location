@@ -1281,69 +1281,7 @@ function AppContent(){
           </div>
         )}
 
-        {page==="vitrine"&&(
-          <div>
-            <div style={{marginBottom:16}}><h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>🏪 Vitrine</h1></div>
-            {vehicles.some(v=>v.publie)&&(
-              <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",borderRadius:14,padding:16,marginBottom:16,color:"white"}}>
-                <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>Lien vitrine public</div>
-                <div style={{background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px",fontSize:11,wordBreak:"break-all",marginBottom:8}}>{window.location.origin}/vitrine/{user?.id?.slice(0,8)}</div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  <button onClick={()=>{navigator.clipboard.writeText(window.location.origin+"/vitrine/"+user?.id?.slice(0,8));toast_("Lien copié !");}} style={{padding:"7px 14px",background:"white",color:"#1e3a8a",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Copier le lien</button>
-                  <button onClick={()=>{const msg="Bonjour, voici notre catalogue : "+window.location.origin+"/vitrine/"+user?.id?.slice(0,8);window.open("https://wa.me/"+(profil.whatsapp||profil.tel||"").replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");}} style={{padding:"7px 14px",background:"#25D366",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>WhatsApp</button>
-                </div>
-              </div>
-            )}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:14}}>
-              {vehicles.map(v=>{
-                const cover=(v.photosVehicule||[])[0];
-                return(<div key={v.id} style={{background:"white",borderRadius:16,overflow:"hidden",boxShadow:"0 2px 10px rgba(0,0,0,.08)",border:`2px solid ${v.publie?"#2563eb":"#e5e7eb"}`}}>
-                  <div style={{height:160,background:"#f1f5f9",position:"relative",overflow:"hidden"}}>
-                    {cover?<img src={cover.data} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",flexDirection:"column",gap:6}}><span style={{fontSize:36}}>🚗</span></div>}
-                    {v.publie&&<div style={{position:"absolute",top:8,right:8,background:"#2563eb",color:"white",fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:99}}>EN LIGNE</div>}
-                  </div>
-                  <div style={{padding:14}}>
-                    <div style={{fontWeight:800,fontSize:15,marginBottom:2}}>{v.marque} {v.modele}</div>
-                    <div style={{fontSize:11,color:"#6b7280",marginBottom:10}}>{v.couleur} · {v.annee} · {v.immat}</div>
-                    <div style={{display:"flex",gap:8}}>
-                      <button onClick={()=>togglePublier(v)} style={{flex:1,padding:"8px 0",background:v.publie?"#fef2f2":"#1e3a8a",color:v.publie?"#dc2626":"white",border:v.publie?"2px solid #fecaca":"none",borderRadius:10,fontSize:12,fontWeight:700,cursor:"pointer"}}>{v.publie?"Retirer":"Publier"}</button>
-                    </div>
-                  </div>
-                </div>);
-              })}
-            </div>
-            {vehicles.some(v=>v.publie)&&(
-              <div style={{marginTop:20}}>
-                <h2 style={{fontSize:14,fontWeight:700,color:"#1f2937",marginBottom:12}}>Aperçu client</h2>
-                <div style={{background:"#f8fafc",borderRadius:14,padding:16,border:"2px dashed #e5e7eb"}}>
-                  <div style={{textAlign:"center",marginBottom:16}}>
-                    <div style={{fontWeight:800,fontSize:18,color:"#0a1940"}}>{profil.entreprise||"MAN'S LOCATION"}</div>
-                    <div style={{fontSize:12,color:"#6b7280"}}>Nos véhicules disponibles</div>
-                  </div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:16}}>
-                    {vehicles.filter(v=>v.publie).map(v=>{
-                      const cover=(v.photosVehicule||[])[0];
-                      return(<div key={v.id} style={{background:"white",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.08)"}}>
-                        <div style={{height:150,background:"#f1f5f9",overflow:"hidden"}}>
-                          {cover?<img src={cover.data} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",fontSize:32}}>🚗</div>}
-                        </div>
-                        <div style={{padding:16}}>
-                          <div style={{fontWeight:700,fontSize:16,marginBottom:4}}>{v.marque} {v.modele}</div>
-                          <div style={{fontSize:12,color:"#6b7280",marginBottom:10}}>{v.couleur} · {v.annee}</div>
-                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-                            <div style={{background:"#eff6ff",borderRadius:8,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:10,color:"#6b7280"}}>Prix/jour</div><div style={{fontWeight:800,fontSize:15,color:"#2563eb"}}>{v.tarif} EUR</div></div>
-                            <div style={{background:"#fef3c7",borderRadius:8,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:10,color:"#6b7280"}}>Caution</div><div style={{fontWeight:800,fontSize:15,color:"#d97706"}}>{v.caution} EUR</div></div>
-                          </div>
-                          <DemandeVehicule vehicle={v} profil={profil} userId={user?.id}/>
-                        </div>
-                      </div>);
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+
 
         {page==="clients"&&(
           <div>

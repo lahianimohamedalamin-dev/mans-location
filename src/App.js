@@ -1645,6 +1645,91 @@ function AppContent(){
         </div>}
 
         {page==="planning"&&<div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
+            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Planning</h1>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              <div style={{display:"flex",background:"white",borderRadius:8,border:"1px solid #e5e7eb",overflow:"hidden"}}>
+                <button onClick={()=>setPlanView("calendrier")} style={{padding:"6px 12px",fontSize:11,fontWeight:planView==="calendrier"?700:400,background:planView==="calendrier"?"#1e3a8a":"white",color:planView==="calendrier"?"white":"#374151",border:"none",cursor:"pointer"}}>Calendrier</button>
+                <button onClick={()=>setPlanView("gantt")} style={{padding:"6px 12px",fontSize:11,fontWeight:planView==="gantt"?700:400,background:planView==="gantt"?"#1e3a8a":"white",color:planView==="gantt"?"white":"#374151",border:"none",cursor:"pointer"}}>Gantt</button>
+              </div>
+              {planView==="calendrier"&&<>
+                <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()-1);setPlanMonth(new Date(d));}} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>◀</button>
+                <span style={{fontWeight:700,fontSize:13,minWidth:130,textAlign:"center",textTransform:"capitalize"}}>{planMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</span>
+                <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()+1);setPlanMonth(new Date(d));}} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>▶</button>
+              </>}
+              {planView==="gantt"&&<>
+                <button onClick={ganttPrevMonth} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>◀</button>
+                <select value={`${ganttStartDate.getFullYear()}-${ganttStartDate.getMonth()}`} onChange={e=>{const[y,m]=e.target.value.split("-");setGanttStartDate(new Date(parseInt(y),parseInt(m),1));}} style={{padding:"5px 8px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:12}}>
+                  {Array.from({length:24},(_,i)=>{const d=new Date();d.setMonth(d.getMonth()-12+i);return d;}).map(d=><option key={`${d.getFullYear()}-${d.getMonth()}`} value={`${d.getFullYear()}-${d.getMonth()}`}>{MONTH_NAMES[d.getMonth()]} {d.getFullYear()}</option>)}
+                </select>
+                <button onClick={ganttNextMonth} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>▶</button>
+                <button onClick={ganttGoToday} style={{padding:"5px 12px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700}}>Aujourd'hui</button>
+              </>}
+            </div>
+          </div>
+          {planView==="calendrier"&&vehicles.map(v=>{
+            const vContrats=contrats.filter(c=>c.vehicleId===v.id);
+            return <div key={v.id} style={{background:"white",borderRadius:14,marginBottom:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #e5e7eb"}}>
+              <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div><span style={{color:"white",fontWeight:800,fontSize:13}}>{v.marque} {v.modele}</span><span style={{color:"rgba(255,255,255,.6)",fontSize:11,marginLeft:10}}>{v.immat}</span></div>
+                <Badge s={statut(v.id)}/>
+              </div>
+              <div style={{overflowX:"auto"}}>
+                <div style={{display:"flex",minWidth:days.length*28+130}}>
+                  <div style={{width:130,flexShrink:0}}/>
+                  {days.map(d=>{const isToday=d.toDateString()===new Date().toDateString();const isWE=d.getDay()===0||d.getDay()===6;return <div key={d.getTime()} style={{width:28,flexShrink:0,textAlign:"center",padding:"5px 0",fontSize:10,fontWeight:isToday?800:400,color:isToday?"#2563eb":isWE?"#9ca3af":"#6b7280",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:"1px solid #f0f0f0"}}>{d.getDate()}</div>;})}
+                </div>
+                <div style={{display:"flex",minWidth:days.length*28+130,padding:"4px 0"}}>
+                  <div style={{width:130,flexShrink:0,padding:"0 8px",fontSize:10,fontWeight:600,color:"#374151",display:"flex",alignItems:"center"}}>Disponibilite</div>
+                  {days.map(d=>{const b=isBooked(v.id,d);return <div key={d.getTime()} style={{width:28,flexShrink:0,height:28,display:"flex",alignItems:"center",justifyContent:"center",background:b?"#dbeafe":"white",borderLeft:"1px solid #f0f0f0"}}><div style={{width:20,height:20,borderRadius:4,background:b?"#2563eb":"#dcfce7"}}/></div>;})}
+                </div>
+              </div>
+              {vContrats.length>0&&<div style={{padding:"8px 12px",borderTop:"1px solid #f0f0f0",display:"flex",flexWrap:"wrap",gap:6}}>
+                {vContrats.map(c=>{const mStart=new Date(c.dateDebut).getMonth(),mEnd=new Date(c.dateFin).getMonth(),y=planMonth.getMonth();if(mStart!==y&&mEnd!==y)return null;return <div key={c.id} style={{background:"#eff6ff",borderRadius:8,padding:"4px 10px",fontSize:11,border:"1px solid #bfdbfe"}}><span style={{fontWeight:700,color:"#1e3a8a"}}>{c.locNom}</span><span style={{color:"#6b7280",marginLeft:6}}>{c.dateDebut} → {c.dateFin}</span></div>;})}
+              </div>}
+            </div>;
+          })}
+          {planView==="gantt"&&<div style={{background:"white",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+            <div style={{padding:"10px 16px",borderBottom:"1px solid #e5e7eb",fontSize:12,color:"#6b7280"}}>
+              Période : <b>{ganttStartDate.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</b> → <b>{ganttDates[ganttDates.length-1].toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</b>
+            </div>
+            <div ref={ganttRef} style={{overflowX:"auto"}}>
+              <div style={{minWidth:150+ganttDays*DW}}>
+                <div style={{display:"flex",borderBottom:"2px solid #e5e7eb",background:"#f8fafc"}}>
+                  <div style={{width:150,flexShrink:0,padding:"6px 10px",fontSize:11,fontWeight:700,borderRight:"1px solid #e5e7eb"}}>Véhicule</div>
+                  {ganttDates.map((d,i)=>{
+                    const isToday=d.toDateString()===today.toDateString();
+                    const isWE=d.getDay()===0||d.getDay()===6;
+                    const isFirst=d.getDate()===1;
+                    return <div key={i} style={{width:DW,flexShrink:0,textAlign:"center",padding:"4px 0",fontSize:9,color:isToday?"white":isWE?"#9ca3af":"#6b7280",background:isToday?"#2563eb":isWE?"#f0f0f0":"#f8fafc",borderLeft:"1px solid #e8e8e8",position:"relative",fontWeight:isToday?800:400}}>
+                      {isFirst&&!isToday&&<div style={{position:"absolute",top:0,left:0,right:0,background:"#1e3a8a",color:"white",fontSize:7,textAlign:"center",lineHeight:"10px"}}>{MONTH_NAMES[d.getMonth()]}</div>}
+                      <span style={{position:"relative",top:isFirst&&!isToday?8:0}}>{d.getDate()}</span>
+                    </div>;
+                  })}
+                </div>
+                {vehicles.map(v=><div key={v.id} style={{display:"flex",borderBottom:"1px solid #f0f0f0"}}>
+                  <div style={{width:150,flexShrink:0,padding:"8px 10px",fontSize:11,borderRight:"1px solid #e5e7eb",background:"#fafafa"}}>
+                    <div style={{fontWeight:700}}>{v.marque} {v.modele}</div>
+                    <div style={{fontSize:9,color:"#9ca3af"}}>{v.immat}</div>
+                  </div>
+                  <div style={{flex:1,position:"relative",height:44}}>
+                    {todayOffset>=0&&todayOffset<ganttDays&&<div style={{position:"absolute",left:todayOffset*DW+DW/2,top:0,bottom:0,width:2,background:"#ef4444",zIndex:2,opacity:.5}}/>}
+                    {ganttDates.map((d,i)=>{const isWE=d.getDay()===0||d.getDay()===6;return <div key={i} style={{position:"absolute",left:i*DW,top:0,width:DW,height:"100%",background:isWE?"rgba(0,0,0,.025)":"transparent",borderLeft:"1px solid #f5f5f5"}}/>;} )}
+                    {contrats.filter(c=>c.vehicleId===v.id&&c.dateDebut&&c.dateFin).map((c,ci)=>{
+                      const s=new Date(c.dateDebut),e=new Date(c.dateFin);
+                      const off=Math.floor((s-ganttStartDate)/86400000);
+                      const w=Math.max(Math.ceil((e-s)/86400000)+1,1);
+                      if(off>ganttDays||off+w<0)return null;
+                      return <div key={c.id} style={{position:"absolute",left:Math.max(0,off)*DW+2,top:8,height:28,width:Math.max(Math.min(w+off,ganttDays)-Math.max(off,0),1)*DW-4,background:ganttColors[ci%ganttColors.length],borderRadius:6,display:"flex",alignItems:"center",padding:"0 6px",overflow:"hidden",zIndex:1,cursor:"pointer"}} title={c.locNom+" — "+c.dateDebut+" → "+c.dateFin}>
+                        <span style={{color:"white",fontSize:9,fontWeight:700,whiteSpace:"nowrap"}}>{c.locNom}</span>
+                      </div>;
+                    })}
+                  </div>
+                </div>)}
+              </div>
+            </div>
+          </div>}
+        </div>}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Planning</h1>
               <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>

@@ -44,16 +44,7 @@ const PAYS_CODES=[
 ];
 const MOTORISATIONS=["Essence","Diesel","Hybride","Hybride rechargeable","Électrique","GPL","Hydrogène"];
 const BOITES=["Manuelle","Automatique","Semi-automatique"];
-const TYPES_VEHICULE=[
-  {id:"voiture",label:"Voiture",icon:"🚗"},
-  {id:"vsp",label:"VSP (sans permis)",icon:"🚘"},
-  {id:"2roues",label:"2 roues",icon:"🏍️"},
-  {id:"utilitaire",label:"Utilitaire",icon:"🚚"},
-  {id:"semi",label:"Semi-remorque",icon:"🚛"},
-  {id:"autocar",label:"Autocar",icon:"🚌"},
-  {id:"camping",label:"Camping-car",icon:"🚐"},
-  {id:"autre",label:"Autre",icon:"🚙"},
-];
+
 const DEVISES=[
   {code:"EUR",symbol:"€",label:"Euro (EUR - €)"},
   {code:"CHF",symbol:"CHF",label:"Franc suisse (CHF)"},

@@ -44,6 +44,26 @@ const PAYS_CODES=[
 ];
 const MOTORISATIONS=["Essence","Diesel","Hybride","Hybride rechargeable","Électrique","GPL","Hydrogène"];
 const BOITES=["Manuelle","Automatique","Semi-automatique"];
+const TYPES_VEHICULE=[
+  {id:"voiture",label:"Voiture",icon:"🚗"},
+  {id:"vsp",label:"VSP (sans permis)",icon:"🚘"},
+  {id:"2roues",label:"2 roues",icon:"🏍️"},
+  {id:"utilitaire",label:"Utilitaire",icon:"🚚"},
+  {id:"semi",label:"Semi-remorque",icon:"🚛"},
+  {id:"autocar",label:"Autocar",icon:"🚌"},
+  {id:"camping",label:"Camping-car",icon:"🚐"},
+  {id:"autre",label:"Autre",icon:"🚙"},
+];
+const DEVISES=[
+  {code:"EUR",symbol:"€",label:"Euro (EUR - €)"},
+  {code:"CHF",symbol:"CHF",label:"Franc suisse (CHF)"},
+  {code:"DZD",symbol:"DA",label:"Dinar algérien (DZD - DA)"},
+  {code:"MAD",symbol:"DH",label:"Dirham marocain (MAD - DH)"},
+  {code:"TND",symbol:"DT",label:"Dinar tunisien (TND)"},
+  {code:"XOF",symbol:"FCFA",label:"Franc CFA (XOF - FCFA)"},
+  {code:"USD",symbol:"$",label:"Dollar américain (USD - $)"},
+  {code:"GBP",symbol:"£",label:"Livre sterling (GBP - £)"},
+];
 const RETOUR_CHECKS=[
   {id:"carburant",label:"Carburant niveau OK",icon:"⛽"},{id:"exterieur",label:"Extérieur propre",icon:"🚿"},
   {id:"interieur",label:"Intérieur propre",icon:"🧹"},{id:"sieges",label:"Sièges sans dégât",icon:"💺"},
@@ -56,7 +76,7 @@ const TARIFS_PRESETS=[
   {type:"Journée (24h)",heures:24},{type:"Week-end (48h)",heures:48},
   {type:"Week-end (72h)",heures:72},{type:"Semaine (7j)",heures:168},{type:"Mois (30j)",heures:720},
 ];
-const INIT_PROFIL={nom:"",entreprise:"",siren:"",siret:"",kbis:"",tel:"",whatsapp:"",snap:"",email:"",adresse:"",ville:"",iban:""};
+const INIT_PROFIL={nom:"",entreprise:"",siren:"",siret:"",kbis:"",tel:"",whatsapp:"",snap:"",email:"",adresse:"",ville:"",iban:"",devise:"EUR"};
 const CAR_BRANDS={
   "Renault":["Clio","Megane","Captur","Kadjar","Scenic","Twingo","Arkana","Austral","Zoe","Kangoo","Trafic","Master"],
   "Peugeot":["108","208","308","408","508","2008","3008","5008","Rifter","Partner","Expert"],
@@ -693,12 +713,16 @@ function ContratModal({vehicle,onClose,onSave}){
 
 function Badge({s}){return s==="loué"?<span style={{padding:"2px 8px",fontSize:10,background:"#fef2f2",color:"#dc2626",borderRadius:999,fontWeight:700}}>Loué</span>:<span style={{padding:"2px 8px",fontSize:10,background:"#f0fdf4",color:"#16a34a",borderRadius:999,fontWeight:700}}>Disponible</span>;}
 
-function calcTarifAuto(vehicle,nbJours,heuresLoc){
+function calcTarifAuto(vehicle,nbJours,heuresLoc,prixJourModifie){
   if(!vehicle)return{prix:0,label:"—"};
+  if(prixJourModifie&&parseFloat(prixJourModifie)>0){
+    const p=parseFloat(prixJourModifie)*nbJours;
+    return{prix:p,label:`Personnalisé — ${prixJourModifie} €/j x ${nbJours}j`};
+  }
   const h=heuresLoc||nbJours*24;
   const specials=(vehicle.tarifsSpeciaux||[]).slice().sort((a,b)=>{const ha=TARIFS_PRESETS.find(p=>p.type===a.type)?.heures||9999;const hb=TARIFS_PRESETS.find(p=>p.type===b.type)?.heures||9999;return ha-hb;});
-  for(const t of specials){const preset=TARIFS_PRESETS.find(p=>p.type===t.type);if(preset&&h<=preset.heures){const prix=t.unite==="forfait"?parseFloat(t.prix):parseFloat(t.prix)*nbJours;return{prix,label:`${t.label||t.type} — ${t.prix} EUR`};}}
-  return{prix:(vehicle.tarif||0)*nbJours,label:`Standard — ${vehicle.tarif} EUR/j x ${nbJours}j`};
+  for(const t of specials){const preset=TARIFS_PRESETS.find(p=>p.type===t.type);if(preset&&h<=preset.heures){const prix=t.unite==="forfait"?parseFloat(t.prix):parseFloat(t.prix)*nbJours;return{prix,label:`${t.label||t.type} — ${t.prix} €`};}}
+  return{prix:(vehicle.tarif||0)*nbJours,label:`Standard — ${vehicle.tarif} €/j x ${nbJours}j`};
 }
 
 // ─────────────────────────────────────────────
@@ -713,7 +737,7 @@ function AppContent(){
   const[profil,setProfil]=useState(INIT_PROFIL);
   const[page,setPage]=useState("dashboard");
   const[selId,setSelId]=useState(null);
-  const FORM0={locNom:"",locAdresse:"",locTel:"+33 ",locEmail:"",locPermis:"",dateDebut:"",heureDebut:"10:00",dateFin:"",heureFin:"10:00",paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null};
+  const FORM0={locPrenom:"",locNom:"",locEntreprise:"",locAdresse:"",locTel:"+33 ",locEmail:"",locPermis:"",locReseaux:"",loc2Prenom:"",loc2Nom:"",dateDebut:"",heureDebut:"10:00",dateFin:"",heureFin:"10:00",paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null,prixJourModifie:"",accompte:"",remise:"",codePromo:""};
   const[form,setForm]=useState(FORM0);
   const[photosDepart,setPhotosDepart]=useState([]);
   const[photosVehicleModal,setPhotosVehicleModal]=useState(null);
@@ -722,7 +746,7 @@ function AppContent(){
   const[touched,setTouched]=useState({});
   const[sigL,setSigL]=useState(null);
   const[sigLoc,setSigLoc]=useState(null);
-  const[vForm,setVForm]=useState({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false,motorisation:"Essence",boite:"Manuelle",puissanceFiscale:"",description:"",locationMin48:false});
+  const[vForm,setVForm]=useState({typeVehicule:"voiture",marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false,motorisation:"Essence",boite:"Manuelle",puissanceFiscale:"",vin:"",nbPortes:"",nbPlaces:"",numParc:"",description:"",locationMin48:false});
   const[showAddV,setShowAddV]=useState(false);
   const[editV,setEditV]=useState(null);
   const[toast,setToast]=useState(null);
@@ -865,7 +889,13 @@ function AppContent(){
   const totalSurplusKm=Object.values(retours).reduce((s,r)=>s+(r.surplusKm||0),0);
   const bT=caT+totalRetenues+totalSurplusKm-dT;
   const cautionsNonRendues=contrats.filter(c=>!retours[c.id]).reduce((s,c)=>{const v=vehicles.find(x=>x.id===c.vehicleId);return s+(v?v.caution:0);},0);
-  const tarifAuto=sel?calcTarifAuto(sel,form.nbJours,form.heuresLoc):{prix:0,label:"—"};
+  const devise=DEVISES.find(d=>d.code===(profil.devise||"EUR"))||DEVISES[0];
+  const sym=devise.symbol;
+  const tarifAuto=sel?calcTarifAuto(sel,form.nbJours,form.heuresLoc,form.prixJourModifie):{prix:0,label:"—"};
+  const remise=parseFloat(form.remise)||0;
+  const accompte=parseFloat(form.accompte)||0;
+  const totalNet=Math.max(0,(tarifAuto.prix||0)-remise);
+  const resteAPayer=Math.max(0,totalNet-accompte);
   const inv=k=>touched[k]&&!form[k];
   const nbQSansReponse=questions.filter(q=>!q.reponse).length;
 
@@ -894,8 +924,9 @@ function AppContent(){
   async function saveContrat(){
     const miss=req.filter(k=>!form[k]);
     if(!sel||miss.length>0){const t={};req.forEach(k=>t[k]=true);setTouched(t);toast_("Remplissez tous les champs obligatoires","error");return;}
-    const ta=calcTarifAuto(sel,form.nbJours,form.heuresLoc);
-    const c={id:Date.now(),...form,vehicleId:sel.id,vehicleLabel:sel.marque+" "+sel.modele,immat:sel.immat,sigL,sigLoc,totalCalc:ta.prix,tarifLabel:ta.label,photosDepart:[...photosDepart],docsLocataire:{...docsLocataire},fraisSnap:(sel.frais||DEF_FRAIS).map(f=>({...f})),clausesSnap:(sel.clauses||DEF_CLAUSES).map(cl=>({...cl})),kmInclus:sel.kmInclus,prixKmSup:sel.prixKmSup};
+    const ta=calcTarifAuto(sel,form.nbJours,form.heuresLoc,form.prixJourModifie);
+    const locNom=`${form.locPrenom} ${form.locNom}`.trim();
+    const c={id:Date.now(),...form,locNom,vehicleId:sel.id,vehicleLabel:sel.marque+" "+sel.modele,immat:sel.immat,sigL,sigLoc,totalCalc:totalNet,tarifLabel:ta.label,remise,accompte,resteAPayer,photosDepart:[...photosDepart],docsLocataire:{...docsLocataire},fraisSnap:(sel.frais||DEF_FRAIS).map(f=>({...f})),clausesSnap:(sel.clauses||DEF_CLAUSES).map(cl=>({...cl})),kmInclus:sel.kmInclus,prixKmSup:sel.prixKmSup};
     setContrats(p=>[c,...p]);
     upsertClient(c,docsLocataire);
     const html=buildContratHTML(c,sel,sigL,sigLoc,profil);
@@ -903,7 +934,7 @@ function AppContent(){
     toast_("Contrat créé !");
     setForm(FORM0);setTouched({});setSelId(null);setSigL(null);setSigLoc(null);setPhotosDepart([]);setDocsLocataire({});setSearchClientContrat("");
     if(user){
-      const{data:ins,error:err}=await supabase.from('contrats').insert([{user_id:user.id,loc_nom:c.locNom,loc_adresse:c.locAdresse,loc_tel:c.locTel,loc_email:c.locEmail,loc_permis:c.locPermis,date_debut:c.dateDebut,heure_debut:c.heureDebut,date_fin:c.dateFin,heure_fin:c.heureFin,paiement:c.paiement,caution_mode:c.cautionMode,km_depart:c.kmDepart,nb_jours:c.nbJours,heures_loc:c.heuresLoc,carburant_depart:c.carburantDepart,exterieur_propre:c.exterieurPropre,interieur_propre:c.interieurPropre,vehicle_id:c.vehicleId,vehicle_label:c.vehicleLabel,immat:c.immat,sig_l:c.sigL,sig_loc:c.sigLoc,total_calc:c.totalCalc,tarif_label:c.tarifLabel,photos_depart:c.photosDepart,docs_locataire:c.docsLocataire,frais_snap:c.fraisSnap,clauses_snap:c.clausesSnap,km_inclus:c.kmInclus,prix_km_sup:c.prixKmSup}]).select().single();
+      const{data:ins,error:err}=await supabase.from('contrats').insert([{user_id:user.id,loc_nom:locNom,loc_adresse:c.locAdresse,loc_tel:c.locTel,loc_email:c.locEmail,loc_permis:c.locPermis,date_debut:c.dateDebut,heure_debut:c.heureDebut,date_fin:c.dateFin,heure_fin:c.heureFin,paiement:c.paiement,caution_mode:c.cautionMode,km_depart:c.kmDepart,nb_jours:c.nbJours,heures_loc:c.heuresLoc,carburant_depart:c.carburantDepart,exterieur_propre:c.exterieurPropre,interieur_propre:c.interieurPropre,vehicle_id:c.vehicleId,vehicle_label:c.vehicleLabel,immat:c.immat,sig_l:c.sigL,sig_loc:c.sigLoc,total_calc:c.totalCalc,tarif_label:c.tarifLabel,photos_depart:c.photosDepart,docs_locataire:c.docsLocataire,frais_snap:c.fraisSnap,clauses_snap:c.clausesSnap,km_inclus:c.kmInclus,prix_km_sup:c.prixKmSup}]).select().single();
       if(!err&&ins)setContrats(p=>p.map(x=>x.id===c.id?{...x,id:ins.id}:x));
       if(err)console.error(err);
     }
@@ -944,14 +975,14 @@ function AppContent(){
     const base={...vForm,km:+vForm.km,tarif:+vForm.tarif,caution:+vForm.caution||1000,kmInclus:+vForm.kmInclus||0,prixKmSup:+vForm.prixKmSup||0};
     if(editV){
       setVehicles(vs=>vs.map(x=>x.id===editV.id?{...x,...base}:x));toast_("Mis à jour");
-      if(user)await supabase.from('vehicules').update({marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite}).eq('id',editV.id).eq('user_id',user.id);
+      if(user)await supabase.from('vehicules').update({marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc}).eq('id',editV.id).eq('user_id',user.id);
     }else{
       const localId=Date.now();
       setVehicles(vs=>[...vs,{id:localId,...base,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[],photosVehicule:[],publie:false}]);
       toast_("Véhicule ajouté !");
-      if(user){const{data:ins,error:err}=await supabase.from('vehicules').insert([{user_id:user.id,marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifs_speciaux:[],photos_vehicule:[],publie:false}]).select().single();if(!err&&ins)setVehicles(vs=>vs.map(x=>x.id===localId?{...x,id:ins.id}:x));if(err)console.error(err);}
+      if(user){const{data:ins,error:err}=await supabase.from('vehicules').insert([{user_id:user.id,marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifs_speciaux:[],photos_vehicule:[],publie:false}]).select().single();if(!err&&ins)setVehicles(vs=>vs.map(x=>x.id===localId?{...x,id:ins.id}:x));if(err)console.error(err);}
     }
-    setVForm({marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false,motorisation:"Essence",boite:"Manuelle",puissanceFiscale:"",description:"",locationMin48:false});setShowAddV(false);setEditV(null);
+    setVForm({typeVehicule:"voiture",marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false,motorisation:"Essence",boite:"Manuelle",puissanceFiscale:"",vin:"",nbPortes:"",nbPlaces:"",numParc:"",description:"",locationMin48:false});setShowAddV(false);setEditV(null);
   }
 
   function openTarifs(v){setTarifsVehicleId(v.id);setTarifsTemp((v.tarifsSpeciaux||[]).map(t=>({...t})));setNtarif({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});}
@@ -1450,7 +1481,7 @@ function AppContent(){
                   <input style={INP_STYLE({background:"#eff6ff",borderColor:"#bfdbfe"})} placeholder="Nom ou téléphone du client..." value={searchClientContrat} onChange={e=>{setSearchClientContrat(e.target.value);setShowClientSuggestions(true);}} onFocus={()=>setShowClientSuggestions(true)}/>
                   {showClientSuggestions&&clientSuggestions.length>0&&(
                     <div style={{position:"absolute",top:"100%",left:0,right:0,background:"white",border:"1px solid #e5e7eb",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,.12)",zIndex:100,maxHeight:200,overflowY:"auto"}}>
-                      {clientSuggestions.map(c=>(<div key={c.key} onClick={()=>{setForm(f=>({...f,locNom:c.nom,locTel:c.tel,locAdresse:c.adresse||"",locEmail:c.email||"",locPermis:c.permis||""}));setDocsLocataire({...c.docs});setSearchClientContrat(c.nom);setShowClientSuggestions(false);toast_("Client "+c.nom+" chargé !");}} style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid #f0f0f0",display:"flex",justifyContent:"space-between",alignItems:"center"}} onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"} onMouseLeave={e=>e.currentTarget.style.background="white"}>
+                      {clientSuggestions.map(c=>(<div key={c.key} onClick={()=>{const parts=(c.nom||"").trim().split(" ");const prenom=parts[0]||"";const nom=parts.slice(1).join(" ")||"";setForm(f=>({...f,locPrenom:prenom,locNom:nom,locTel:c.tel,locAdresse:c.adresse||"",locEmail:c.email||"",locPermis:c.permis||""}));setDocsLocataire({...c.docs});setSearchClientContrat(c.nom);setShowClientSuggestions(false);toast_("Client "+c.nom+" chargé !");}} style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid #f0f0f0",display:"flex",justifyContent:"space-between",alignItems:"center"}} onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"} onMouseLeave={e=>e.currentTarget.style.background="white"}>
                         <div><div style={{fontWeight:700,fontSize:13}}>{c.nom}</div><div style={{fontSize:11,color:"#6b7280"}}>{c.tel}{c.adresse?" · "+c.adresse:""}</div></div>
                         <div style={{fontSize:10,background:"#eff6ff",color:"#2563eb",borderRadius:6,padding:"2px 6px"}}>{contrats.filter(x=>x.locNom===c.nom).length} contrat{contrats.filter(x=>x.locNom===c.nom).length>1?"s":""}</div>
                       </div>))}
@@ -1458,8 +1489,9 @@ function AppContent(){
                   )}
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  {/* ✅ FIX : F reçoit maintenant form/setForm/touched/setTouched/req en props */}
-                  <F k="locNom" label="Nom complet *" span2 form={form} setForm={setForm} touched={touched} setTouched={setTouched} req={req}/>
+                  <div><label style={LBL_STYLE}>Prénom *</label><input style={INP_STYLE()} placeholder="Prénom" value={form.locPrenom} onChange={e=>setForm(f=>({...f,locPrenom:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>Nom *</label><input style={INP_STYLE(inv("locNom")?{borderColor:"#f87171",background:"#fef2f2"}:{})} placeholder="Nom" value={form.locNom} onChange={e=>setForm(f=>({...f,locNom:e.target.value}))} onBlur={()=>setTouched(t=>({...t,locNom:true}))}/>{inv("locNom")&&<p style={{color:"#ef4444",fontSize:10,marginTop:2}}>Obligatoire</p>}</div>
+                  <div style={{gridColumn:"span 2"}}><label style={LBL_STYLE}>Entreprise (optionnel)</label><input style={INP_STYLE()} placeholder="Nom de la société" value={form.locEntreprise||""} onChange={e=>setForm(f=>({...f,locEntreprise:e.target.value}))}/></div>
                   <F k="locAdresse" label="Adresse *" span2 form={form} setForm={setForm} touched={touched} setTouched={setTouched} req={req}/>
                   <div style={{gridColumn:"span 2"}}>
                     <label style={LBL_STYLE}>Téléphone *</label>
@@ -1468,6 +1500,15 @@ function AppContent(){
                   </div>
                   <F k="locEmail" label="Email" type="email" form={form} setForm={setForm} touched={touched} setTouched={setTouched} req={req}/>
                   <F k="locPermis" label="N° Permis" form={form} setForm={setForm} touched={touched} setTouched={setTouched} req={req}/>
+                  <div style={{gridColumn:"span 2"}}><label style={LBL_STYLE}>Réseaux sociaux</label><input style={INP_STYLE()} placeholder="Instagram, Snapchat, WhatsApp..." value={form.locReseaux||""} onChange={e=>setForm(f=>({...f,locReseaux:e.target.value}))}/></div>
+                </div>
+                {/* 2ème conducteur */}
+                <div style={{marginTop:12,padding:"12px",background:"#f8fafc",borderRadius:10,border:"1px solid #e5e7eb"}}>
+                  <div style={{fontWeight:600,fontSize:12,color:"#6b7280",marginBottom:8}}>Deuxième conducteur (optionnel)</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <div><label style={LBL_STYLE}>Prénom</label><input style={INP_STYLE()} placeholder="Prénom" value={form.loc2Prenom||""} onChange={e=>setForm(f=>({...f,loc2Prenom:e.target.value}))}/></div>
+                    <div><label style={LBL_STYLE}>Nom</label><input style={INP_STYLE()} placeholder="Nom" value={form.loc2Nom||""} onChange={e=>setForm(f=>({...f,loc2Nom:e.target.value}))}/></div>
+                  </div>
                 </div>
               </div>
               <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
@@ -1500,10 +1541,38 @@ function AppContent(){
                 <PhotosDepart photos={photosDepart} setPhotos={setPhotosDepart}/>
               </div>
               <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
-                <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>Paiement & Caution</h3>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  <div><label style={LBL_STYLE}>Mode de paiement</label><select style={INP_STYLE()} value={form.paiement} onChange={e=>setForm(f=>({...f,paiement:e.target.value}))}><option value="especes">Espèces</option><option value="virement">Virement</option><option value="autre">Autre</option></select></div>
-                  <div><label style={LBL_STYLE}>Mode de caution</label><select style={INP_STYLE()} value={form.cautionMode} onChange={e=>setForm(f=>({...f,cautionMode:e.target.value}))}><option value="especes">Espèces</option><option value="virement">Virement</option><option value="emprunt">Emprunt</option><option value="autre">Autre</option></select></div>
+                <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>💰 Récapitulatif du prix</h3>
+                {/* Prix/jour modifiable */}
+                <div style={{background:"#eff6ff",borderRadius:10,padding:12,marginBottom:12,border:"1px solid #bfdbfe"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                    <div style={{fontSize:12,fontWeight:700,color:"#1e3a8a"}}>💲 Tarification</div>
+                    <div style={{fontSize:10,color:"#6b7280"}}>{tarifAuto.label}</div>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <div><label style={LBL_STYLE}>Prix/jour modifié ({sym})</label><input type="number" style={INP_STYLE({background:"white"})} placeholder={sel?.tarif||"0"} value={form.prixJourModifie||""} onChange={e=>setForm(f=>({...f,prixJourModifie:e.target.value}))}/></div>
+                    <div style={{display:"flex",alignItems:"flex-end"}}><div style={{width:"100%",background:"#1e3a8a",borderRadius:8,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,color:"rgba(255,255,255,.6)"}}>Sous-total</div><div style={{fontSize:18,fontWeight:900,color:"#4ade80"}}>{tarifAuto.prix} {sym}</div></div></div>
+                  </div>
+                </div>
+                {/* Caution */}
+                <div style={{background:"#fef3c7",borderRadius:10,padding:12,marginBottom:10,border:"1px solid #fde68a"}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#92400e",marginBottom:6}}>🛡️ Caution — {sel?.caution||0} {sym}</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <div><label style={LBL_STYLE}>Mode de paiement</label><select style={INP_STYLE({background:"white"})} value={form.paiement} onChange={e=>setForm(f=>({...f,paiement:e.target.value}))}><option value="especes">💵 Espèces</option><option value="cb">💳 Carte bancaire</option><option value="cheque">📄 Chèque</option><option value="virement">🏦 Virement</option><option value="autre">… Autre</option></select></div>
+                    <div><label style={LBL_STYLE}>Mode de caution</label><select style={INP_STYLE({background:"white"})} value={form.cautionMode} onChange={e=>setForm(f=>({...f,cautionMode:e.target.value}))}><option value="especes">💵 Espèces</option><option value="cb">💳 Carte bancaire</option><option value="cheque">📄 Chèque</option><option value="virement">🏦 Virement</option><option value="emprunt">🤝 Emprunt</option><option value="autre">… Autre</option></select></div>
+                  </div>
+                </div>
+                {/* Accompte + Remise + Code promo */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                  <div><label style={LBL_STYLE}>💳 Accompte ({sym})</label><input type="number" style={INP_STYLE()} placeholder="0" value={form.accompte||""} onChange={e=>setForm(f=>({...f,accompte:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>🏷️ Remise ({sym})</label><input type="number" style={INP_STYLE()} placeholder="0" value={form.remise||""} onChange={e=>setForm(f=>({...f,remise:e.target.value}))}/></div>
+                  <div style={{gridColumn:"span 2"}}><label style={LBL_STYLE}>🎟️ Code promo</label><input style={INP_STYLE()} placeholder="Ex: PROMO10" value={form.codePromo||""} onChange={e=>setForm(f=>({...f,codePromo:e.target.value.toUpperCase()}))}/></div>
+                </div>
+                {/* Total */}
+                <div style={{background:"#0a1940",borderRadius:10,padding:12,color:"white"}}>
+                  {remise>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:11,opacity:.7,marginBottom:4}}><span>Remise</span><span>- {remise} {sym}</span></div>}
+                  {accompte>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:11,opacity:.7,marginBottom:4}}><span>Accompte versé</span><span>- {accompte} {sym}</span></div>}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:12}}>Total location ({form.nbJours}j)</span><span style={{fontWeight:900,fontSize:18,color:"#4ade80"}}>{totalNet} {sym}</span></div>
+                  {accompte>0&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid rgba(255,255,255,.2)",marginTop:6,paddingTop:6}}><span style={{fontSize:12,fontWeight:700}}>Reste à payer</span><span style={{fontWeight:900,fontSize:16,color:"#fbbf24"}}>{resteAPayer} {sym}</span></div>}
                 </div>
               </div>
               <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
@@ -1514,7 +1583,7 @@ function AppContent(){
                 </div>
               </div>
               <button onClick={saveContrat} style={{width:"100%",background:"linear-gradient(135deg,#0a1940,#1e3a8a)",color:"white",border:"none",borderRadius:12,padding:14,fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 14px rgba(0,0,0,.2)"}}>
-                Créer le contrat — {tarifAuto.prix} EUR
+                Créer le contrat — {totalNet} {sym}
               </button>
             </>)}
             {lastContrat&&(<div style={{marginTop:16,background:"#f0fdf4",borderRadius:14,padding:16,border:"2px solid #86efac"}}>
@@ -1821,11 +1890,78 @@ function AppContent(){
           <div>
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>Finances</h1>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:16}}>
-              {KPI("CA Total",caT+" EUR","💶","#2563eb")}
-              {KPI("Extras",(totalRetenues+totalSurplusKm).toFixed(0)+" EUR","🔒","#d97706")}
-              {KPI("Dépenses",dT.toFixed(0)+" EUR","📤","#ef4444")}
-              {KPI("Bénéfice net",bT.toFixed(0)+" EUR",bT>=0?"📈":"📉",bT>=0?"#16a34a":"#dc2626",null,bT<0)}
+              {KPI("CA Total",caT+" "+sym,"💶","#2563eb")}
+              {KPI("Extras",(totalRetenues+totalSurplusKm).toFixed(0)+" "+sym,"🔒","#d97706")}
+              {KPI("Dépenses",dT.toFixed(0)+" "+sym,"📤","#ef4444")}
+              {KPI("Bénéfice net",bT.toFixed(0)+" "+sym,bT>=0?"📈":"📉",bT>=0?"#16a34a":"#dc2626",null,bT<0)}
             </div>
+
+            {/* Évolution CA mensuelle */}
+            <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)",marginBottom:16}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+                <div style={{width:36,height:36,borderRadius:10,background:"#eff6ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>📈</div>
+                <div style={{fontWeight:700,fontSize:14}}>Évolution du CA</div>
+              </div>
+              {caP.every(m=>m.ca===0&&m.dep===0)?<div style={{textAlign:"center",color:"#9ca3af",padding:24,fontSize:12}}>Aucune donnée disponible</div>:(
+                <div>
+                  <div style={{display:"flex",alignItems:"flex-end",gap:6,height:120,marginBottom:8}}>
+                    {caP.map((m,i)=>(<div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                      <div style={{width:"100%",display:"flex",gap:2,alignItems:"flex-end",height:100}}>
+                        <div style={{flex:1,borderRadius:"4px 4px 0 0",background:"#3b82f6",height:(m.ca/maxCA*100)+"px",minHeight:m.ca>0?3:0,transition:"height .3s"}}/>
+                        <div style={{flex:1,borderRadius:"4px 4px 0 0",background:"#f87171",height:(m.dep/maxCA*100)+"px",minHeight:m.dep>0?3:0,transition:"height .3s"}}/>
+                      </div>
+                      <span style={{fontSize:9,color:"#6b7280",textTransform:"capitalize"}}>{m.label}</span>
+                    </div>))}
+                  </div>
+                  <div style={{display:"flex",gap:16,fontSize:11,color:"#6b7280"}}>
+                    <span><span style={{display:"inline-block",width:10,height:10,background:"#3b82f6",borderRadius:2,marginRight:4}}/>CA</span>
+                    <span><span style={{display:"inline-block",width:10,height:10,background:"#f87171",borderRadius:2,marginRight:4}}/>Dépenses</span>
+                  </div>
+                  <div style={{fontSize:11,color:"#9ca3af",marginTop:4,textAlign:"center"}}>Chiffre d'affaires mensuel (6 derniers mois)</div>
+                </div>
+              )}
+            </div>
+
+            {/* Répartition par véhicule */}
+            <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)",marginBottom:16}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+                <div style={{width:36,height:36,borderRadius:10,background:"#f5f3ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>📊</div>
+                <div style={{fontWeight:700,fontSize:14}}>Répartition par véhicule</div>
+              </div>
+              {vehicles.length===0||contrats.length===0?<div style={{textAlign:"center",color:"#9ca3af",padding:24,fontSize:12}}>Aucune donnée disponible</div>:(()=>{
+                const vColors=["#2563eb","#7c3aed","#16a34a","#d97706","#dc2626","#0891b2","#be185d","#059669"];
+                const vStats=vehicles.map((v,i)=>{
+                  const ca=contrats.filter(c=>c.vehicleId===v.id).reduce((s,c)=>s+(c.totalCalc||0),0);
+                  return{label:v.marque+" "+v.modele,immat:v.immat,ca,color:vColors[i%vColors.length]};
+                }).filter(v=>v.ca>0).sort((a,b)=>b.ca-a.ca);
+                const total=vStats.reduce((s,v)=>s+v.ca,0)||1;
+                if(vStats.length===0)return<div style={{textAlign:"center",color:"#9ca3af",padding:24,fontSize:12}}>Aucune donnée disponible</div>;
+                return(<div>
+                  {/* Barres horizontales */}
+                  <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+                    {vStats.map((v,i)=>(<div key={i}>
+                      <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:3}}>
+                        <span style={{fontWeight:600}}>{v.label} <span style={{color:"#9ca3af",fontWeight:400}}>({v.immat})</span></span>
+                        <span style={{fontWeight:700,color:v.color}}>{v.ca} {sym} — {Math.round(v.ca/total*100)}%</span>
+                      </div>
+                      <div style={{background:"#f3f4f6",borderRadius:99,height:10,overflow:"hidden"}}>
+                        <div style={{width:(v.ca/total*100)+"%",background:v.color,height:"100%",borderRadius:99,transition:"width .4s"}}/>
+                      </div>
+                    </div>))}
+                  </div>
+                  {/* Détails */}
+                  <div style={{borderTop:"1px solid #f0f0f0",paddingTop:10}}>
+                    <div style={{fontWeight:700,fontSize:12,marginBottom:8}}>Détails par véhicule</div>
+                    {vStats.map((v,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #f9f9f9",fontSize:11}}>
+                      <span style={{display:"flex",alignItems:"center",gap:6}}><span style={{width:8,height:8,borderRadius:"50%",background:v.color,display:"inline-block"}}/>  {v.label}</span>
+                      <span style={{fontWeight:700}}>{v.ca} {sym}</span>
+                    </div>))}
+                  </div>
+                </div>);
+              })()}
+            </div>
+
+            {/* Dépenses */}
             <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                 <h2 style={{fontWeight:700,fontSize:14}}>Dépenses</h2>
@@ -1834,7 +1970,7 @@ function AppContent(){
               {showAddD&&(<div style={{background:"#f8fafc",borderRadius:10,padding:12,marginBottom:12,border:"1px solid #e5e7eb"}}>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8,marginBottom:8}}>
                   <div><label style={LBL_STYLE}>Libellé</label><input style={INP_STYLE()} value={dForm.label} onChange={e=>setDForm(f=>({...f,label:e.target.value}))}/></div>
-                  <div><label style={LBL_STYLE}>Montant EUR</label><input type="number" style={INP_STYLE()} value={dForm.montant} onChange={e=>setDForm(f=>({...f,montant:e.target.value}))}/></div>
+                  <div><label style={LBL_STYLE}>Montant {sym}</label><input type="number" style={INP_STYLE()} value={dForm.montant} onChange={e=>setDForm(f=>({...f,montant:e.target.value}))}/></div>
                   <div><label style={LBL_STYLE}>Catégorie</label><select style={INP_STYLE()} value={dForm.categorie} onChange={e=>setDForm(f=>({...f,categorie:e.target.value}))}>{CAT_DEP.map(c=><option key={c}>{c}</option>)}</select></div>
                   <div><label style={LBL_STYLE}>Date</label><input type="date" style={INP_STYLE()} value={dForm.date} onChange={e=>setDForm(f=>({...f,date:e.target.value}))}/></div>
                   <div><label style={LBL_STYLE}>Véhicule</label><select style={INP_STYLE()} value={dForm.vehicleId} onChange={e=>setDForm(f=>({...f,vehicleId:e.target.value}))}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele}</option>)}</select></div>
@@ -1844,7 +1980,7 @@ function AppContent(){
               {depenses.length===0?<p style={{color:"#9ca3af",fontSize:12,textAlign:"center",padding:16}}>Aucune dépense</p>
                 :depenses.map(d=>(<div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 10px",borderRadius:8,background:"#f9fafb",marginBottom:5}}>
                   <div><div style={{fontWeight:600,fontSize:12}}>{d.label}</div><div style={{fontSize:10,color:"#9ca3af"}}>{d.categorie} · {d.date}</div></div>
-                  <div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontWeight:700,color:"#ef4444"}}>-{d.montant} EUR</span><button onClick={async()=>{setDepenses(ds=>ds.filter(x=>x.id!==d.id));if(user)await supabase.from('depenses').delete().eq('id',d.id).eq('user_id',user.id);}} style={{padding:"2px 6px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:10}}>X</button></div>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontWeight:700,color:"#ef4444"}}>-{d.montant} {sym}</span><button onClick={async()=>{setDepenses(ds=>ds.filter(x=>x.id!==d.id));if(user)await supabase.from('depenses').delete().eq('id',d.id).eq('user_id',user.id);}} style={{padding:"2px 6px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:10}}>X</button></div>
                 </div>))}
             </div>
           </div>
@@ -1860,6 +1996,7 @@ function AppContent(){
               {[["nom","Nom"],["entreprise","Entreprise"],["siren","SIREN"],["siret","SIRET"],["kbis","KBIS"],["email","Email"],["adresse","Adresse"],["ville","Ville"],["iban","IBAN"]].map(([k,l])=>(<div key={k} style={{marginBottom:10}}><label style={LBL_STYLE}>{l}</label><input style={INP_STYLE()} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/></div>))}
               {[["tel","Téléphone"],["whatsapp","WhatsApp"]].map(([k,l])=>(<div key={k} style={{marginBottom:10}}><label style={LBL_STYLE}>{l}</label><TelInput value={profilForm[k]||""} onChange={v=>setProfilForm(p=>({...p,[k]:v}))} placeholder={l}/></div>))}
               <div style={{marginBottom:10}}><label style={LBL_STYLE}>Snapchat</label><input style={INP_STYLE()} placeholder="Nom d'utilisateur Snapchat" value={profilForm.snap||""} onChange={e=>setProfilForm(p=>({...p,snap:e.target.value}))}/></div>
+              <div style={{marginBottom:14}}><label style={LBL_STYLE}>💱 Devise</label><select style={INP_STYLE()} value={profilForm.devise||"EUR"} onChange={e=>setProfilForm(p=>({...p,devise:e.target.value}))}>{DEVISES.map(d=><option key={d.code} value={d.code}>{d.label}</option>)}</select></div>
               <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user)await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
               <button onClick={()=>supabase.auth.signOut()} style={{marginTop:10,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
             </div>):(<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>

@@ -8,25 +8,15 @@
     <meta name="description" content="MAN'S LOCATION — Gestion de location de véhicules" />
 
     <!-- ========== SECURITY HEADERS ========== -->
-    <!-- Content Security Policy : restreint les sources autorisées -->
-    <meta http-equiv="Content-Security-Policy" content="
-      default-src 'self';
-      connect-src 'self' https://*.supabase.co wss://*.supabase.co;
-      img-src 'self' data: blob: https://*.supabase.co;
-      script-src 'self' 'unsafe-inline';
-      style-src 'self' 'unsafe-inline';
-      font-src 'self' data:;
-      object-src 'none';
-      base-uri 'self';
-      form-action 'self';
-      frame-ancestors 'none';
-    " />
-    <!-- Empêche le sniffing de type MIME -->
-    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <!-- Contrôle le referrer envoyé dans les requêtes -->
+    <!-- Empêche le clickjacking (chargement dans des iframes) -->
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <!-- Contrôle le referrer envoyé dans les requêtes externes -->
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
-    <!-- Désactive les fonctionnalités navigateur inutiles -->
+    <!-- Désactive les fonctionnalités navigateur non utilisées -->
     <meta http-equiv="Permissions-Policy" content="geolocation=(), camera=(), microphone=(), payment=()" />
+    <!-- NOTE : Content-Security-Policy et X-Content-Type-Options doivent
+         être configurés côté serveur (Vercel/Netlify headers, Nginx, etc.)
+         pour fonctionner correctement. -->
     <!-- ======================================= -->
 
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />

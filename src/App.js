@@ -1364,7 +1364,7 @@ function AppContent(){
             <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",borderRadius:14,padding:"14px 16px",marginBottom:14,color:"white"}}>
               <div style={{fontSize:16,fontWeight:800,marginBottom:2}}>Bonjour, {profil.nom.split(" ")[0]} 👋</div>
               <div style={{fontSize:11,opacity:.7,textTransform:"capitalize"}}>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginTop:12}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(80px,1fr))",gap:8,marginTop:12}}>
                 <div style={{background:"rgba(255,255,255,.12)",borderRadius:10,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,opacity:.7}}>CA total</div><div style={{fontWeight:800,fontSize:14}}>{caT} {sym}</div></div>
                 <div style={{background:"rgba(255,255,255,.12)",borderRadius:10,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,opacity:.7}}>Véhicules</div><div style={{fontWeight:800,fontSize:14}}>{vehicles.length}</div></div>
                 <div style={{background:"rgba(255,255,255,.12)",borderRadius:10,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,opacity:.7}}>Contrats</div><div style={{fontWeight:800,fontSize:14}}>{contrats.length}</div></div>
@@ -1838,14 +1838,14 @@ function AppContent(){
               <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Historique ({contratsFiltres.length}/{contrats.length})</h1>
             </div>
-            <div style={{background:"white",borderRadius:12,padding:14,marginBottom:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <div style={{gridColumn:"span 2"}}><input placeholder="🔍 Nom, immat, téléphone..." style={INP_STYLE()} value={searchContrat} onChange={e=>setSearchContrat(e.target.value)}/></div>
+            <div style={{background:"white",borderRadius:12,padding:14,marginBottom:14,display:"flex",flexDirection:"column",gap:8}}>
+              <input placeholder="🔍 Nom, immat, téléphone..." style={INP_STYLE()} value={searchContrat} onChange={e=>setSearchContrat(e.target.value)}/>
               <div><label style={LBL_STYLE}>Véhicule</label><select style={INP_STYLE()} value={filterVehicleContrat} onChange={e=>setFilterVehicleContrat(e.target.value)}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele} — {v.immat}</option>)}</select></div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                 <div><label style={LBL_STYLE}>Début après</label><input type="date" style={INP_STYLE()} value={filterDateDebut} onChange={e=>setFilterDateDebut(e.target.value)}/></div>
                 <div><label style={LBL_STYLE}>Fin avant</label><input type="date" style={INP_STYLE()} value={filterDateFin} onChange={e=>setFilterDateFin(e.target.value)}/></div>
               </div>
-              {(searchContrat||filterVehicleContrat||filterDateDebut||filterDateFin)&&<div style={{gridColumn:"span 2"}}><button onClick={()=>{setSearchContrat("");setFilterVehicleContrat("");setFilterDateDebut("");setFilterDateFin("");}} style={{padding:"5px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>✕ Effacer</button></div>}
+              {(searchContrat||filterVehicleContrat||filterDateDebut||filterDateFin)&&<div><button onClick={()=>{setSearchContrat("");setFilterVehicleContrat("");setFilterDateDebut("");setFilterDateFin("");}} style={{padding:"5px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>✕ Effacer</button></div>}
             </div>
             {contratsFiltres.length===0
               ?<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><p>Aucun contrat trouvé</p></div>
@@ -1904,14 +1904,14 @@ function AppContent(){
             {contrats.filter(c=>retours[c.id]).length>0&&(
               <div>
                 <h2 style={{fontSize:13,fontWeight:700,color:"#6b7280",marginBottom:8}}>Retours effectués</h2>
-                <div style={{background:"white",borderRadius:12,padding:12,marginBottom:12,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                  <div style={{gridColumn:"span 2"}}><input placeholder="🔍 Nom, immat..." style={INP_STYLE()} value={searchRetour} onChange={e=>setSearchRetour(e.target.value)}/></div>
+                <div style={{background:"white",borderRadius:12,padding:12,marginBottom:12,display:"flex",flexDirection:"column",gap:8}}>
+                  <input placeholder="🔍 Nom, immat..." style={INP_STYLE()} value={searchRetour} onChange={e=>setSearchRetour(e.target.value)}/>
                   <div><label style={LBL_STYLE}>Véhicule</label><select style={INP_STYLE()} value={filterVehicleRetour} onChange={e=>setFilterVehicleRetour(e.target.value)}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele}</option>)}</select></div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                     <div><label style={LBL_STYLE}>Après</label><input type="date" style={INP_STYLE()} value={filterRetourDateDebut} onChange={e=>setFilterRetourDateDebut(e.target.value)}/></div>
                     <div><label style={LBL_STYLE}>Avant</label><input type="date" style={INP_STYLE()} value={filterRetourDateFin} onChange={e=>setFilterRetourDateFin(e.target.value)}/></div>
                   </div>
-                  {(searchRetour||filterVehicleRetour||filterRetourDateDebut||filterRetourDateFin)&&<div style={{gridColumn:"span 2"}}><button onClick={()=>{setSearchRetour("");setFilterVehicleRetour("");setFilterRetourDateDebut("");setFilterRetourDateFin("");}} style={{padding:"5px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>✕ Effacer</button></div>}
+                  {(searchRetour||filterVehicleRetour||filterRetourDateDebut||filterRetourDateFin)&&<div><button onClick={()=>{setSearchRetour("");setFilterVehicleRetour("");setFilterRetourDateDebut("");setFilterRetourDateFin("");}} style={{padding:"5px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>✕ Effacer</button></div>}
                 </div>
                 {retoursFiltres.map(c=>{
                   const r=retours[c.id];
@@ -2190,7 +2190,8 @@ function AppContent(){
                   </div>
                   {rows.length===0
                     ?<div style={{textAlign:"center",color:"#9ca3af",padding:20,fontSize:12}}>Aucun véhicule</div>
-                    :<div>
+                    :<div style={{overflowX:"auto"}}>
+                      <div style={{minWidth:360}}>
                       <div style={{display:"grid",gridTemplateColumns:"1fr auto auto auto auto",gap:"4px 10px",alignItems:"center",marginBottom:10,paddingBottom:8,borderBottom:"2px solid #f3f4f6"}}>
                         <span style={{fontSize:10,color:"#9ca3af",fontWeight:700}}>VÉHICULE</span>
                         <span style={{fontSize:10,color:"#2563eb",fontWeight:700,textAlign:"right"}}>CA</span>
@@ -2216,6 +2217,7 @@ function AppContent(){
                         <span style={{fontWeight:800,fontSize:12,color:"#ef4444",textAlign:"right"}}>{totalDep.toFixed(0)} {sym}</span>
                         <span style={{fontWeight:800,fontSize:12,color:"#d97706",textAlign:"right"}}>{totalCaution>0?totalCaution.toFixed(0)+" "+sym:"—"}</span>
                         <span style={{fontWeight:800,fontSize:12,color:totalNet>=0?"#16a34a":"#dc2626",textAlign:"right"}}>{totalNet.toFixed(0)} {sym}</span>
+                      </div>
                       </div>
                     </div>}
                 </div>

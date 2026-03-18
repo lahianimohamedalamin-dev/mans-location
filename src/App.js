@@ -851,6 +851,9 @@ function AppContent(){
   const[newDoc,setNewDoc]=useState({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});
   const[lastContrat,setLastContrat]=useState(null);
   const[retourContratId,setRetourContratId]=useState(null);
+  const[prolonContrat,setProlonContrat]=useState(null);
+  const[prolonDateFin,setProlonDateFin]=useState("");
+  const[prolonHeureFin,setProlonHeureFin]=useState("10:00");
   const[retours,setRetours]=useState({});
   const[tarifsVehicleId,setTarifsVehicleId]=useState(null);
   const[tarifsTemp,setTarifsTemp]=useState([]);
@@ -1055,6 +1058,29 @@ function AppContent(){
     const r=retours[c.id];if(!r)return;
     const v=vehicles.find(x=>x.id===c.vehicleId)||{};
     dlPDF(buildPVRetourHTML(c,v,r,r.sigRetourLoueur||null,r.sigRetourLocataire||null,profil));
+  }
+
+  function ouvrirProlon(c){
+    setProlonContrat(c);
+    setProlonDateFin(c.dateFin||"");
+    setProlonHeureFin(c.heureFin||"10:00");
+  }
+  async function prolongerContrat(){
+    if(!prolonContrat||!prolonDateFin)return;
+    const c=prolonContrat;
+    const v=vehicles.find(x=>x.id===c.vehicleId);
+    const debut=new Date(c.dateDebut);
+    const fin=new Date(prolonDateFin);
+    if(fin<=debut){toast_("La nouvelle date doit être après le début","error");return;}
+    const newNbJours=Math.max(1,Math.ceil((fin-debut)/86400000));
+    const tarifJ=parseFloat(c.tarifLabel?.match(/(\d+(?:\.\d+)?)\s*€\/j/)?.[1])||( v?v.tarif:0);
+    const newTotal=Math.max(0,tarifJ*newNbJours-(c.remise||0));
+    const newLabel=`Prolongé — ${tarifJ} €/j x ${newNbJours}j`;
+    const updated={...c,dateFin:prolonDateFin,heureFin:prolonHeureFin,nbJours:newNbJours,totalCalc:newTotal,tarifLabel:newLabel};
+    setContrats(cs=>cs.map(x=>x.id===c.id?updated:x));
+    if(user){await supabase.from('contrats').update({date_fin:prolonDateFin,heure_fin:prolonHeureFin,nb_jours:newNbJours,total_calc:newTotal,tarif_label:newLabel}).eq('id',c.id).eq('user_id',user.id);}
+    toast_("Contrat prolongé jusqu'au "+prolonDateFin+" !");
+    setProlonContrat(null);
   }
 
   async function saveRetour(contratId,data){
@@ -1945,6 +1971,7 @@ function AppContent(){
                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                       <button onClick={()=>rePrint(c)} style={{padding:"5px 10px",background:"#eff6ff",color:"#2563eb",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>📄 PDF</button>
                       {!r&&<button onClick={()=>setRetourContratId(c.id)} style={{padding:"5px 10px",background:"#f0fdf4",color:"#16a34a",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>Retour</button>}
+                      {!r&&<button onClick={()=>ouvrirProlon(c)} style={{padding:"5px 10px",background:"#fef3c7",color:"#b45309",border:"none",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer"}}>⏳ Prolonger</button>}
                       {r&&<button onClick={()=>reDownloadPV(c)} style={{padding:"5px 10px",background:"#fef3c7",color:"#d97706",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>📄 PV</button>}
                       <button onClick={()=>{const cl=clients.find(x=>x.nom===c.locNom&&x.tel===c.locTel);if(cl)setSelectedClient(cl);}} style={{padding:"5px 10px",background:"#f5f3ff",color:"#7c3aed",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>👤 Fiche</button>
                       <button onClick={async()=>{if(window.confirm("Supprimer ?")){setContrats(cs=>cs.filter(x=>x.id!==c.id));if(user)await supabase.from('contrats').delete().eq('id',c.id).eq('user_id',user.id);}}} style={{padding:"5px 10px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:7,fontSize:11,cursor:"pointer"}}>Supprimer</button>
@@ -1966,9 +1993,12 @@ function AppContent(){
               <div style={{marginBottom:16}}>
                 <h2 style={{fontSize:13,fontWeight:700,color:"#6b7280",marginBottom:8}}>En attente ({contrats.filter(c=>!retours[c.id]).length})</h2>
                 {contrats.filter(c=>!retours[c.id]).map(c=>(
-                  <div key={c.id} style={{background:"white",borderRadius:12,padding:12,marginBottom:8,border:"1px solid #fde68a",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div key={c.id} style={{background:"white",borderRadius:12,padding:12,marginBottom:8,border:"1px solid #fde68a",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                     <div><div style={{fontWeight:700}}>{c.locNom}</div><div style={{fontSize:11,color:"#6b7280"}}>{c.vehicleLabel} · {c.dateDebut} → {c.dateFin}</div></div>
-                    <button onClick={()=>setRetourContratId(c.id)} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"7px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Faire le retour</button>
+                    <div style={{display:"flex",gap:6}}>
+                      <button onClick={()=>ouvrirProlon(c)} style={{background:"#fef3c7",color:"#b45309",border:"none",borderRadius:8,padding:"7px 10px",fontSize:12,fontWeight:700,cursor:"pointer"}}>⏳ Prolonger</button>
+                      <button onClick={()=>setRetourContratId(c.id)} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"7px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Faire le retour</button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -2135,6 +2165,58 @@ function AppContent(){
             )}
           </div>
         )}
+
+        {/* MODAL PROLONGEMENT */}
+        {prolonContrat&&(()=>{
+          const c=prolonContrat;
+          const v=vehicles.find(x=>x.id===c.vehicleId);
+          const tarifJ=parseFloat(c.tarifLabel?.match(/(\d+(?:\.\d+)?)\s*€\/j/)?.[1])||(v?v.tarif:0);
+          const debutD=new Date(c.dateDebut);
+          const finNouvelle=prolonDateFin?new Date(prolonDateFin):null;
+          const newNbJours=finNouvelle?Math.max(1,Math.ceil((finNouvelle-debutD)/86400000)):c.nbJours;
+          const joursExtra=newNbJours-c.nbJours;
+          const newTotal=Math.max(0,tarifJ*newNbJours-(c.remise||0));
+          const coutExtra=tarifJ*Math.max(0,joursExtra);
+          return(
+            <div onClick={e=>{if(e.target===e.currentTarget)setProlonContrat(null);}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+              <div style={{background:"white",borderRadius:18,padding:22,width:"100%",maxWidth:400,boxShadow:"0 8px 40px rgba(0,0,0,.2)"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                  <div>
+                    <div style={{fontWeight:900,fontSize:16,color:"#1e3a8a"}}>⏳ Prolonger le contrat</div>
+                    <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>{c.locNom} · {c.vehicleLabel}</div>
+                  </div>
+                  <button onClick={()=>setProlonContrat(null)} style={{background:"#f3f4f6",border:"none",borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:14,fontWeight:700}}>✕</button>
+                </div>
+                <div style={{background:"#f8fafc",borderRadius:10,padding:12,marginBottom:14,fontSize:12}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:"#6b7280"}}>Début</span><span style={{fontWeight:700}}>{c.dateDebut} à {c.heureDebut}</span></div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:"#6b7280"}}>Fin actuelle</span><span style={{fontWeight:700,color:"#dc2626"}}>{c.dateFin} à {c.heureFin}</span></div>
+                  <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#6b7280"}}>Durée actuelle</span><span style={{fontWeight:700}}>{c.nbJours} jour{c.nbJours>1?"s":""}</span></div>
+                </div>
+                <div style={{marginBottom:12}}>
+                  <label style={{fontSize:11,color:"#6b7280",fontWeight:700,display:"block",marginBottom:4}}>Nouvelle date de fin</label>
+                  <input type="date" min={c.dateFin} value={prolonDateFin} onChange={e=>setProlonDateFin(e.target.value)} style={{width:"100%",padding:"9px 12px",borderRadius:8,border:"2px solid #e5e7eb",fontSize:13,fontWeight:600,boxSizing:"border-box"}}/>
+                </div>
+                <div style={{marginBottom:16}}>
+                  <label style={{fontSize:11,color:"#6b7280",fontWeight:700,display:"block",marginBottom:4}}>Heure de restitution</label>
+                  <input type="time" value={prolonHeureFin} onChange={e=>setProlonHeureFin(e.target.value)} style={{width:"100%",padding:"9px 12px",borderRadius:8,border:"2px solid #e5e7eb",fontSize:13,fontWeight:600,boxSizing:"border-box"}}/>
+                </div>
+                {finNouvelle&&joursExtra>0&&(
+                  <div style={{background:"#fef3c7",borderRadius:10,padding:12,marginBottom:16,border:"1px solid #fde68a"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}><span style={{color:"#92400e"}}>Jours supplémentaires</span><span style={{fontWeight:800,color:"#b45309"}}>+ {joursExtra} jour{joursExtra>1?"s":""}</span></div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}><span style={{color:"#92400e"}}>Coût extension ({tarifJ} {sym}/j)</span><span style={{fontWeight:800,color:"#b45309"}}>+ {coutExtra} {sym}</span></div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:13,borderTop:"1px solid #fde68a",paddingTop:8,marginTop:4}}><span style={{fontWeight:700,color:"#1f2937"}}>Nouveau total</span><span style={{fontWeight:900,color:"#1e3a8a",fontSize:16}}>{newTotal} {sym}</span></div>
+                  </div>
+                )}
+                {finNouvelle&&joursExtra<=0&&prolonDateFin&&(
+                  <div style={{background:"#fef2f2",borderRadius:10,padding:10,marginBottom:16,fontSize:12,color:"#dc2626",fontWeight:600}}>La nouvelle date doit être après le {c.dateFin}</div>
+                )}
+                <button onClick={prolongerContrat} disabled={!prolonDateFin||!finNouvelle||joursExtra<=0} style={{width:"100%",padding:12,background:(!prolonDateFin||!finNouvelle||joursExtra<=0)?"#d1d5db":"#1e3a8a",color:"white",border:"none",borderRadius:10,fontSize:13,fontWeight:800,cursor:(!prolonDateFin||!finNouvelle||joursExtra<=0)?"not-allowed":"pointer"}}>
+                  Confirmer la prolongation
+                </button>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* FINANCES */}
         {page==="finances"&&(

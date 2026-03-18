@@ -165,26 +165,53 @@ function dlPDF(html){
 function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   const nb=contrat.nbJours||1,total=contrat.totalCalc||0,pm=contrat.paiement;
   const frais=vehicle.frais||DEF_FRAIS,clauses=vehicle.clauses||DEF_CLAUSES;
-  const fraisRows=frais.map(f=>"<tr><td>"+escHtml(f.label)+"</td><td style='text-align:right;font-weight:bold'>"+escHtml(f.montant)+" €</td></tr>").join("");
-  const clausesHtml=clauses.map((c,i)=>"<div class='cl'><span class='cl-t'>"+(i+6)+". "+escHtml(c.titre)+"</span><br>"+escHtml(c.texte)+"</div>").join("");
+  const fraisRows=frais.map(f=>"<tr><td>"+escHtml(f.label)+"</td><td style='text-align:right;font-weight:bold'>"+escHtml(f.montant)+" EUR</td></tr>").join("");
+  const clausesHtml=clauses.map((c,i)=>"<div class='cl'><span class='cl-t'>"+(i+1)+". "+escHtml(c.titre)+"</span><br>"+escHtml(c.texte)+"</div>").join("");
   const sL=sigL?"<img src='"+sigL+"' style='max-width:160px;height:60px;display:block;margin:0 auto;border-bottom:1px solid #333'>":"<div style='border-bottom:1px solid #333;height:60px;width:160px;margin:0 auto'></div>";
   const sLoc=sigLoc?"<img src='"+sigLoc+"' style='max-width:160px;height:60px;display:block;margin:0 auto;border-bottom:1px solid #333'>":"<div style='border-bottom:1px solid #333;height:60px;width:160px;margin:0 auto'></div>";
   const fuelPct=contrat.carburantDepart||0;
-  const fuelBar="<div style='margin:6px 0'><span style='font-size:10px;color:#555'>Carburant départ : </span><span style='font-weight:bold'>"+fuelPct+"% — "+fuelLabel(fuelPct)+"</span></div>";
-  const cautionMode=contrat.cautionMode==="especes"?"Espèces":contrat.cautionMode==="virement"?"Virement bancaire":contrat.cautionMode==="emprunt"?"Emprunt bancaire":contrat.cautionMode==="cb"?"Carte bancaire":contrat.cautionMode==="cheque"?"Chèque":"Autre";
+  const fuelBar="<div style='margin:4px 0'><span style='font-size:10px;color:#555'>Carburant depart : </span><span style='font-weight:bold'>"+fuelPct+"% — "+fuelLabel(fuelPct)+"</span></div>";
+  const cautionMode=contrat.cautionMode==="especes"?"Especes":contrat.cautionMode==="virement"?"Virement bancaire":contrat.cautionMode==="emprunt"?"Emprunt bancaire":contrat.cautionMode==="cb"?"Carte bancaire":contrat.cautionMode==="cheque"?"Cheque":"Autre";
   const photosDepart=contrat.photosDepart||[];
   const photosHtml=photosDepart.length>0?"<div style='display:flex;flex-wrap:wrap;gap:6px;margin-top:6px'>"+photosDepart.map(p=>"<img src='"+p.data+"' style='width:120px;height:90px;object-fit:cover;border-radius:6px'>").join("")+"</div>":"";
   const dl=contrat.docsLocataire||{};
   let docsLocHtml="";
   if(dl.cniRecto||dl.cniVerso||dl.justifDom||dl.photoAr){
-    docsLocHtml="<div style='margin-top:10px;padding:10px;background:#f8fafc;border-radius:8px'><div style='font-size:11px;font-weight:bold;color:#0a1940;margin-bottom:8px'>Documents du locataire</div><div style='display:flex;flex-wrap:wrap;gap:10px'>";
-    if(dl.cniRecto)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:3px'>CNI Recto</div><img src='"+dl.cniRecto+"' style='width:130px;height:90px;object-fit:cover;border-radius:6px'></div>";
-    if(dl.cniVerso)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:3px'>CNI Verso</div><img src='"+dl.cniVerso+"' style='width:130px;height:90px;object-fit:cover;border-radius:6px'></div>";
-    if(dl.justifDom)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:3px'>Justif. domicile</div><img src='"+dl.justifDom+"' style='width:130px;height:90px;object-fit:cover;border-radius:6px'></div>";
-    if(dl.photoAr)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:3px'>Photo arrière</div><img src='"+dl.photoAr+"' style='width:130px;height:90px;object-fit:cover;border-radius:6px'></div>";
+    docsLocHtml="<div style='margin-top:8px;padding:8px;background:#f8fafc;border-radius:6px'><div style='font-size:10px;font-weight:bold;color:#0a1940;margin-bottom:6px'>Pieces jointes locataire</div><div style='display:flex;flex-wrap:wrap;gap:8px'>";
+    if(dl.cniRecto)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:2px'>CNI Recto</div><img src='"+dl.cniRecto+"' style='width:110px;height:80px;object-fit:cover;border-radius:5px'></div>";
+    if(dl.cniVerso)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:2px'>CNI Verso</div><img src='"+dl.cniVerso+"' style='width:110px;height:80px;object-fit:cover;border-radius:5px'></div>";
+    if(dl.justifDom)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:2px'>Justif. domicile</div><img src='"+dl.justifDom+"' style='width:110px;height:80px;object-fit:cover;border-radius:5px'></div>";
+    if(dl.photoAr)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:2px'>Photo arriere</div><img src='"+dl.photoAr+"' style='width:110px;height:80px;object-fit:cover;border-radius:5px'></div>";
     docsLocHtml+="</div></div>";
   }
-  return["<!DOCTYPE html><html><head><meta charset='utf-8'><title>Contrat "+contrat.locNom+"</title>",
+  const remise=parseFloat(contrat.remise)||0;
+  const accompte=parseFloat(contrat.accompte)||0;
+  const resteAPayer=parseFloat(contrat.resteAPayer)||Math.max(0,total-accompte);
+  const kmInclus=contrat.kmInclus;
+  const prixKmSup=contrat.prixKmSup;
+  const ext=contrat.exterieurPropre;
+  const intr=contrat.interieurPropre;
+  const etatHtml="<div style='display:flex;gap:12px;margin-top:4px'>"
+    +"<div><span style='font-size:10px;color:#555'>Exterieur : </span><span style='font-weight:bold'>"+(ext===true?"Propre":ext===false?"Sale":"N/A")+"</span></div>"
+    +"<div><span style='font-size:10px;color:#555'>Interieur : </span><span style='font-weight:bold'>"+(intr===true?"Propre":intr===false?"Sale":"N/A")+"</span></div>"
+    +"</div>";
+  const loc2=((contrat.loc2Prenom||"")+" "+(contrat.loc2Nom||"")).trim();
+  const CG_ARTICLES=[
+    {n:1,t:"Objet et champ d'application",x:"Le present contrat regit les conditions dans lesquelles le loueur met temporairement a disposition du locataire le vehicule designe ci-dessus. La location est consentie a titre strictement personnel, temporaire et non transmissible. Toute sous-location, pret ou cession a un tiers non autorise par ecrit entraine la resiliation immediate du contrat aux torts du locataire, sans prejudice de dommages et interets."},
+    {n:2,t:"Conditions d'acces",x:"Le locataire et tout conducteur autorise doivent : avoir l'age minimum exige, etre titulaires d'un permis de conduire valide correspondant a la categorie du vehicule, presenter une piece d'identite valide et fournir des informations exactes. Toute declaration inexacte ou document falsifie entraine la nullite des garanties d'assurance et engage la responsabilite financiere integrale du locataire."},
+    {n:3,t:"Usage autorise et interdictions",x:"Usage autorise : conduite privee conforme a la destination du vehicule. Sont interdits : sous-location ou pret a un tiers, transport remunere de personnes ou marchandises, competition ou rallye, circulation hors voies carrossables, conduite sous emprise d'alcool ou stupefiant, usage illegal. Le locataire assume l'entiere responsabilite de toute utilisation non conforme."},
+    {n:4,t:"Etat des lieux",x:"Un etat des lieux est realise au depart et au retour via photographies horodatees et signatures contradictoires. A defaut de reserves emises au moment de la mise a disposition, le vehicule est repute conforme, propre et en parfait etat. Toute contestation ulterieure devra etre prouvee par le locataire."},
+    {n:5,t:"Assurance et responsabilites financieres",x:"Le vehicule beneficie au minimum d'une assurance responsabilite civile obligatoire. En cas de sinistre responsable, le locataire reste redevable de la franchise contractuelle, des frais de gestion, des dommages non couverts, des pertes d'exploitation (tarif journalier x duree d'immobilisation) et de la perte de valeur residuelle. Les garanties sont inapplicables en cas de conduite sous influence, fausse declaration ou conducteur non autorise."},
+    {n:6,t:"Infractions routieres",x:"Le locataire est exclusivement responsable des contraventions, peages, stationnements abusifs. Il autorise le loueur a transmettre ses coordonnees aux autorites competentes, a regler les amendes pour son compte avec frais de gestion, et a debiter les montants sur le depot de garantie."},
+    {n:7,t:"Depot de garantie",x:"Le depot de garantie permet au loueur de debiter sans delai : dommages constates, franchises, frais administratifs, pertes d'exploitation, carburant manquant, depassements kilometriques, retards de restitution, frais de nettoyage, amendes et tout solde restant du. La restitution s'effectue dans un delai raisonnable sauf contestation necessitant expertise."},
+    {n:8,t:"Restitution, penalites et immobilisation",x:"Le vehicule doit etre restitue a la date, heure et lieu convenus, dans un etat identique au depart (hors usure normale), avec le meme niveau de carburant et la proprete interieure/exterieure assuree. Tout retard est facture au tarif journalier majore. Le carburant manquant est facture au prix plein + frais. En cas d'immobilisation imputable au locataire, une indemnite journaliere est facturee jusqu'a remise en etat."},
+    {n:9,t:"Limitation geographique et usage",x:"Le vehicule ne peut etre utilise que sur le territoire autorise mentionne aux conditions particulieres. Toute sortie non autorisee engage la responsabilite integrale du locataire. Le vehicule est non-fumeur. Forfait nettoyage de 20 a 80 EUR en cas d'odeur ou de traces de tabac."},
+    {n:10,t:"Donnees personnelles",x:"Les donnees collectees servent a l'execution contractuelle, la gestion des sinistres, infractions et paiements, ainsi qu'aux obligations legales. Elles sont conservees pendant la duree de prescription legale ou plus en cas de procedure judiciaire. Conformement au RGPD, le locataire dispose d'un droit d'acces, de rectification et d'effacement de ses donnees."},
+    {n:11,t:"Resiliation",x:"Le loueur peut resilier immediatement le contrat en cas de non-respect des obligations, fausse declaration, non-paiement ou usage prohibe, avec confiscation possible du depot de garantie et poursuites judiciaires. En dehors de tout litige, la resiliation est possible avec un preavis raisonnable ou selon les delais precises aux conditions particulieres."},
+    {n:12,t:"Droit applicable et juridiction",x:"Le present contrat est regi par le droit francais. En cas de litige, une resolution amiable est obligatoirement tentee pendant 30 jours a compter de la mise en demeure. A defaut, les tribunaux competents du lieu d'etablissement du loueur seront saisis, sous reserve des protections imperatives du consommateur."},
+  ];
+  const cgHtml=CG_ARTICLES.map(a=>"<div class='cg'><span class='cg-t'>Art. "+a.n+" — "+escHtml(a.t)+"</span><br>"+escHtml(a.x)+"</div>").join("");
+  return["<!DOCTYPE html><html><head><meta charset='utf-8'><title>Contrat "+escHtml(contrat.locNom)+"</title>",
     "<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:11px;color:#111}",
     ".header{background:#0a1940;color:#fff;padding:14px 20px;text-align:center}.header h1{font-size:22px;letter-spacing:2px;margin-bottom:4px}.header p{font-size:9px;opacity:.8;margin:2px 0}",
     ".body{padding:14px 20px}.title{text-align:center;font-size:14px;font-weight:bold;margin:10px 0 6px;text-transform:uppercase;border-bottom:2px solid #0a1940;padding-bottom:6px}",
@@ -192,34 +219,100 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
     ".lbl{color:#555;font-size:10px}.val{font-weight:bold}",
     "hr{border:none;border-top:1px solid #ccc;margin:8px 0}table.ft{width:100%;border-collapse:collapse;font-size:10px;margin-top:5px}",
     "table.ft td{border:1px solid #ddd;padding:3px 6px}",
-    ".cl{font-size:9.5px;margin-bottom:5px;line-height:1.5}.cl-t{font-weight:bold;font-size:10px}",
+    ".cl{font-size:9.5px;margin-bottom:5px;line-height:1.4}.cl-t{font-weight:bold;font-size:10px}",
+    ".cg{font-size:8.5px;margin-bottom:4px;line-height:1.4;color:#333}.cg-t{font-weight:bold;font-size:9px;color:#0a1940}",
     ".sig-area{display:flex;justify-content:space-between;margin-top:16px;gap:30px}.sig-box{flex:1;text-align:center}.sig-box p{font-size:10px;font-weight:bold;margin-bottom:6px}",
     ".tot{background:#0a1940;color:#fff;padding:8px 14px;border-radius:6px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}",
+    ".row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0}",
     "@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>",
-    "<div class='header'><h1>"+escHtml(profil.entreprise||"MAN'S LOCATION")+"</h1><p>LOCATION DE CITADINES EN IDF</p>",
-    "<p>SIRET : "+escHtml(profil.siret||profil.siren)+" | Tel : "+escHtml(profil.tel)+" | "+escHtml(profil.adresse)+"</p></div>",
-    "<div class='body'><div class='title'>Contrat de Location de Vehicule</div>",
-    "<div style='margin-bottom:8px'><div class='st'>Locataire</div>",
-    "<div><span class='lbl'>Nom : </span><span class='val'>"+escHtml(contrat.locNom).toUpperCase()+"</span></div>",
-    "<div><span class='lbl'>Tel : </span><span class='val'>"+escHtml(contrat.locTel)+"</span></div>",
-    "<div><span class='lbl'>Adresse : </span><span class='val'>"+escHtml(contrat.locAdresse)+"</span></div>",
-    docsLocHtml+"</div><hr>",
-    "<div style='margin-bottom:8px'><div class='st'>Vehicule</div>",
-    "<div><span class='lbl'>Vehicule : </span><span class='val'>"+escHtml(vehicle.marque)+" "+escHtml(vehicle.modele)+" — "+escHtml(vehicle.immat)+"</span></div>",
-    "<div><span class='lbl'>Km depart : </span><span class='val'>"+escHtml(contrat.kmDepart||vehicle.km)+" km</span></div>",
-    fuelBar+photosHtml+"</div>",
-    "<div style='margin-bottom:8px'><div class='st'>Duree</div>",
-    "<div><span class='lbl'>Debut : </span><span class='val'>"+escHtml(contrat.dateDebut)+" à "+escHtml(contrat.heureDebut)+"</span></div>",
-    "<div><span class='lbl'>Fin : </span><span class='val'>"+escHtml(contrat.dateFin)+" à "+escHtml(contrat.heureFin)+"</span> — <span class='val'>"+nb+" jour(s)</span></div></div>",
-    "<div style='margin-bottom:8px'><div class='st'>Paiement</div>",
-    "<div class='tot'><span>Total location</span><strong>"+total+" EUR</strong></div>",
-    "<div>["+(pm==="especes"?"X":" ")+"] Especes ["+(pm==="cb"?"X":" ")+"] CB ["+(pm==="virement"?"X":" ")+"] Virement ["+(pm==="cheque"?"X":" ")+"] Cheque</div></div>",
-    "<div style='margin-bottom:8px'><div class='st'>Caution - "+escHtml(vehicle.caution)+" EUR ("+escHtml(cautionMode)+")</div>",
-    "<table class='ft'><tr style='background:#e8edf5;font-weight:bold'><td colspan='2'>Frais deductibles</td></tr>"+fraisRows+"</table></div>",
-    "<div style='margin-bottom:8px'><div class='st'>Clauses</div>"+clausesHtml+"</div>",
-    "<hr><p style='font-size:10px;margin-bottom:12px'>Fait a "+escHtml(profil.ville)+", le "+new Date().toLocaleDateString("fr-FR")+"</p>",
-    "<div class='sig-area'><div class='sig-box'><p>Loueur ("+escHtml(profil.nom)+")</p>"+sL+"</div>",
-    "<div class='sig-box'><p>Locataire ("+escHtml(contrat.locNom)+")</p>"+sLoc+"</div></div>",
+    // EN-TÊTE LOUEUR
+    "<div class='header'>",
+    "<h1>"+escHtml(profil.entreprise||"MAN'S LOCATION")+"</h1>",
+    "<p>SIRET : "+escHtml(profil.siret||profil.siren||"—")+" | Tel : "+escHtml(profil.tel||"—")+(profil.email?" | "+escHtml(profil.email):"")+"</p>",
+    "<p>"+escHtml(profil.adresse||"")+(profil.ville?", "+escHtml(profil.ville):"")+"</p>",
+    "</div>",
+    "<div class='body'>",
+    "<div class='title'>Contrat de Location de Vehicule</div>",
+    // PARTIES
+    "<div style='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px'>",
+    // LOUEUR
+    "<div><div class='st'>Loueur</div>",
+    "<div><span class='lbl'>Societe : </span><span class='val'>"+escHtml(profil.entreprise||"—")+"</span></div>",
+    "<div><span class='lbl'>Representant : </span><span class='val'>"+escHtml(profil.nom||"—")+"</span></div>",
+    "<div><span class='lbl'>SIRET : </span><span class='val'>"+escHtml(profil.siret||profil.siren||"—")+"</span></div>",
+    "<div><span class='lbl'>Adresse : </span><span class='val'>"+escHtml(profil.adresse||"—")+(profil.ville?", "+escHtml(profil.ville):"")+"</span></div>",
+    "<div><span class='lbl'>Tel : </span><span class='val'>"+escHtml(profil.tel||"—")+"</span></div>",
+    "</div>",
+    // LOCATAIRE
+    "<div><div class='st'>Locataire</div>",
+    "<div><span class='lbl'>Nom : </span><span class='val'>"+escHtml(contrat.locNom||"—").toUpperCase()+"</span></div>",
+    (contrat.locEntreprise?"<div><span class='lbl'>Entreprise : </span><span class='val'>"+escHtml(contrat.locEntreprise)+"</span></div>":""),
+    "<div><span class='lbl'>Adresse : </span><span class='val'>"+escHtml(contrat.locAdresse||"—")+"</span></div>",
+    ((contrat.locCodePostal||contrat.locVille)?"<div><span class='lbl'>CP / Ville : </span><span class='val'>"+escHtml((contrat.locCodePostal||"")+" "+(contrat.locVille||"")).trim()+"</span></div>":""),
+    "<div><span class='lbl'>Tel : </span><span class='val'>"+escHtml(contrat.locTel||"—")+"</span></div>",
+    (contrat.locEmail?"<div><span class='lbl'>Email : </span><span class='val'>"+escHtml(contrat.locEmail)+"</span></div>":""),
+    (contrat.locPermis?"<div><span class='lbl'>N° Permis : </span><span class='val'>"+escHtml(contrat.locPermis)+"</span></div>":""),
+    (loc2?"<div style='margin-top:4px;padding:4px 6px;background:#fef9c3;border-radius:4px;font-size:10px'><b>2eme conducteur :</b> "+escHtml(loc2)+"</div>":""),
+    docsLocHtml,
+    "</div>",
+    "</div><hr>",
+    // VEHICULE
+    "<div style='margin-bottom:8px'><div class='st'>Vehicule — Objet du contrat</div>",
+    "<div style='display:grid;grid-template-columns:1fr 1fr;gap:2px'>",
+    "<div><span class='lbl'>Marque/Modele : </span><span class='val'>"+escHtml(vehicle.marque||"")+" "+escHtml(vehicle.modele||"")+"</span></div>",
+    "<div><span class='lbl'>Immatriculation : </span><span class='val'>"+escHtml(vehicle.immat||contrat.immat||"—")+"</span></div>",
+    (vehicle.couleur?"<div><span class='lbl'>Couleur : </span><span class='val'>"+escHtml(vehicle.couleur)+"</span></div>":""),
+    (vehicle.annee?"<div><span class='lbl'>Annee : </span><span class='val'>"+escHtml(vehicle.annee)+"</span></div>":""),
+    (vehicle.vin?"<div><span class='lbl'>VIN : </span><span class='val'>"+escHtml(vehicle.vin)+"</span></div>":""),
+    "<div><span class='lbl'>Km depart : </span><span class='val'>"+escHtml(String(contrat.kmDepart||vehicle.km||"—"))+" km</span></div>",
+    "</div>",
+    fuelBar,etatHtml,photosHtml,"</div><hr>",
+    // PÉRIODE + LIEU
+    "<div style='margin-bottom:8px'><div class='st'>Periode de location et lieu</div>",
+    "<div><span class='lbl'>Lieu de prise en charge : </span><span class='val'>"+escHtml(profil.adresse||"—")+(profil.ville?", "+escHtml(profil.ville):"")+"</span></div>",
+    "<div><span class='lbl'>Depart : </span><span class='val'>"+escHtml(contrat.dateDebut||"—")+" a "+escHtml(contrat.heureDebut||"—")+"</span></div>",
+    "<div><span class='lbl'>Lieu de restitution : </span><span class='val'>"+escHtml(profil.adresse||"—")+(profil.ville?", "+escHtml(profil.ville):"")+"</span></div>",
+    "<div><span class='lbl'>Retour prevu : </span><span class='val'>"+escHtml(contrat.dateFin||"—")+" a "+escHtml(contrat.heureFin||"—")+"</span> — <span class='val'>"+nb+" jour(s)</span></div>",
+    "</div><hr>",
+    // PAIEMENT + FINANCES
+    "<div style='margin-bottom:8px'><div class='st'>Conditions financieres</div>",
+    (contrat.tarifLabel?"<div><span class='lbl'>Tarif : </span><span class='val'>"+escHtml(contrat.tarifLabel)+"</span></div>":""),
+    ((kmInclus&&!contrat.kmIllimite)?"<div><span class='lbl'>Km inclus : </span><span class='val'>"+escHtml(String(kmInclus))+" km</span></div>":""),
+    (contrat.kmIllimite?"<div><span class='lbl'>Kilometrage : </span><span class='val'>Illimite</span></div>":""),
+    ((prixKmSup&&!contrat.kmIllimite)?"<div><span class='lbl'>Prix km sup : </span><span class='val'>"+escHtml(String(prixKmSup))+" EUR/km</span></div>":""),
+    "<div class='row' style='margin-top:6px'><span>Montant location</span><span style='font-weight:bold'>"+total+" EUR</span></div>",
+    (remise>0?"<div class='row'><span>Remise</span><span style='font-weight:bold;color:#16a34a'>- "+remise+" EUR</span></div>":""),
+    "<div class='tot'><span>Total net</span><strong>"+(total)+" EUR</strong></div>",
+    (accompte>0?"<div class='row'><span>Accompte verse</span><span style='font-weight:bold;color:#2563eb'>- "+accompte+" EUR</span></div>":""),
+    (accompte>0?"<div class='row' style='font-size:12px;font-weight:bold;border-top:1px solid #ccc;padding-top:4px;margin-top:4px'><span>Reste a payer</span><span style='color:#dc2626'>"+resteAPayer+" EUR</span></div>":""),
+    "<div style='margin-top:6px'>["+(pm==="especes"?"X":" ")+"] Especes ["+(pm==="cb"?"X":" ")+"] CB ["+(pm==="virement"?"X":" ")+"] Virement ["+(pm==="cheque"?"X":" ")+"] Cheque</div>",
+    "</div><hr>",
+    // CAUTION + ASSURANCE
+    "<div style='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px'>",
+    "<div><div class='st'>Caution / Depot de garantie</div>",
+    "<div><span class='lbl'>Montant : </span><span class='val'>"+escHtml(String(vehicle.caution||"—"))+" EUR</span></div>",
+    "<div><span class='lbl'>Mode : </span><span class='val'>"+escHtml(cautionMode)+"</span></div>",
+    "<table class='ft' style='margin-top:6px'><tr style='background:#e8edf5;font-weight:bold'><td colspan='2'>Frais deductibles</td></tr>"+fraisRows+"</table>",
+    "</div>",
+    "<div><div class='st'>Assurance</div>",
+    "<div style='font-size:10px;line-height:1.5'>",
+    "<div>&#10003; Responsabilite civile obligatoire souscrite</div>",
+    "<div><span class='lbl'>Franchise en cas de sinistre :</span><br><span style='font-weight:bold;color:#dc2626'>Montant de la caution retenue selon responsabilite</span></div>",
+    "<div style='margin-top:4px;font-size:9px;color:#555'>Le locataire est tenu de signaler tout sinistre dans les plus brefs delais au loueur, avec constat amiable signe le cas echeant.</div>",
+    "</div></div>",
+    "</div><hr>",
+    // CONDITIONS PARTICULIERES (clauses vehicule)
+    "<div style='margin-bottom:8px'><div class='st'>Conditions particulieres</div>"+clausesHtml+"</div>",
+    // CONDITIONS GENERALES DE LOCATION
+    "<div style='margin-bottom:8px;page-break-before:always'><div class='st'>Conditions generales de location</div>",
+    "<div style='font-size:8px;color:#6b7280;margin-bottom:4px'>En signant ce contrat, le locataire reconnait avoir lu, compris et accepte sans reserve les conditions generales ci-dessous.</div>",
+    cgHtml+"</div><hr>",
+    // SIGNATURES
+    "<p style='font-size:10px;margin-bottom:6px'>Lu et approuve — Fait a "+escHtml(profil.ville||"—")+", le "+new Date().toLocaleDateString("fr-FR")+"</p>",
+    "<div class='sig-area'>",
+    "<div class='sig-box'><p>Loueur — "+escHtml(profil.nom||profil.entreprise||"—")+"</p>"+sL+"<p style='font-size:9px;margin-top:4px'>Signature + Cachet</p></div>",
+    "<div class='sig-box'><p>Locataire — "+escHtml(contrat.locNom||"—")+"</p>"+sLoc+"<p style='font-size:9px;margin-top:4px'>Bon pour accord, lu et approuve</p></div>",
+    "</div>",
     "</div></body></html>"].join("");
 }
 

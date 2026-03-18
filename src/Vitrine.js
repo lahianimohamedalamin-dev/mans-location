@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './supabase';
 
+/** Valide qu'un numéro de téléphone ne contient que des caractères autorisés */
+function safeTel(tel){ return /^[+\d\s\-()\\.]+$/.test(tel||"")?tel:""; }
+
 export default function Vitrine() {
   const [profil, setProfil] = useState(null);
   const [vehicles, setVehicles] = useState([]);
@@ -67,8 +70,8 @@ export default function Vitrine() {
         <p style={{ fontSize:13, opacity:.8 }}>
           {profil.adresse}{profil.ville && ' · ' + profil.ville}
         </p>
-        {profil.tel && (
-          <a href={`tel:${profil.tel}`} style={{ color:'#4ade80',
+        {safeTel(profil.tel) && (
+          <a href={`tel:${safeTel(profil.tel)}`} style={{ color:'#4ade80',
             fontSize:14, fontWeight:700, textDecoration:'none' }}>
             📞 {profil.tel}
           </a>

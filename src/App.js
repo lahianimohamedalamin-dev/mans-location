@@ -105,6 +105,12 @@ const DEVISES=[
 function fuelLabel(pct){if(pct>=100)return"Plein";if(pct>=75)return"3/4";if(pct>=50)return"1/2";if(pct>=25)return"1/4";return"Réserve";}
 function fuelColor(pct){if(pct>=60)return"#16a34a";if(pct>=30)return"#d97706";return"#dc2626";}
 
+/** Échappe les caractères HTML spéciaux pour prévenir les injections XSS dans les PDF générés */
+function escHtml(str){
+  if(str==null)return"";
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#x27;");
+}
+
 function dlPDF(html){
   const win=window.open('','_blank');
   if(!win){alert("Autorisez les popups");return;}
@@ -115,8 +121,8 @@ function dlPDF(html){
 function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   const nb=contrat.nbJours||1,total=contrat.totalCalc||0,pm=contrat.paiement;
   const frais=vehicle.frais||DEF_FRAIS,clauses=vehicle.clauses||DEF_CLAUSES;
-  const fraisRows=frais.map(f=>"<tr><td>"+f.label+"</td><td style='text-align:right;font-weight:bold'>"+f.montant+" €</td></tr>").join("");
-  const clausesHtml=clauses.map((c,i)=>"<div class='cl'><span class='cl-t'>"+(i+6)+". "+c.titre+"</span><br>"+c.texte+"</div>").join("");
+  const fraisRows=frais.map(f=>"<tr><td>"+escHtml(f.label)+"</td><td style='text-align:right;font-weight:bold'>"+escHtml(f.montant)+" €</td></tr>").join("");
+  const clausesHtml=clauses.map((c,i)=>"<div class='cl'><span class='cl-t'>"+(i+6)+". "+escHtml(c.titre)+"</span><br>"+escHtml(c.texte)+"</div>").join("");
   const sL=sigL?"<img src='"+sigL+"' style='max-width:160px;height:60px;display:block;margin:0 auto;border-bottom:1px solid #333'>":"<div style='border-bottom:1px solid #333;height:60px;width:160px;margin:0 auto'></div>";
   const sLoc=sigLoc?"<img src='"+sigLoc+"' style='max-width:160px;height:60px;display:block;margin:0 auto;border-bottom:1px solid #333'>":"<div style='border-bottom:1px solid #333;height:60px;width:160px;margin:0 auto'></div>";
   const fuelPct=contrat.carburantDepart||0;
@@ -146,30 +152,30 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
     ".sig-area{display:flex;justify-content:space-between;margin-top:16px;gap:30px}.sig-box{flex:1;text-align:center}.sig-box p{font-size:10px;font-weight:bold;margin-bottom:6px}",
     ".tot{background:#0a1940;color:#fff;padding:8px 14px;border-radius:6px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}",
     "@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>",
-    "<div class='header'><h1>"+(profil.entreprise||"MAN'S LOCATION")+"</h1><p>LOCATION DE CITADINES EN IDF</p>",
-    "<p>SIRET : "+(profil.siret||profil.siren)+" | Tel : "+profil.tel+" | "+profil.adresse+"</p></div>",
+    "<div class='header'><h1>"+escHtml(profil.entreprise||"MAN'S LOCATION")+"</h1><p>LOCATION DE CITADINES EN IDF</p>",
+    "<p>SIRET : "+escHtml(profil.siret||profil.siren)+" | Tel : "+escHtml(profil.tel)+" | "+escHtml(profil.adresse)+"</p></div>",
     "<div class='body'><div class='title'>Contrat de Location de Vehicule</div>",
     "<div style='margin-bottom:8px'><div class='st'>Locataire</div>",
-    "<div><span class='lbl'>Nom : </span><span class='val'>"+contrat.locNom.toUpperCase()+"</span></div>",
-    "<div><span class='lbl'>Tel : </span><span class='val'>"+contrat.locTel+"</span></div>",
-    "<div><span class='lbl'>Adresse : </span><span class='val'>"+contrat.locAdresse+"</span></div>",
+    "<div><span class='lbl'>Nom : </span><span class='val'>"+escHtml(contrat.locNom).toUpperCase()+"</span></div>",
+    "<div><span class='lbl'>Tel : </span><span class='val'>"+escHtml(contrat.locTel)+"</span></div>",
+    "<div><span class='lbl'>Adresse : </span><span class='val'>"+escHtml(contrat.locAdresse)+"</span></div>",
     docsLocHtml+"</div><hr>",
     "<div style='margin-bottom:8px'><div class='st'>Vehicule</div>",
-    "<div><span class='lbl'>Vehicule : </span><span class='val'>"+vehicle.marque+" "+vehicle.modele+" — "+vehicle.immat+"</span></div>",
-    "<div><span class='lbl'>Km depart : </span><span class='val'>"+(contrat.kmDepart||vehicle.km)+" km</span></div>",
+    "<div><span class='lbl'>Vehicule : </span><span class='val'>"+escHtml(vehicle.marque)+" "+escHtml(vehicle.modele)+" — "+escHtml(vehicle.immat)+"</span></div>",
+    "<div><span class='lbl'>Km depart : </span><span class='val'>"+escHtml(contrat.kmDepart||vehicle.km)+" km</span></div>",
     fuelBar+photosHtml+"</div>",
     "<div style='margin-bottom:8px'><div class='st'>Duree</div>",
-    "<div><span class='lbl'>Debut : </span><span class='val'>"+contrat.dateDebut+" à "+contrat.heureDebut+"</span></div>",
-    "<div><span class='lbl'>Fin : </span><span class='val'>"+contrat.dateFin+" à "+contrat.heureFin+"</span> — <span class='val'>"+nb+" jour(s)</span></div></div>",
+    "<div><span class='lbl'>Debut : </span><span class='val'>"+escHtml(contrat.dateDebut)+" à "+escHtml(contrat.heureDebut)+"</span></div>",
+    "<div><span class='lbl'>Fin : </span><span class='val'>"+escHtml(contrat.dateFin)+" à "+escHtml(contrat.heureFin)+"</span> — <span class='val'>"+nb+" jour(s)</span></div></div>",
     "<div style='margin-bottom:8px'><div class='st'>Paiement</div>",
     "<div class='tot'><span>Total location</span><strong>"+total+" EUR</strong></div>",
     "<div>["+(pm==="especes"?"X":" ")+"] Especes ["+(pm==="cb"?"X":" ")+"] CB ["+(pm==="virement"?"X":" ")+"] Virement ["+(pm==="cheque"?"X":" ")+"] Cheque</div></div>",
-    "<div style='margin-bottom:8px'><div class='st'>Caution - "+vehicle.caution+" EUR ("+cautionMode+")</div>",
+    "<div style='margin-bottom:8px'><div class='st'>Caution - "+escHtml(vehicle.caution)+" EUR ("+escHtml(cautionMode)+")</div>",
     "<table class='ft'><tr style='background:#e8edf5;font-weight:bold'><td colspan='2'>Frais deductibles</td></tr>"+fraisRows+"</table></div>",
     "<div style='margin-bottom:8px'><div class='st'>Clauses</div>"+clausesHtml+"</div>",
-    "<hr><p style='font-size:10px;margin-bottom:12px'>Fait a "+profil.ville+", le "+new Date().toLocaleDateString("fr-FR")+"</p>",
-    "<div class='sig-area'><div class='sig-box'><p>Loueur ("+profil.nom+")</p>"+sL+"</div>",
-    "<div class='sig-box'><p>Locataire ("+contrat.locNom+")</p>"+sLoc+"</div></div>",
+    "<hr><p style='font-size:10px;margin-bottom:12px'>Fait a "+escHtml(profil.ville)+", le "+new Date().toLocaleDateString("fr-FR")+"</p>",
+    "<div class='sig-area'><div class='sig-box'><p>Loueur ("+escHtml(profil.nom)+")</p>"+sL+"</div>",
+    "<div class='sig-box'><p>Locataire ("+escHtml(contrat.locNom)+")</p>"+sLoc+"</div></div>",
     "</div></body></html>"].join("");
 }
 
@@ -2291,6 +2297,9 @@ function AppContent(){
   );
 }
 
+const MAX_LOGIN_ATTEMPTS=5;
+const LOCKOUT_DURATION_MS=15*60*1000; // 15 minutes
+
 function AuthPage(){
   const[mode,setMode]=useState("login");
   const[email,setEmail]=useState("");
@@ -2299,16 +2308,58 @@ function AuthPage(){
   const[loading,setLoading]=useState(false);
   const[error,setError]=useState("");
   const[success,setSuccess]=useState("");
+  const[attempts,setAttempts]=useState(0);
+  const[lockedUntil,setLockedUntil]=useState(null);
+  const[remaining,setRemaining]=useState(0);
+
+  // Décompte si verrouillé
+  useEffect(()=>{
+    if(!lockedUntil)return;
+    const tick=()=>{
+      const left=lockedUntil-Date.now();
+      if(left<=0){setLockedUntil(null);setAttempts(0);setRemaining(0);}
+      else setRemaining(Math.ceil(left/1000));
+    };
+    tick();
+    const t=setInterval(tick,1000);
+    return()=>clearInterval(t);
+  },[lockedUntil]);
+
+  const isLocked=lockedUntil&&Date.now()<lockedUntil;
+
   async function handleSubmit(){
+    if(isLocked)return;
+    // Validation basique côté client
+    if(!email.trim()||!email.includes("@")){setError("Adresse email invalide.");return;}
+    if(mode!=="forgot"&&password.length<6){setError("Le mot de passe doit contenir au moins 6 caractères.");return;}
+
     setLoading(true);setError("");setSuccess("");
-    if(mode==="forgot"){const{error:err}=await supabase.auth.resetPasswordForEmail(email);if(err)setError(err.message);else setSuccess("Email envoyé.");setLoading(false);return;}
+    if(mode==="forgot"){
+      await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase());
+      // Message générique : on ne révèle pas si l'email existe
+      setSuccess("Si cet email est enregistré, un lien de réinitialisation a été envoyé.");
+      setLoading(false);return;
+    }
     let result;
-    if(mode==="login")result=await supabase.auth.signInWithPassword({email,password});
-    else result=await supabase.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin}});
-    if(result.error)setError(result.error.message);
-    else if(mode==="signup")setSuccess("Compte créé ! Vérifiez votre email.");
+    if(mode==="login")result=await supabase.auth.signInWithPassword({email:email.trim().toLowerCase(),password});
+    else result=await supabase.auth.signUp({email:email.trim().toLowerCase(),password,options:{emailRedirectTo:window.location.origin}});
+
+    if(result.error){
+      const newAttempts=attempts+1;
+      setAttempts(newAttempts);
+      if(newAttempts>=MAX_LOGIN_ATTEMPTS){
+        setLockedUntil(Date.now()+LOCKOUT_DURATION_MS);
+        setError("Trop de tentatives. Accès bloqué pendant 15 minutes.");
+      } else {
+        // Message générique : ne pas révéler si l'email existe ou non
+        setError("Email ou mot de passe incorrect. ("+(MAX_LOGIN_ATTEMPTS-newAttempts)+" tentative(s) restante(s))");
+      }
+    } else if(mode==="signup"){
+      setSuccess("Compte créé ! Vérifiez votre email pour valider votre adresse.");
+    }
     setLoading(false);
   }
+
   return(
     <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"#f1f5f9"}}>
       <div style={{background:"white",borderRadius:16,padding:"40px 32px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
@@ -2319,16 +2370,22 @@ function AuthPage(){
             {["login","signup"].map(m=><button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600}}>{m==="login"?"Connexion":"Inscription"}</button>)}
           </div>
         )}
-        <input placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
+        {isLocked&&(
+          <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"10px 14px",marginBottom:14,textAlign:"center"}}>
+            <div style={{fontSize:13,color:"#dc2626",fontWeight:700}}>Accès temporairement bloqué</div>
+            <div style={{fontSize:12,color:"#6b7280",marginTop:4}}>Réessayez dans {Math.floor(remaining/60)}:{String(remaining%60).padStart(2,"0")}</div>
+          </div>
+        )}
+        <input placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoComplete="email" style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
         {mode!=="forgot"&&(
           <div style={{position:"relative",marginBottom:16}}>
-            <input placeholder="Mot de passe" type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} style={{width:"100%",padding:"10px 12px",paddingRight:40,border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
+            <input placeholder="Mot de passe" type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoComplete={mode==="login"?"current-password":"new-password"} style={{width:"100%",padding:"10px 12px",paddingRight:40,border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
             <span onClick={()=>setShowPassword(!showPassword)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:18,color:"#6b7280",userSelect:"none"}}>{showPassword?"🙈":"👁️"}</span>
           </div>
         )}
-        {error&&<p style={{color:"red",fontSize:13,marginBottom:12}}>{error}</p>}
-        {success&&<p style={{color:"#16a34a",fontSize:13,marginBottom:12}}>{success}</p>}
-        <button onClick={handleSubmit} disabled={loading} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:"pointer"}}>
+        {error&&<p style={{color:"#dc2626",fontSize:13,marginBottom:12,background:"#fef2f2",padding:"8px 10px",borderRadius:7,border:"1px solid #fecaca"}}>{error}</p>}
+        {success&&<p style={{color:"#16a34a",fontSize:13,marginBottom:12,background:"#f0fdf4",padding:"8px 10px",borderRadius:7,border:"1px solid #bbf7d0"}}>{success}</p>}
+        <button onClick={handleSubmit} disabled={loading||isLocked} style={{width:"100%",padding:"12px",background:isLocked?"#9ca3af":"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:isLocked?"not-allowed":"pointer"}}>
           {loading?"...":(mode==="login"?"Se connecter":mode==="signup"?"Créer mon compte":"Envoyer le lien")}
         </button>
         {mode==="login"&&<p style={{textAlign:"center",marginTop:14,fontSize:13}}><span onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Mot de passe oublié ?</span></p>}

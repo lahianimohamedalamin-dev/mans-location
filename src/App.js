@@ -793,6 +793,7 @@ function AppContent(){
   const[reponseModal,setReponseModal]=useState(null);
   const[dForm,setDForm]=useState({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});
   const[showAddD,setShowAddD]=useState(false);
+  const[finPeriode,setFinPeriode]=useState("6mois");
   const[profilEdit,setProfilEdit]=useState(false);
   const[profilForm,setProfilForm]=useState(INIT_PROFIL);
   const[docsId,setDocsId]=useState(null);
@@ -822,6 +823,7 @@ function AppContent(){
   const[searchClient,setSearchClient]=useState("");
   const[selectedClient,setSelectedClient]=useState(null);
   const[editingClient,setEditingClient]=useState(null);
+  const[deleteClientConfirm,setDeleteClientConfirm]=useState(null);
   const[searchClientContrat,setSearchClientContrat]=useState("");
   const[showClientSuggestions,setShowClientSuggestions]=useState(false);
   const activeUserIdRef=useRef(null);
@@ -1152,7 +1154,7 @@ function AppContent(){
             <TelInput value={profilForm[k]||""} onChange={v=>setProfilForm(p=>({...p,[k]:v}))} placeholder={l.replace(" *","")}/>
           </div>
         ))}
-        <button onClick={async()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel)return;setProfil({...profilForm});if(user)await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>Commencer</button>
+        <button onClick={async()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel)return;setProfil({...profilForm});if(user)await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...profilForm},{onConflict:'user_id'});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>Commencer</button>
         <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
       </div>
     </div>
@@ -1201,13 +1203,13 @@ function AppContent(){
 
       {/* Modal fiche client */}
       {selectedClient&&(
-        <div onClick={e=>{if(e.target===e.currentTarget){setSelectedClient(null);setEditingClient(null);}}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+        <div onClick={e=>{if(e.target===e.currentTarget){setSelectedClient(null);setEditingClient(null);setDeleteClientConfirm(null);}}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
           <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:560,maxHeight:"90vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
             <div style={{padding:"14px 18px",background:"linear-gradient(135deg,#0a1940,#1e3a8a)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div><b style={{color:"white",fontSize:15}}>👤 {selectedClient.nom}</b><div style={{color:"rgba(255,255,255,.6)",fontSize:11}}>{selectedClient.tel}</div></div>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={()=>setEditingClient({...selectedClient})} style={{padding:"5px 10px",background:"rgba(255,255,255,.2)",color:"white",border:"none",borderRadius:7,fontSize:11,cursor:"pointer"}}>Modifier</button>
-                <button onClick={()=>{setSelectedClient(null);setEditingClient(null);}} style={{fontSize:22,background:"none",border:"none",cursor:"pointer",color:"white"}}>x</button>
+                <button onClick={()=>{setSelectedClient(null);setEditingClient(null);setDeleteClientConfirm(null);}} style={{fontSize:22,background:"none",border:"none",cursor:"pointer",color:"white"}}>x</button>
               </div>
             </div>
             <div style={{flex:1,overflowY:"auto",padding:16}}>
@@ -1255,9 +1257,21 @@ function AppContent(){
                   ))}
               </div>
             </div>
-            <div style={{padding:"12px 16px",borderTop:"1px solid #e5e7eb",background:"white",display:"flex",gap:8}}>
-              <button onClick={()=>{setForm(f=>({...f,locNom:selectedClient.nom,locTel:selectedClient.tel,locAdresse:selectedClient.adresse||"",locEmail:selectedClient.email||"",locPermis:selectedClient.permis||""}));setDocsLocataire({...selectedClient.docs});setSelectedClient(null);setPage("nouveau");toast_("Client chargé !");}} style={{flex:1,background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Créer un contrat pour ce client</button>
-              <button onClick={()=>{if(window.confirm("Supprimer ce client ? Ses contrats seront conservés.")){setClients(cs=>cs.filter(c=>c.key!==selectedClient.key));setSelectedClient(null);toast_("Client supprimé");}}} style={{padding:"10px 14px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>🗑️</button>
+            <div style={{padding:"12px 16px",borderTop:"1px solid #e5e7eb",background:"white"}}>
+              <div style={{display:"flex",gap:8,marginBottom:deleteClientConfirm!==null?8:0}}>
+                <button onClick={()=>{setForm(f=>({...f,locNom:selectedClient.nom,locTel:selectedClient.tel,locAdresse:selectedClient.adresse||"",locEmail:selectedClient.email||"",locPermis:selectedClient.permis||""}));setDocsLocataire({...selectedClient.docs});setSelectedClient(null);setDeleteClientConfirm("");setPage("nouveau");toast_("Client chargé !");}} style={{flex:1,background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Créer un contrat pour ce client</button>
+                <button onClick={()=>setDeleteClientConfirm(prev=>prev===null?"":null)} style={{padding:"10px 14px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>🗑️</button>
+              </div>
+              {deleteClientConfirm!==null&&(
+                <div style={{background:"#fef2f2",borderRadius:10,padding:12,border:"1px solid #fecaca",marginTop:8}}>
+                  <p style={{fontSize:12,color:"#dc2626",fontWeight:600,marginBottom:8}}>Pour confirmer la suppression, tapez <b>SUPPRIMER</b> :</p>
+                  <input value={deleteClientConfirm||""} onChange={e=>setDeleteClientConfirm(e.target.value)} placeholder="SUPPRIMER" style={{width:"100%",padding:"8px 10px",border:"2px solid #fca5a5",borderRadius:8,fontSize:13,fontFamily:"monospace",boxSizing:"border-box",marginBottom:8,outline:"none"}}/>
+                  <div style={{display:"flex",gap:8}}>
+                    <button disabled={deleteClientConfirm!=="SUPPRIMER"} onClick={()=>{setClients(cs=>cs.filter(c=>c.key!==selectedClient.key));setSelectedClient(null);setDeleteClientConfirm("");toast_("Client supprimé");}} style={{flex:1,background:deleteClientConfirm==="SUPPRIMER"?"#dc2626":"#e5e7eb",color:deleteClientConfirm==="SUPPRIMER"?"white":"#9ca3af",border:"none",borderRadius:8,padding:"8px 0",fontSize:13,fontWeight:700,cursor:deleteClientConfirm==="SUPPRIMER"?"pointer":"not-allowed"}}>Confirmer la suppression</button>
+                    <button onClick={()=>setDeleteClientConfirm("")} style={{padding:"8px 14px",background:"#e5e7eb",border:"none",borderRadius:8,fontSize:12,cursor:"pointer"}}>Annuler</button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1356,6 +1370,7 @@ function AppContent(){
                 <div style={{background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px",fontSize:11,wordBreak:"break-all",marginBottom:8}}>{window.location.origin}/vitrine/{user?.id?.slice(0,8)}</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                   <button onClick={()=>{navigator.clipboard.writeText(window.location.origin+"/vitrine/"+user?.id?.slice(0,8));toast_("Lien copié !");}} style={{padding:"7px 14px",background:"white",color:"#1e3a8a",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Copier le lien</button>
+                  <button onClick={()=>window.open(window.location.origin+"/vitrine/"+user?.id?.slice(0,8),"_blank")} style={{padding:"7px 14px",background:"rgba(255,255,255,.15)",color:"white",border:"1px solid rgba(255,255,255,.4)",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Ouvrir</button>
                   <button onClick={()=>{const msg="Bonjour, voici notre catalogue : "+window.location.origin+"/vitrine/"+user?.id?.slice(0,8);window.open("https://wa.me/"+(profil.whatsapp||profil.tel||"").replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");}} style={{padding:"7px 14px",background:"#25D366",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>WhatsApp</button>
                 </div>
               </div>
@@ -2046,7 +2061,14 @@ function AppContent(){
         {/* FINANCES */}
         {page==="finances"&&(
           <div>
-            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:14}}>Finances</h1>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+              <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Finances</h1>
+              <div style={{display:"flex",gap:6}}>
+                {[["mois","Ce mois"],["6mois","6 mois"],["annee","Cette année"]].map(([k,l])=>(
+                  <button key={k} onClick={()=>setFinPeriode(k)} style={{padding:"5px 12px",borderRadius:8,fontSize:11,fontWeight:700,border:"none",cursor:"pointer",background:finPeriode===k?"#1e3a8a":"#e5e7eb",color:finPeriode===k?"white":"#374151"}}>{l}</button>
+                ))}
+              </div>
+            </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
               {KPI("CA Total",caT+" "+sym,"💶","#2563eb")}
               {KPI("Extras",(totalRetenues+totalSurplusKm).toFixed(0)+" "+sym,"🔒","#d97706")}
@@ -2132,6 +2154,61 @@ function AppContent(){
                   );
                 })()}
             </div>
+            {(()=>{
+              const now=new Date();
+              function inPeriod(dateStr){
+                if(!dateStr)return false;
+                const d=new Date(dateStr);
+                if(finPeriode==="mois")return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+                if(finPeriode==="6mois"){const cutoff=new Date(now);cutoff.setMonth(cutoff.getMonth()-5);cutoff.setDate(1);return d>=cutoff;}
+                if(finPeriode==="annee")return d.getFullYear()===now.getFullYear();
+                return true;
+              }
+              const vColors=["#2563eb","#7c3aed","#16a34a","#d97706","#dc2626","#0891b2","#be185d","#059669"];
+              const rows=vehicles.map((v,i)=>{
+                const ca=contrats.filter(c=>c.vehicleId===v.id&&inPeriod(c.dateDebut)).reduce((s,c)=>s+(c.totalCalc||0),0);
+                const dep=depenses.filter(d=>d.vehicleId===v.id&&inPeriod(d.date)).reduce((s,d)=>s+parseFloat(d.montant||0),0);
+                return{label:v.marque+" "+v.modele,immat:v.immat,ca,dep,net:ca-dep,color:vColors[i%vColors.length]};
+              });
+              const totalCA=rows.reduce((s,r)=>s+r.ca,0);
+              const totalDep=rows.reduce((s,r)=>s+r.dep,0);
+              const totalNet=totalCA-totalDep;
+              return(
+                <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)",marginBottom:16}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+                    <div style={{width:36,height:36,borderRadius:10,background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🚗</div>
+                    <div style={{fontWeight:700,fontSize:14}}>Bilan par véhicule</div>
+                  </div>
+                  {rows.length===0
+                    ?<div style={{textAlign:"center",color:"#9ca3af",padding:20,fontSize:12}}>Aucun véhicule</div>
+                    :<div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr auto auto auto",gap:"4px 12px",alignItems:"center",marginBottom:10,paddingBottom:8,borderBottom:"2px solid #f3f4f6"}}>
+                        <span style={{fontSize:10,color:"#9ca3af",fontWeight:700}}>VÉHICULE</span>
+                        <span style={{fontSize:10,color:"#2563eb",fontWeight:700,textAlign:"right"}}>CA</span>
+                        <span style={{fontSize:10,color:"#ef4444",fontWeight:700,textAlign:"right"}}>DÉPENSES</span>
+                        <span style={{fontSize:10,color:"#16a34a",fontWeight:700,textAlign:"right"}}>NET</span>
+                      </div>
+                      {rows.map((r,i)=>(
+                        <div key={i} style={{display:"grid",gridTemplateColumns:"1fr auto auto auto",gap:"4px 12px",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>
+                          <div>
+                            <div style={{fontWeight:700,fontSize:12,color:r.color}}>{r.label}</div>
+                            <div style={{fontSize:10,color:"#9ca3af"}}>{r.immat}</div>
+                          </div>
+                          <span style={{fontWeight:700,fontSize:12,color:"#2563eb",textAlign:"right"}}>{r.ca} {sym}</span>
+                          <span style={{fontWeight:700,fontSize:12,color:"#ef4444",textAlign:"right"}}>{r.dep.toFixed(0)} {sym}</span>
+                          <span style={{fontWeight:700,fontSize:12,color:r.net>=0?"#16a34a":"#dc2626",textAlign:"right"}}>{r.net.toFixed(0)} {sym}</span>
+                        </div>
+                      ))}
+                      <div style={{display:"grid",gridTemplateColumns:"1fr auto auto auto",gap:"4px 12px",alignItems:"center",paddingTop:10,marginTop:4,borderTop:"2px solid #1e3a8a"}}>
+                        <span style={{fontWeight:800,fontSize:12,color:"#1f2937"}}>TOTAL</span>
+                        <span style={{fontWeight:800,fontSize:12,color:"#2563eb",textAlign:"right"}}>{totalCA} {sym}</span>
+                        <span style={{fontWeight:800,fontSize:12,color:"#ef4444",textAlign:"right"}}>{totalDep.toFixed(0)} {sym}</span>
+                        <span style={{fontWeight:800,fontSize:12,color:totalNet>=0?"#16a34a":"#dc2626",textAlign:"right"}}>{totalNet.toFixed(0)} {sym}</span>
+                      </div>
+                    </div>}
+                </div>
+              );
+            })()}
             <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                 <h2 style={{fontWeight:700,fontSize:14}}>Dépenses</h2>
@@ -2192,7 +2269,7 @@ function AppContent(){
                 ))}
                 <div style={{marginBottom:10}}><label style={LBL_STYLE}>Snapchat</label><input style={INP_STYLE()} value={profilForm.snap||""} onChange={e=>setProfilForm(p=>({...p,snap:e.target.value}))}/></div>
                 <div style={{marginBottom:14}}><label style={LBL_STYLE}>💱 Devise</label><select style={INP_STYLE()} value={profilForm.devise||"EUR"} onChange={e=>setProfilForm(p=>({...p,devise:e.target.value}))}>{DEVISES.map(d=><option key={d.code} value={d.code}>{d.label}</option>)}</select></div>
-                <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user)await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+                <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user)await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...profilForm},{onConflict:'user_id'});}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
                 <button onClick={()=>supabase.auth.signOut()} style={{marginTop:10,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
               </div>
               :<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>

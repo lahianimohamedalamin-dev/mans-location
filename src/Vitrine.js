@@ -21,6 +21,7 @@ export default function Vitrine() {
       const { data: vehs } = await supabase
         .from('vehicules')
         .select('*')
+        .eq('user_id', profils?.user_id)
         .eq('publie', true);
       setVehicles(vehs || []);
 

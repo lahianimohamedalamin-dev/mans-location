@@ -509,7 +509,7 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
   function getRetourData(){return{checks,carro,carroPhotos,carroNotes,photos,notes,cautionRestituee,montantRetenu:retenu,raisonRetenue,rembourse:cautionRestituee?caution:Math.max(0,caution-retenu),kmRetour,kmSup,surplusKm,carburantRetour,fraisSup,totalFraisSup,date:new Date().toISOString(),sigRetourLoueur,sigRetourLocataire};}
   function downloadPV(){const data=getRetourData();dlPDF(buildPVRetourHTML(contrat,vehicle,data,sigRetourLoueur,sigRetourLocataire,profil));}
   function save(){if(cautionRestituee===null){alert("Précisez si la caution est restituée.");return;}const data=getRetourData();onSave(data);dlPDF(buildPVRetourHTML(contrat,vehicle,data,sigRetourLoueur,sigRetourLocataire,profil));}
-  const TABS=[["km","Km"],["frais","Frais sup."],["carro","Carrosserie"],["checks","Etat"],["caution","Caution"],["sig","Signatures"]]; État"],["caution","🔒 Caution"],["sig","✍️ Signatures"]];
+  const TABS=[["km","Km"],["frais","Frais sup."],["carro","Carrosserie"],["checks","État"],["caution","Caution"],["sig","Signatures"]];
   return(
     <div onClick={e=>{if(e.target===e.currentTarget)onClose();}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.65)",display:"flex",alignItems:"center",justifyContent:"center",padding:12}}>
       <div style={{background:"#f8fafc",borderRadius:18,width:"100%",maxWidth:640,maxHeight:"93vh",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}}>

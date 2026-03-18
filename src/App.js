@@ -569,6 +569,7 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
               <div style={{display:"flex",justifyContent:"space-between",borderTop:"1px solid rgba(255,255,255,.2)",marginTop:6,paddingTop:6}}><span style={{fontWeight:800}}>Total</span><span style={{fontWeight:900,fontSize:16,color:"#fbbf24"}}>{totalFraisSup.toFixed(2)} {sym}</span></div>
             </div>}
           </div>}
+          {tab==="carro"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <div style={{fontWeight:700,fontSize:13}}>Carrosserie ({nbNOK} dégât{nbNOK>1?"s":""})</div>
               <div style={{display:"flex",gap:6}}>

@@ -1793,7 +1793,7 @@ function AppContent(){
               const vContrats=contrats.filter(c=>c.vehicleId===v.id);
               const vColor=ganttColors[vi%ganttColors.length];
               return(
-                <div key={v.id} style={{background:"white",borderRadius:14,marginBottom:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)",borderLeft:`4px solid ${vColor}`,border:`1px solid #e5e7eb`,borderLeft:`4px solid ${vColor}`}}>
+                <div key={v.id} style={{background:"white",borderRadius:14,marginBottom:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:`1px solid #e5e7eb`,borderLeft:`4px solid ${vColor}`}}>
                   <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div><span style={{color:"white",fontWeight:800,fontSize:13}}>{v.marque} {v.modele}</span><span style={{color:"rgba(255,255,255,.6)",fontSize:11,marginLeft:10}}>{v.immat}</span></div>
                     <Badge s={statut(v.id)}/>

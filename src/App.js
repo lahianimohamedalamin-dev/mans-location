@@ -2172,12 +2172,15 @@ function AppContent(){
               }
               const vColors=["#2563eb","#7c3aed","#16a34a","#d97706","#dc2626","#0891b2","#be185d","#059669"];
               const rows=vehicles.map((v,i)=>{
-                const ca=contrats.filter(c=>c.vehicleId===v.id&&inPeriod(c.dateDebut)).reduce((s,c)=>s+(c.totalCalc||0),0);
+                const vContrats=contrats.filter(c=>c.vehicleId===v.id&&inPeriod(c.dateDebut));
+                const ca=vContrats.reduce((s,c)=>s+(c.totalCalc||0),0);
                 const dep=depenses.filter(d=>d.vehicleId===v.id&&inPeriod(d.date)).reduce((s,d)=>s+parseFloat(d.montant||0),0);
-                return{label:v.marque+" "+v.modele,immat:v.immat,ca,dep,net:ca-dep,color:vColors[i%vColors.length]};
+                const caution=vContrats.reduce((s,c)=>s+(retours[c.id]?.montantRetenu||0),0);
+                return{label:v.marque+" "+v.modele,immat:v.immat,ca,dep,caution,net:ca-dep,color:vColors[i%vColors.length]};
               });
               const totalCA=rows.reduce((s,r)=>s+r.ca,0);
               const totalDep=rows.reduce((s,r)=>s+r.dep,0);
+              const totalCaution=rows.reduce((s,r)=>s+r.caution,0);
               const totalNet=totalCA-totalDep;
               return(
                 <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)",marginBottom:16}}>
@@ -2188,27 +2191,30 @@ function AppContent(){
                   {rows.length===0
                     ?<div style={{textAlign:"center",color:"#9ca3af",padding:20,fontSize:12}}>Aucun véhicule</div>
                     :<div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr auto auto auto",gap:"4px 12px",alignItems:"center",marginBottom:10,paddingBottom:8,borderBottom:"2px solid #f3f4f6"}}>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr auto auto auto auto",gap:"4px 10px",alignItems:"center",marginBottom:10,paddingBottom:8,borderBottom:"2px solid #f3f4f6"}}>
                         <span style={{fontSize:10,color:"#9ca3af",fontWeight:700}}>VÉHICULE</span>
                         <span style={{fontSize:10,color:"#2563eb",fontWeight:700,textAlign:"right"}}>CA</span>
                         <span style={{fontSize:10,color:"#ef4444",fontWeight:700,textAlign:"right"}}>DÉPENSES</span>
+                        <span style={{fontSize:10,color:"#d97706",fontWeight:700,textAlign:"right"}}>CAUTION</span>
                         <span style={{fontSize:10,color:"#16a34a",fontWeight:700,textAlign:"right"}}>NET</span>
                       </div>
                       {rows.map((r,i)=>(
-                        <div key={i} style={{display:"grid",gridTemplateColumns:"1fr auto auto auto",gap:"4px 12px",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>
+                        <div key={i} style={{display:"grid",gridTemplateColumns:"1fr auto auto auto auto",gap:"4px 10px",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>
                           <div>
                             <div style={{fontWeight:700,fontSize:12,color:r.color}}>{r.label}</div>
                             <div style={{fontSize:10,color:"#9ca3af"}}>{r.immat}</div>
                           </div>
                           <span style={{fontWeight:700,fontSize:12,color:"#2563eb",textAlign:"right"}}>{r.ca} {sym}</span>
                           <span style={{fontWeight:700,fontSize:12,color:"#ef4444",textAlign:"right"}}>{r.dep.toFixed(0)} {sym}</span>
+                          <span style={{fontWeight:700,fontSize:12,color:"#d97706",textAlign:"right"}}>{r.caution>0?r.caution.toFixed(0)+" "+sym:"—"}</span>
                           <span style={{fontWeight:700,fontSize:12,color:r.net>=0?"#16a34a":"#dc2626",textAlign:"right"}}>{r.net.toFixed(0)} {sym}</span>
                         </div>
                       ))}
-                      <div style={{display:"grid",gridTemplateColumns:"1fr auto auto auto",gap:"4px 12px",alignItems:"center",paddingTop:10,marginTop:4,borderTop:"2px solid #1e3a8a"}}>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr auto auto auto auto",gap:"4px 10px",alignItems:"center",paddingTop:10,marginTop:4,borderTop:"2px solid #1e3a8a"}}>
                         <span style={{fontWeight:800,fontSize:12,color:"#1f2937"}}>TOTAL</span>
                         <span style={{fontWeight:800,fontSize:12,color:"#2563eb",textAlign:"right"}}>{totalCA} {sym}</span>
                         <span style={{fontWeight:800,fontSize:12,color:"#ef4444",textAlign:"right"}}>{totalDep.toFixed(0)} {sym}</span>
+                        <span style={{fontWeight:800,fontSize:12,color:"#d97706",textAlign:"right"}}>{totalCaution>0?totalCaution.toFixed(0)+" "+sym:"—"}</span>
                         <span style={{fontWeight:800,fontSize:12,color:totalNet>=0?"#16a34a":"#dc2626",textAlign:"right"}}>{totalNet.toFixed(0)} {sym}</span>
                       </div>
                     </div>}

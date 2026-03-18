@@ -9,16 +9,24 @@ export default function Vitrine() {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const slug = window.location.pathname.split('/vitrine/')[1];
+  const slug = (window.location.pathname.split('/vitrine/')[1] || '').replace(/\/$/, '').trim();
 
   useEffect(() => {
     if (!slug) return;
     async function load() {
-      const { data: profils } = await supabase
-        .from('profils')
-        .select('*')
-        .eq('slug', slug)
-        .maybeSingle();
+      // Try by slug first (normal case)
+      let profils = null;
+      const { data: bySlug } = await supabase
+        .from('profils').select('*').eq('slug', slug).maybeSingle();
+      profils = bySlug;
+
+      // Fallback: slug = first 8 chars of user_id (if slug column missing/null in DB)
+      if (!profils) {
+        const { data: byUserId } = await supabase
+          .from('profils').select('*').ilike('user_id::text', slug + '%').maybeSingle();
+        profils = byUserId || null;
+      }
+
       setProfil(profils);
 
       const { data: vehs } = await supabase

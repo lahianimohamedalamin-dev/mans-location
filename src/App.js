@@ -58,35 +58,79 @@ const TARIFS_PRESETS=[
 ];
 const INIT_PROFIL={nom:"",entreprise:"",siren:"",siret:"",kbis:"",tel:"",whatsapp:"",snap:"",email:"",adresse:"",ville:"",iban:"",devise:"EUR"};
 const CAR_BRANDS={
-  "Renault":["Clio","Megane","Captur","Kadjar","Scenic","Twingo","Arkana","Austral","Zoe","Kangoo","Trafic","Master"],
-  "Peugeot":["108","208","308","408","508","2008","3008","5008","Rifter","Partner","Expert"],
-  "Citroën":["C1","C3","C3 Aircross","C4","C4 X","C5 Aircross","C5 X","Berlingo","Jumpy","ë-C4"],
-  "Volkswagen":["Polo","Golf","T-Roc","T-Cross","Tiguan","Touareg","Passat","ID.3","ID.4","Caddy","Transporter"],
-  "BMW":["Série 1","Série 2","Série 3","Série 4","Série 5","X1","X2","X3","X4","X5","X6","iX1","iX3"],
-  "Mercedes":["Classe A","Classe B","Classe C","Classe E","Classe S","CLA","GLA","GLB","GLC","GLE","GLS","EQA","EQB"],
-  "Audi":["A1","A3","A4","A5","A6","Q2","Q3","Q5","Q7","Q8","e-tron","TT"],
-  "Toyota":["Aygo X","Yaris","Yaris Cross","Corolla","C-HR","RAV4","Camry","Land Cruiser","Hilux","Proace"],
-  "Dacia":["Sandero","Duster","Jogger","Spring","Logan"],
-  "Fiat":["500","500X","Panda","Tipo","Punto","Doblo"],
-  "Opel":["Corsa","Astra","Mokka","Crossland","Grandland","Combo","Vivaro"],
-  "Hyundai":["i10","i20","i30","Kona","Tucson","Santa Fe","Ioniq 5","Ioniq 6","Bayon"],
-  "Kia":["Picanto","Rio","Ceed","Sportage","Sorento","Niro","EV6","Stonic"],
-  "Nissan":["Micra","Juke","Qashqai","X-Trail","Leaf","Ariya","Navara"],
-  "Ford":["Fiesta","Focus","Puma","Kuga","Explorer","Mustang","Ranger","Transit","Transit Custom"],
-  "Seat":["Ibiza","Leon","Arona","Ateca","Tarraco"],
-  "Skoda":["Fabia","Octavia","Scala","Kamiq","Karoq","Kodiaq","Enyaq"],
-  "Tesla":["Model 3","Model Y","Model S","Model X"],
-  "Volvo":["XC40","XC60","XC90","S60","V60","C40"],
-  "Mini":["Cooper","Countryman","Clubman"],
-  "Jeep":["Renegade","Compass","Cherokee","Wrangler","Grand Cherokee","Avenger"],
-  "Alfa Romeo":["Giulia","Stelvio","Tonale","Giulietta"],
+  // === VOITURES ===
+  "Alfa Romeo":["Giulia","Stelvio","Tonale","Giulietta","MiTo","4C"],
+  "Aston Martin":["Vantage","DB11","DBS","DBX","Valkyrie"],
+  "Audi":["A1","A3","A4","A5","A6","A7","A8","Q2","Q3","Q5","Q7","Q8","TT","R8","S3","S4","S5","S6","S7","RS3","RS4","RS5","RS6","RS7","e-tron","Q4 e-tron","etron GT"],
+  "BMW":["Série 1","Série 2","Série 2 Gran Coupé","Série 3","Série 4","Série 4 Gran Coupé","Série 5","Série 7","Série 8","X1","X2","X3","X4","X5","X6","X7","XM","Z4","i3","i4","i5","i7","iX","iX1","iX3","M2","M3","M4","M5","M8","X3M","X4M","X5M","X6M"],
+  "Bentley":["Continental GT","Bentayga","Flying Spur"],
+  "Bugatti":["Chiron","Chiron Sport","Chiron Super Sport","Veyron","Divo"],
+  "Chevrolet":["Camaro","Corvette","Silverado","Tahoe","Colorado","Equinox","Traverse","Suburban"],
+  "Citroën":["C1","C3","C3 Aircross","C4","C4 X","C5 Aircross","C5 X","Berlingo","Jumpy","Jumper","SpaceTourer","ë-C4","ë-Berlingo","ë-Jumpy","ë-Jumper","Ami"],
+  "Cupra":["Ateca","Formentor","Leon","Born","Tavascan"],
+  "Dacia":["Sandero","Sandero Stepway","Duster","Jogger","Spring","Logan"],
+  "Dodge":["Challenger","Charger","Durango","Ram 1500"],
   "DS":["DS 3","DS 4","DS 7","DS 9"],
-  "Cupra":["Formentor","Born","Leon","Ateca"],
-  "Suzuki":["Swift","Ignis","Vitara","S-Cross","Jimny"],
-  "Mazda":["Mazda2","Mazda3","CX-3","CX-30","CX-5","MX-5","CX-60"],
-  "Honda":["Jazz","Civic","HR-V","CR-V","ZR-V","e:Ny1"],
-  "Mitsubishi":["Space Star","ASX","Eclipse Cross","Outlander"],
-  "Land Rover":["Defender","Discovery","Discovery Sport","Range Rover","Range Rover Sport","Range Rover Evoque","Range Rover Velar"]
+  "Ferrari":["488 GTB","F8 Tributo","F8 Spider","296 GTB","296 GTS","Roma","Portofino M","SF90 Stradale","812 Superfast","812 GTS","Purosangue","GTC4Lusso"],
+  "Fiat":["500","500X","500e","Panda","Tipo","Doblo","Ducato","Scudo","Talento"],
+  "Ford":["Fiesta","Focus","Focus ST","Puma","Kuga","Mustang","Mustang Mach-E","Mondeo","Ranger","Transit","Transit Custom","Transit Connect","Transit Courier","Explorer","eTransit"],
+  "GMC":["Sierra","Canyon","Savana"],
+  "Honda":["Jazz","Civic","Civic Type R","Accord","HR-V","CR-V","ZR-V","e","NSX","e:Ny1"],
+  "Hyundai":["i10","i20","i30","i30 N","Elantra","Kona","Tucson","Santa Fe","Ioniq 5","Ioniq 6","Ioniq 9","Bayon","H1"],
+  "Iveco":["Daily Van","Daily Châssis","Daily Bus","eDaily"],
+  "Isuzu":["D-Max"],
+  "Jaguar":["XE","XF","XJ","E-Pace","F-Pace","I-Pace","F-Type"],
+  "Jeep":["Renegade","Compass","Cherokee","Grand Cherokee","Wrangler","Gladiator","Avenger"],
+  "Kia":["Picanto","Rio","Ceed","ProCeed","XCeed","Sportage","Sorento","Stinger","EV6","EV9","EV3","Stonic","Niro"],
+  "Koenigsegg":["Jesko","Agera RS","Regera","Gemera"],
+  "Lamborghini":["Huracan","Huracan EVO","Huracan STO","Huracan Tecnica","Aventador","Aventador SVJ","Revuelto","Urus","Urus S","Sian"],
+  "Land Rover":["Defender","Discovery","Discovery Sport","Range Rover","Range Rover Sport","Range Rover Velar","Range Rover Evoque"],
+  "MAN Utilitaire":["TGE"],
+  "Maserati":["Ghibli","Quattroporte","Levante","MC20","GranTurismo","Grecale"],
+  "Maxus":["V80","V90","eDeliver 3","eDeliver 9","T60"],
+  "Mazda":["Mazda2","Mazda3","Mazda6","CX-3","CX-30","CX-5","CX-60","CX-90","MX-5"],
+  "McLaren":["540C","570S","600LT","720S","750S","765LT","Artura","P1","Senna"],
+  "Mercedes":["Classe A","Classe B","CLA","CLS","Classe C","Classe E","Classe S","Classe V","AMG GT","GLA","GLB","GLC","GLE","GLS","Classe G","EQA","EQB","EQC","EQE","EQS","EQE SUV","EQS SUV","A 35 AMG","A 45 AMG","C 43 AMG","C 63 AMG","E 53 AMG","E 63 AMG","S 63 AMG","G 63 AMG","Citan","Vito","Sprinter","eSprinter","eVito"],
+  "Mini":["Cooper","Cooper S","Countryman","Clubman","Paceman","Convertible","Electric"],
+  "Mitsubishi":["Space Star","ASX","Eclipse Cross","Outlander","L200"],
+  "Nissan":["Micra","Juke","Qashqai","X-Trail","Ariya","Leaf","GT-R","Navara","NV200","eNV200","NV300","NV400","Townstar","Interstar"],
+  "Opel":["Corsa","Corsa-e","Astra","Astra-e","Insignia","Mokka","Mokka-e","Crossland","Grandland","Combo","Combo-e","Vivaro","Vivaro-e","Movano","Movano-e"],
+  "Pagani":["Huayra","Huayra BC","Zonda","Utopia"],
+  "Peugeot":["108","208","308","408","508","2008","3008","5008","Rifter","Traveller","Partner","Expert","Boxer","e-208","e-2008","e-308","e-3008","e-5008","e-Expert","e-Boxer"],
+  "Piaggio":["Porter","Ape"],
+  "Porsche":["718 Boxster","718 Cayman","911","Cayenne","Macan","Panamera","Taycan"],
+  "RAM":["1500","2500","3500","ProMaster","ProMaster City"],
+  "Renault":["Twingo","Clio","Megane","Megane RS","Talisman","Captur","Kadjar","Austral","Arkana","Koleos","Scenic","Zoe","Rafale","Kangoo","Kangoo Van","Trafic","Master","Express Van","Alaskan"],
+  "Rimac":["Nevera"],
+  "Rolls-Royce":["Ghost","Phantom","Wraith","Cullinan","Dawn","Silver Shadow"],
+  "Seat":["Ibiza","Leon","Arona","Ateca","Tarraco"],
+  "Skoda":["Fabia","Scala","Octavia","Superb","Kamiq","Karoq","Kodiaq","Enyaq"],
+  "Subaru":["Impreza","WRX","BRZ","Forester","Outback","XV","Solterra","Legacy"],
+  "Suzuki":["Swift","Swift Sport","Ignis","Vitara","S-Cross","Jimny"],
+  "Tesla":["Model S","Model 3","Model X","Model Y","Cybertruck","Roadster"],
+  "Toyota":["Aygo X","Yaris","Yaris Cross","Corolla","Corolla Cross","Camry","Prius","C-HR","RAV4","Highlander","Land Cruiser","Hilux","GR86","GR Yaris","GR Supra","bZ4X","Proace","Proace City"],
+  "Volkswagen":["Polo","Golf","Golf GTI","Golf R","Arteon","T-Cross","T-Roc","Tiguan","Touareg","Passat","ID.3","ID.4","ID.5","ID.Buzz","Amarok","Caddy","Caddy Cargo","Transporter","Crafter","ID.Buzz Cargo","Multivan"],
+  "Volvo":["V40","V60","V90","S60","S90","XC40","XC60","XC90","EX30","EX90","C40"],
+  // === MOTOS ===
+  "Aprilia":["RS 660","RSV4","Tuono 660","Tuono V4","Tuareg 660","Shiver 900","Dorsoduro 900"],
+  "Benelli":["BN 125","BN 302","TRK 502","TRK 502X","Leoncino 500","Leoncino 800","752S"],
+  "BMW Motorrad":["G 310 R","G 310 GS","F 750 GS","F 850 GS","F 900 R","F 900 XR","S 1000 R","S 1000 RR","M 1000 RR","R 1250 R","R 1250 RS","R 1250 GS","R 1250 GS Adventure","R 18","C 400 X","C 400 GT"],
+  "CF Moto":["125 NK","300 NK","650 NK","650 MT","700 CLX","800 MT"],
+  "Ducati":["Monster","Monster 937","Monster 1200","Panigale V2","Panigale V4","Streetfighter V2","Streetfighter V4","Multistrada 950","Multistrada V4","Diavel","XDiavel","Hypermotard 950","Scrambler 800","Scrambler 1100"],
+  "Harley-Davidson":["Iron 883","Forty Eight","Street 750","Sportster S","Nightster","Fat Boy","Breakout","Street Bob","Heritage Classic","Road King","Street Glide","Road Glide","Pan America 1250"],
+  "Honda Moto":["CB 125 R","CB 300 R","CB 500 F","CB 650 R","CB 1000 R","CBR 125 R","CBR 300 R","CBR 500 R","CBR 650 R","CBR 1000 RR","Africa Twin","NC 750 X","Rebel 500","Rebel 1100","Forza 125","Forza 350","X-ADV 750","SH 125","SH 350"],
+  "Indian":["Scout","Scout Bobber","Chief","Springfield","Challenger","Pursuit","FTR 1200"],
+  "Kawasaki":["Z 125","Z 300","Z 400","Z 650","Z 900","ZH2","Ninja 125","Ninja 300","Ninja 400","Ninja 650","Ninja ZX-6R","Ninja ZX-10R","Ninja H2","Versys 650","Versys 1000","Vulcan S"],
+  "KTM":["125 Duke","390 Duke","790 Duke","890 Duke","1290 Super Duke","125 RC","390 RC","390 Adventure","790 Adventure","890 Adventure","1290 Adventure"],
+  "Kymco":["Agility 125","Like 125","XTown 300","AK 550"],
+  "Moto Guzzi":["V7","V9","V85 TT","California","Audace","Eldorado"],
+  "MV Agusta":["Brutale 800","Brutale 1000","Dragster 800","F3","F4","Superveloce","Turismo Veloce"],
+  "SYM":["Jet 14","Symphony 125","Cruisym 300","Maxsym 400"],
+  "Suzuki Moto":["GSX-S 125","GSX-S 750","GSX-S 1000","GSX-R 125","GSX-R 600","GSX-R 750","GSX-R 1000","V-Strom 650","V-Strom 1050","SV 650","Burgman 125","Burgman 400","Hayabusa"],
+  "Triumph":["Street Triple","Speed Triple","Trident 660","Tiger 660","Tiger 850","Tiger 900","Tiger 1200","Bonneville T100","Bonneville T120","Thruxton","Bobber","Rocket 3"],
+  "Vespa":["Primavera","Sprint","GTS 125","GTS 300","GTV"],
+  "Yamaha":["MT-125","MT-03","MT-07","MT-09","MT-10","R125","R3","R6","R7","R1","R1M","Tracer 7","Tracer 9","Ténéré 700","XSR 125","XSR 700","XSR 900","NMAX 125","XMAX 125","XMAX 300","TMAX"],
+  "Zero Motorcycles":["SR","S","SR/F","FX","FXS","DSR","DS"],
 };
 const CAR_COLORS=["Noir","Blanc","Gris","Argent","Bleu","Rouge","Vert","Beige","Marron","Orange","Jaune","Violet","Rose","Bordeaux","Bleu nuit","Gris anthracite","Blanc nacré","Noir métallisé","Bleu métallisé","Gris métallisé"];
 const CURRENT_YEAR=new Date().getFullYear();
@@ -981,6 +1025,8 @@ function AppContent(){
   async function saveContrat(){
     const miss=req.filter(k=>!form[k]);
     if(!sel||miss.length>0){const t={};req.forEach(k=>t[k]=true);setTouched(t);toast_("Remplissez tous les champs obligatoires","error");return;}
+    const conflict=contrats.find(c=>c.vehicleId===sel.id&&c.dateDebut&&c.dateFin&&form.dateDebut&&form.dateFin&&form.dateDebut<=c.dateFin&&form.dateFin>=c.dateDebut);
+    if(conflict){toast_(`⚠️ Conflit ! ${sel.marque} ${sel.modele} est déjà réservé du ${conflict.dateDebut} au ${conflict.dateFin} par ${conflict.locNom}`,"error");return;}
     const locNom=`${form.locPrenom} ${form.locNom}`.trim();
     const c={id:Date.now(),...form,locNom,vehicleId:sel.id,vehicleLabel:sel.marque+" "+sel.modele,immat:sel.immat,sigL,sigLoc,totalCalc:totalNet,tarifLabel:tarifAuto.label,remise,accompte,resteAPayer,photosDepart:[...photosDepart],docsLocataire:{...docsLocataire},fraisSnap:(sel.frais||DEF_FRAIS).map(f=>({...f})),clausesSnap:(sel.clauses||DEF_CLAUSES).map(cl=>({...cl})),kmInclus:sel.kmInclus,prixKmSup:sel.prixKmSup};
     setContrats(p=>[c,...p]);
@@ -1743,10 +1789,11 @@ function AppContent(){
                 )}
               </div>
             </div>
-            {planView==="calendrier"&&vehicles.map(v=>{
+            {planView==="calendrier"&&vehicles.map((v,vi)=>{
               const vContrats=contrats.filter(c=>c.vehicleId===v.id);
+              const vColor=ganttColors[vi%ganttColors.length];
               return(
-                <div key={v.id} style={{background:"white",borderRadius:14,marginBottom:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #e5e7eb"}}>
+                <div key={v.id} style={{background:"white",borderRadius:14,marginBottom:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)",borderLeft:`4px solid ${vColor}`,border:`1px solid #e5e7eb`,borderLeft:`4px solid ${vColor}`}}>
                   <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div><span style={{color:"white",fontWeight:800,fontSize:13}}>{v.marque} {v.modele}</span><span style={{color:"rgba(255,255,255,.6)",fontSize:11,marginLeft:10}}>{v.immat}</span></div>
                     <Badge s={statut(v.id)}/>
@@ -1764,7 +1811,7 @@ function AppContent(){
                       <div style={{width:130,flexShrink:0,padding:"0 8px",fontSize:10,fontWeight:600,color:"#374151",display:"flex",alignItems:"center"}}>Disponibilite</div>
                       {days.map(d=>{
                         const b=isBooked(v.id,d);
-                        return <div key={d.getTime()} style={{width:28,flexShrink:0,height:28,display:"flex",alignItems:"center",justifyContent:"center",background:b?"#dbeafe":"white",borderLeft:"1px solid #f0f0f0"}}><div style={{width:20,height:20,borderRadius:4,background:b?"#2563eb":"#dcfce7"}}/></div>;
+                        return <div key={d.getTime()} style={{width:28,flexShrink:0,height:28,display:"flex",alignItems:"center",justifyContent:"center",background:b?vColor+"22":"white",borderLeft:"1px solid #f0f0f0"}}><div style={{width:20,height:20,borderRadius:4,background:b?vColor:"#dcfce7"}}/></div>;
                       })}
                     </div>
                   </div>
@@ -1773,7 +1820,7 @@ function AppContent(){
                       {vContrats.map(c=>{
                         const mStart=new Date(c.dateDebut).getMonth(),mEnd=new Date(c.dateFin).getMonth(),y=planMonth.getMonth();
                         if(mStart!==y&&mEnd!==y)return null;
-                        return <div key={c.id} style={{background:"#eff6ff",borderRadius:8,padding:"4px 10px",fontSize:11,border:"1px solid #bfdbfe"}}><span style={{fontWeight:700,color:"#1e3a8a"}}>{c.locNom}</span><span style={{color:"#6b7280",marginLeft:6}}>{c.dateDebut} → {c.dateFin}</span></div>;
+                        return <div key={c.id} style={{background:vColor+"18",borderRadius:8,padding:"4px 10px",fontSize:11,border:`1px solid ${vColor}44`}}><span style={{fontWeight:700,color:vColor}}>{c.locNom}</span><span style={{color:"#6b7280",marginLeft:6}}>{c.dateDebut} → {c.dateFin}</span></div>;
                       })}
                     </div>
                   )}

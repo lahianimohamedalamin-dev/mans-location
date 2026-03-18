@@ -980,11 +980,15 @@ function AppContent(){
   const loues=contrats.filter(c=>new Date(c.dateFin)>=new Date()).map(c=>c.vehicleId);
   const statut=id=>loues.includes(id)?"loué":"disponible";
   const caT=contrats.reduce((s,c)=>s+(c.totalCalc||0),0);
-  const dT=depenses.reduce((s,d)=>s+parseFloat(d.montant||0),0);
-  const totalRetenues=Object.values(retours).reduce((s,r)=>s+(r.montantRetenu||0),0);
-  const totalSurplusKm=Object.values(retours).reduce((s,r)=>s+(r.surplusKm||0),0);
-  const bT=caT+totalRetenues+totalSurplusKm-dT;
-  const cautionsNonRendues=contrats.filter(c=>!retours[c.id]).reduce((s,c)=>{const v=vehicles.find(x=>x.id===c.vehicleId);return s+(v?v.caution:0);},0);
+  function inPeriodFin(dateStr){if(!dateStr)return false;const d=new Date(dateStr);const now=new Date();if(finPeriode==="mois")return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();if(finPeriode==="6mois"){const cutoff=new Date(now);cutoff.setMonth(cutoff.getMonth()-5);cutoff.setDate(1);return d>=cutoff;}if(finPeriode==="annee")return d.getFullYear()===now.getFullYear();return true;}
+  const fContrats=contrats.filter(c=>inPeriodFin(c.dateDebut));
+  const fDepenses=depenses.filter(d=>inPeriodFin(d.date));
+  const caT_f=fContrats.reduce((s,c)=>s+(c.totalCalc||0),0);
+  const dT_f=fDepenses.reduce((s,d)=>s+parseFloat(d.montant||0),0);
+  const totalRetenues_f=fContrats.reduce((s,c)=>s+(retours[c.id]?.montantRetenu||0),0);
+  const totalSurplusKm_f=fContrats.reduce((s,c)=>s+(retours[c.id]?.surplusKm||0),0);
+  const cautionsNonRendues_f=contrats.filter(c=>!retours[c.id]&&inPeriodFin(c.dateDebut)).reduce((s,c)=>{const v=vehicles.find(x=>x.id===c.vehicleId);return s+(v?v.caution:0);},0);
+  const bT_f=caT_f+totalRetenues_f+totalSurplusKm_f+cautionsNonRendues_f-dT_f;
   const devise=DEVISES.find(d=>d.code===(profil.devise||"EUR"))||DEVISES[0];
   const sym=devise.symbol;
   const tarifAuto=sel?calcTarifAuto(sel,form.nbJours,form.heuresLoc,form.prixJourModifie):{prix:0,label:"—"};
@@ -1127,13 +1131,34 @@ function AppContent(){
   const isBooked=(vid,date)=>contrats.some(c=>c.vehicleId===vid&&date>=new Date(c.dateDebut)&&date<=new Date(c.dateFin));
   const days=getDays(planMonth);
 
-  const caP=Array.from({length:6},(_,i)=>{
-    const d=new Date();d.setMonth(d.getMonth()-5+i);
-    const m=d.getMonth(),a=d.getFullYear();
-    const ca=contrats.filter(c=>{const cd=new Date(c.dateDebut);return cd.getMonth()===m&&cd.getFullYear()===a;}).reduce((s,c)=>s+(c.totalCalc||0),0);
-    const dep=depenses.filter(dd=>{const dt=new Date(dd.date);return dt.getMonth()===m&&dt.getFullYear()===a;}).reduce((s,d2)=>s+parseFloat(d2.montant||0),0);
-    return{label:d.toLocaleDateString("fr-FR",{month:"short"}),ca,dep};
-  });
+  const caP=(()=>{
+    const now=new Date();
+    if(finPeriode==="mois"){
+      const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+      return Array.from({length:4},(_,i)=>{
+        const wStart=new Date(now.getFullYear(),now.getMonth(),1+i*7);
+        const wEnd=new Date(now.getFullYear(),now.getMonth(),Math.min(7+i*7,daysInMonth));
+        const ca=contrats.filter(c=>{const cd=new Date(c.dateDebut);return cd>=wStart&&cd<=wEnd;}).reduce((s,c)=>s+(c.totalCalc||0),0);
+        const dep=depenses.filter(dd=>{const dt=new Date(dd.date);return dt>=wStart&&dt<=wEnd;}).reduce((s,d2)=>s+parseFloat(d2.montant||0),0);
+        return{label:"S"+(i+1),ca,dep};
+      });
+    }
+    if(finPeriode==="annee"){
+      return Array.from({length:12},(_,i)=>{
+        const d=new Date(now.getFullYear(),i,1);
+        const ca=contrats.filter(c=>{const cd=new Date(c.dateDebut);return cd.getMonth()===i&&cd.getFullYear()===now.getFullYear();}).reduce((s,c)=>s+(c.totalCalc||0),0);
+        const dep=depenses.filter(dd=>{const dt=new Date(dd.date);return dt.getMonth()===i&&dt.getFullYear()===now.getFullYear();}).reduce((s,d2)=>s+parseFloat(d2.montant||0),0);
+        return{label:d.toLocaleDateString("fr-FR",{month:"short"}),ca,dep};
+      });
+    }
+    return Array.from({length:6},(_,i)=>{
+      const d=new Date();d.setMonth(d.getMonth()-5+i);
+      const m=d.getMonth(),a=d.getFullYear();
+      const ca=contrats.filter(c=>{const cd=new Date(c.dateDebut);return cd.getMonth()===m&&cd.getFullYear()===a;}).reduce((s,c)=>s+(c.totalCalc||0),0);
+      const dep=depenses.filter(dd=>{const dt=new Date(dd.date);return dt.getMonth()===m&&dt.getFullYear()===a;}).reduce((s,d2)=>s+parseFloat(d2.montant||0),0);
+      return{label:d.toLocaleDateString("fr-FR",{month:"short"}),ca,dep};
+    });
+  })();
   const maxCA=Math.max(...caP.map(x=>Math.max(x.ca,x.dep)),1);
 
   const docsV=vehicles.find(v=>v.id===docsId);
@@ -2123,16 +2148,16 @@ function AppContent(){
               </div>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-              {KPI("CA Total",caT+" "+sym,"💶","#2563eb")}
-              {KPI("Extras",(totalRetenues+totalSurplusKm).toFixed(0)+" "+sym,"🔒","#d97706")}
-              {KPI("Dépenses",dT.toFixed(0)+" "+sym,"📤","#ef4444")}
-              {KPI("Bénéfice net",bT.toFixed(0)+" "+sym,bT>=0?"📈":"📉",bT>=0?"#16a34a":"#dc2626",null,bT<0)}
+              {KPI("CA Total",caT_f+" "+sym,"💶","#2563eb")}
+              {KPI("Extras",(totalRetenues_f+totalSurplusKm_f).toFixed(0)+" "+sym,"🔒","#d97706")}
+              {KPI("Dépenses",dT_f.toFixed(0)+" "+sym,"📤","#ef4444")}
+              {KPI("Bénéfice net",bT_f.toFixed(0)+" "+sym,bT_f>=0?"📈":"📉",bT_f>=0?"#16a34a":"#dc2626",null,bT_f<0)}
               <div style={{background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 8px rgba(0,0,0,.07)",borderLeft:"4px solid #dc2626"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div>
                     <p style={{fontSize:10,color:"#6b7280",marginBottom:3}}>Cautions en attente de retour</p>
-                    <p style={{fontSize:20,fontWeight:800,color:"#dc2626"}}>{cautionsNonRendues} {sym}</p>
-                    <p style={{fontSize:10,color:"#9ca3af",marginTop:2}}>{contrats.filter(c=>!retours[c.id]).length} contrat{contrats.filter(c=>!retours[c.id]).length>1?"s":""} sans retour</p>
+                    <p style={{fontSize:20,fontWeight:800,color:"#dc2626"}}>{cautionsNonRendues_f} {sym}</p>
+                    <p style={{fontSize:10,color:"#9ca3af",marginTop:2}}>{contrats.filter(c=>!retours[c.id]&&inPeriodFin(c.dateDebut)).length} contrat{contrats.filter(c=>!retours[c.id]&&inPeriodFin(c.dateDebut)).length>1?"s":""} sans retour</p>
                   </div>
                   <span style={{fontSize:22}}>⏳</span>
                 </div>
@@ -2141,7 +2166,7 @@ function AppContent(){
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div>
                     <p style={{fontSize:10,color:"#6b7280",marginBottom:3}}>Cautions retenues (retours)</p>
-                    <p style={{fontSize:20,fontWeight:800,color:"#16a34a"}}>{totalRetenues.toFixed(0)} {sym}</p>
+                    <p style={{fontSize:20,fontWeight:800,color:"#16a34a"}}>{totalRetenues_f.toFixed(0)} {sym}</p>
                     <p style={{fontSize:10,color:"#9ca3af",marginTop:2}}>Encaissées sur retours effectués</p>
                   </div>
                   <span style={{fontSize:22}}>✅</span>
@@ -2160,8 +2185,8 @@ function AppContent(){
                     {caP.map((m,i)=>(
                       <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
                         <div style={{width:"100%",display:"flex",gap:2,alignItems:"flex-end",height:100}}>
-                          <div style={{flex:1,borderRadius:"4px 4px 0 0",background:"#3b82f6",height:(m.ca/maxCA*100)+"px",minHeight:m.ca>0?3:0}}/>
-                          <div style={{flex:1,borderRadius:"4px 4px 0 0",background:"#f87171",height:(m.dep/maxCA*100)+"px",minHeight:m.dep>0?3:0}}/>
+                          <div title={"CA : "+m.ca+" "+sym} style={{flex:1,borderRadius:"4px 4px 0 0",background:"#3b82f6",height:(m.ca/maxCA*100)+"px",minHeight:m.ca>0?3:0,cursor:"pointer",position:"relative"}} onMouseEnter={e=>{const t=document.createElement("div");t.id="chart-tip";t.style.cssText="position:fixed;background:#1e293b;color:white;padding:4px 8px;borderRadius:6px;fontSize:11px;fontWeight:700;pointerEvents:none;zIndex:9999;whiteSpace:nowrap";t.textContent="CA : "+m.ca+" "+sym;document.body.appendChild(t);const rect=e.currentTarget.getBoundingClientRect();t.style.left=(rect.left+rect.width/2-t.offsetWidth/2)+"px";t.style.top=(rect.top-28)+"px";}} onMouseLeave={()=>{const t=document.getElementById("chart-tip");if(t)t.remove();}}/>
+                          <div title={"Dépenses : "+m.dep+" "+sym} style={{flex:1,borderRadius:"4px 4px 0 0",background:"#f87171",height:(m.dep/maxCA*100)+"px",minHeight:m.dep>0?3:0,cursor:"pointer"}} onMouseEnter={e=>{const t=document.createElement("div");t.id="chart-tip";t.style.cssText="position:fixed;background:#1e293b;color:white;padding:4px 8px;borderRadius:6px;fontSize:11px;fontWeight:700;pointerEvents:none;zIndex:9999;whiteSpace:nowrap";t.textContent="Dép. : "+m.dep.toFixed(0)+" "+sym;document.body.appendChild(t);const rect=e.currentTarget.getBoundingClientRect();t.style.left=(rect.left+rect.width/2-t.offsetWidth/2)+"px";t.style.top=(rect.top-28)+"px";}} onMouseLeave={()=>{const t=document.getElementById("chart-tip");if(t)t.remove();}}/>
                         </div>
                         <span style={{fontSize:9,color:"#6b7280",textTransform:"capitalize"}}>{m.label}</span>
                       </div>

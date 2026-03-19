@@ -948,6 +948,9 @@ function AppContent(){
   const[finPeriode,setFinPeriode]=useState("6mois");
   const[profilEdit,setProfilEdit]=useState(false);
   const[profilForm,setProfilForm]=useState(INIT_PROFIL);
+  const[secuEdit,setSecuEdit]=useState(false);
+  const[secuForm,setSecuForm]=useState({newEmail:"",newPassword:"",confirmPassword:""});
+  const[secuLoading,setSecuLoading]=useState(false);
   const[docsId,setDocsId]=useState(null);
   const[contratModalId,setContratModalId]=useState(null);
   const[newDoc,setNewDoc]=useState({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});
@@ -2615,6 +2618,34 @@ function AppContent(){
                 ))}
                 <button onClick={()=>supabase.auth.signOut()} style={{marginTop:14,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
               </div>}
+            {/* SECURITE */}
+            <div style={{marginTop:16,background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:secuEdit?14:0}}>
+                <span style={{fontSize:13,fontWeight:700,color:"#1f2937"}}>Securite</span>
+                <button onClick={()=>{setSecuEdit(!secuEdit);setSecuForm({newEmail:"",newPassword:"",confirmPassword:""});}} style={{background:secuEdit?"#6b7280":"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"5px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}}>{secuEdit?"Annuler":"Modifier"}</button>
+              </div>
+              {secuEdit&&<div>
+                <div style={{marginBottom:10}}><label style={LBL_STYLE}>Nouvel email</label><input style={INP_STYLE()} type="email" placeholder={user?.email||""} value={secuForm.newEmail} onChange={e=>setSecuForm(p=>({...p,newEmail:e.target.value}))}/></div>
+                <div style={{marginBottom:10}}><label style={LBL_STYLE}>Nouveau mot de passe</label><input style={INP_STYLE()} type="password" placeholder="Laisser vide pour ne pas changer" value={secuForm.newPassword} onChange={e=>setSecuForm(p=>({...p,newPassword:e.target.value}))}/></div>
+                <div style={{marginBottom:14}}><label style={LBL_STYLE}>Confirmer mot de passe</label><input style={INP_STYLE()} type="password" placeholder="Confirmer le nouveau mot de passe" value={secuForm.confirmPassword} onChange={e=>setSecuForm(p=>({...p,confirmPassword:e.target.value}))}/></div>
+                <button onClick={async()=>{
+                  if(secuForm.newPassword&&secuForm.newPassword!==secuForm.confirmPassword){toast_("Les mots de passe ne correspondent pas");return;}
+                  if(!secuForm.newEmail&&!secuForm.newPassword){toast_("Remplis au moins un champ");return;}
+                  setSecuLoading(true);
+                  const updates={};
+                  if(secuForm.newEmail)updates.email=secuForm.newEmail;
+                  if(secuForm.newPassword)updates.password=secuForm.newPassword;
+                  const{error}=await supabase.auth.updateUser(updates);
+                  setSecuLoading(false);
+                  if(error){toast_(error.message);}else{
+                    toast_(secuForm.newEmail?"Email mis a jour - verifie ta boite mail":"Mot de passe mis a jour");
+                    setSecuEdit(false);
+                    setSecuForm({newEmail:"",newPassword:"",confirmPassword:""});
+                  }
+                }} disabled={secuLoading} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>{secuLoading?"...":"Enregistrer"}</button>
+              </div>}
+              {!secuEdit&&<div style={{marginTop:8,fontSize:12,color:"#6b7280"}}>Email : {user?.email}</div>}
+            </div>
           </div>
         )}
 

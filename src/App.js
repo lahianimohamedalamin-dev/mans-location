@@ -2645,6 +2645,7 @@ function AppContent(){
                 }} disabled={secuLoading} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>{secuLoading?"...":"Enregistrer"}</button>
               </div>}
               {!secuEdit&&<div style={{marginTop:8,fontSize:12,color:"#6b7280"}}>Email : {user?.email}</div>}
+              {!secuEdit&&<button onClick={()=>supabase.auth.signOut()} style={{marginTop:14,background:"#ef4444",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Se deconnecter</button>}
             </div>
           </div>
         )}

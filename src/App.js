@@ -2637,6 +2637,9 @@ function AuthPage(){
   const[attempts,setAttempts]=useState(0);
   const[lockedUntil,setLockedUntil]=useState(null);
   const[remaining,setRemaining]=useState(0);
+  const[needsConfirm,setNeedsConfirm]=useState(false);
+  const[resendLoading,setResendLoading]=useState(false);
+  const[resendDone,setResendDone]=useState(false);
 
   // Décompte si verrouillé
   useEffect(()=>{
@@ -2671,17 +2674,23 @@ function AuthPage(){
     else result=await supabase.auth.signUp({email:email.trim().toLowerCase(),password,options:{emailRedirectTo:window.location.origin}});
 
     if(result.error){
-      const newAttempts=attempts+1;
-      setAttempts(newAttempts);
-      if(newAttempts>=MAX_LOGIN_ATTEMPTS){
-        setLockedUntil(Date.now()+LOCKOUT_DURATION_MS);
-        setError("Trop de tentatives. Accès bloqué pendant 15 minutes.");
+      const msg=result.error.message||"";
+      if(msg.toLowerCase().includes("email not confirmed")||msg.toLowerCase().includes("not confirmed")){
+        setNeedsConfirm(true);
+        setError("");
       } else {
-        // Message générique : ne pas révéler si l'email existe ou non
-        setError("Email ou mot de passe incorrect. ("+(MAX_LOGIN_ATTEMPTS-newAttempts)+" tentative(s) restante(s))");
+        const newAttempts=attempts+1;
+        setAttempts(newAttempts);
+        if(newAttempts>=MAX_LOGIN_ATTEMPTS){
+          setLockedUntil(Date.now()+LOCKOUT_DURATION_MS);
+          setError("Trop de tentatives. Accès bloqué pendant 15 minutes.");
+        } else {
+          setError("Email ou mot de passe incorrect. ("+(MAX_LOGIN_ATTEMPTS-newAttempts)+" tentative(s) restante(s))");
+        }
       }
     } else if(mode==="signup"){
-      setSuccess("Compte créé ! Vérifiez votre email pour valider votre adresse.");
+      setNeedsConfirm(true);
+      setSuccess("Compte créé ! Un email de confirmation a été envoyé à "+email.trim().toLowerCase());
     }
     setLoading(false);
   }
@@ -2711,6 +2720,16 @@ function AuthPage(){
         )}
         {error&&<p style={{color:"#dc2626",fontSize:13,marginBottom:12,background:"#fef2f2",padding:"8px 10px",borderRadius:7,border:"1px solid #fecaca"}}>{error}</p>}
         {success&&<p style={{color:"#16a34a",fontSize:13,marginBottom:12,background:"#f0fdf4",padding:"8px 10px",borderRadius:7,border:"1px solid #bbf7d0"}}>{success}</p>}
+        {needsConfirm&&(
+          <div style={{background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:10,padding:"14px 16px",marginBottom:14}}>
+            <div style={{fontWeight:700,fontSize:13,color:"#b45309",marginBottom:6}}>📧 Email de confirmation requis</div>
+            <div style={{fontSize:12,color:"#78350f",marginBottom:10}}>Un email de confirmation a été envoyé à <b>{email.trim().toLowerCase()}</b>.<br/>Vérifiez votre boîte de réception et vos <b>spams</b>. Cliquez sur le lien pour activer votre compte.</div>
+            {resendDone
+              ?<div style={{fontSize:12,color:"#16a34a",fontWeight:600}}>✅ Email renvoyé ! Vérifiez vos spams.</div>
+              :<button onClick={async()=>{setResendLoading(true);await supabase.auth.resend({type:"signup",email:email.trim().toLowerCase(),options:{emailRedirectTo:window.location.origin}});setResendLoading(false);setResendDone(true);}} disabled={resendLoading} style={{width:"100%",padding:"8px 0",background:"#d97706",color:"white",border:"none",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer"}}>{resendLoading?"Envoi...":"🔁 Renvoyer l'email de confirmation"}</button>
+            }
+          </div>
+        )}
         <button onClick={handleSubmit} disabled={loading||isLocked} style={{width:"100%",padding:"12px",background:isLocked?"#9ca3af":"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:isLocked?"not-allowed":"pointer"}}>
           {loading?"...":(mode==="login"?"Se connecter":mode==="signup"?"Créer mon compte":"Envoyer le lien")}
         </button>

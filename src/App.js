@@ -2696,7 +2696,7 @@ function AuthPage(){
 
     setLoading(true);setError("");setSuccess("");
     if(mode==="forgot"){
-      await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase());
+      await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(),{redirectTo:window.location.origin});
       // Message générique : on ne révèle pas si l'email existe
       setSuccess("Si cet email est enregistré, un lien de réinitialisation a été envoyé.");
       setLoading(false);return;

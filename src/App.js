@@ -1422,8 +1422,40 @@ function AppContent(){
                     <div key={k}><label style={LBL_STYLE}>{l}</label><input style={INP_STYLE()} value={editingClient[k]||""} onChange={e=>setEditingClient(c=>({...c,[k]:e.target.value}))}/></div>
                   ))}
                   <div><label style={LBL_STYLE}>Téléphone</label><TelInput value={editingClient.tel||""} onChange={v=>setEditingClient(c=>({...c,tel:v}))}/></div>
-                  <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>{setClients(cs=>cs.map(c=>c.key===editingClient.key?{...editingClient}:c));setSelectedClient({...editingClient});setEditingClient(null);toast_("Client mis à jour !");}} style={{flex:1,background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+                  {/* Documents dans mode édition */}
+                  <div>
+                    <div style={{fontWeight:700,fontSize:13,marginBottom:8,borderTop:"1px solid #e5e7eb",paddingTop:10}}>Documents</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                      {[{k:"cniRecto",l:"CNI / Passeport - Recto",col:"#2563eb",ic:"🪪"},{k:"cniVerso",l:"CNI / Passeport - Verso",col:"#2563eb",ic:"🪪"},{k:"justifDom",l:"Justificatif de domicile",col:"#7c3aed",ic:"🏠"},{k:"photoAr",l:"Photo locataire",col:"#16a34a",ic:"👤"}].map(({k,l,col,ic})=>{
+                        const src=(editingClient.docs||{})[k];
+                        function pickD(capture){const i=document.createElement("input");i.type="file";i.accept="image/*,application/pdf";if(capture)i.capture="environment";i.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setEditingClient(c=>({...c,docs:{...(c.docs||{}),[k]:ev.target.result}}));r.readAsDataURL(f);};i.click();}
+                        function dlD(){const ext=src.startsWith("data:image/png")?"png":src.startsWith("data:image/gif")?"gif":src.startsWith("data:application/pdf")?"pdf":"jpg";const a=document.createElement("a");a.href=src;a.download=`${(editingClient.nom||"client").replace(/\s+/g,"_")}_${k}.${ext}`;a.click();}
+                        return(
+                          <div key={k} style={{borderRadius:10,border:`2px solid ${src?col:"#e5e7eb"}`,background:src?"#f8fafc":"white",overflow:"hidden"}}>
+                            <div style={{padding:"8px 12px",display:"flex",alignItems:"center",gap:8}}>
+                              <span style={{fontSize:16}}>{ic}</span>
+                              <span style={{flex:1,fontWeight:600,fontSize:11,color:src?col:"#374151"}}>{l}</span>
+                              {src?(
+                                <div style={{display:"flex",gap:4}}>
+                                  <button onClick={()=>window.open(src,"_blank")} style={{padding:"3px 7px",background:"#eff6ff",color:"#2563eb",border:"none",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:700}}>👁</button>
+                                  <button onClick={dlD} style={{padding:"3px 7px",background:col,color:"white",border:"none",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:700}}>⬇</button>
+                                  <button onClick={()=>setEditingClient(c=>{const d={...(c.docs||{})};delete d[k];return{...c,docs:d};})} style={{padding:"3px 7px",background:"#fef2f2",color:"#ef4444",border:"none",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:700}}>✕</button>
+                                </div>
+                              ):(
+                                <div style={{display:"flex",gap:4}}>
+                                  <button onClick={()=>pickD(false)} title="Galerie" style={{padding:"4px 8px",background:"#1e3a8a",color:"white",border:"none",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>📁</button>
+                                  <button onClick={()=>pickD(true)} title="Caméra" style={{padding:"4px 8px",background:"#7c3aed",color:"white",border:"none",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>📷</button>
+                                </div>
+                              )}
+                            </div>
+                            {src&&<div style={{padding:"0 12px 10px"}}><img src={src} alt={l} style={{width:"100%",maxHeight:140,objectFit:"contain",borderRadius:8,border:`2px solid ${col}`,background:"#f1f5f9",cursor:"zoom-in"}} onClick={()=>window.open(src,"_blank")}/></div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:8,marginTop:4}}>
+                    <button onClick={async()=>{const updated={...editingClient};setClients(cs=>cs.map(c=>c.key===updated.key?updated:c));setSelectedClient(updated);setEditingClient(null);toast_("Client mis à jour !");if(user){const lastC=contrats.filter(c=>c.locNom===updated.nom&&c.locTel===updated.tel).sort((a,b)=>new Date(b.dateDebut)-new Date(a.dateDebut))[0];if(lastC)await supabase.from('contrats').update({docs_locataire:updated.docs||{}}).eq('id',lastC.id).eq('user_id',user.id);}}} style={{flex:1,background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
                     <button onClick={()=>setEditingClient(null)} style={{padding:"8px 14px",background:"#e5e7eb",border:"none",borderRadius:8,cursor:"pointer"}}>Annuler</button>
                   </div>
                 </div>

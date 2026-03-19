@@ -1091,7 +1091,7 @@ function AppContent(){
   const totalRetenues_f=fContrats.reduce((s,c)=>s+(retours[c.id]?.montantRetenu||0),0);
   const totalSurplusKm_f=fContrats.reduce((s,c)=>s+(retours[c.id]?.surplusKm||0),0);
   const cautionsNonRendues_f=contrats.filter(c=>!retours[c.id]&&inPeriodFin(c.dateDebut)).reduce((s,c)=>{const v=vehicles.find(x=>x.id===c.vehicleId);return s+(v?v.caution:0);},0);
-  const bT_f=caT_f+totalRetenues_f+totalSurplusKm_f+cautionsNonRendues_f-dT_f;
+  const bT_f=caT_f+totalRetenues_f+totalSurplusKm_f-dT_f;
   const devise=DEVISES.find(d=>d.code===(profil.devise||"EUR"))||DEVISES[0];
   const sym=devise.symbol;
   const tarifAuto=sel?calcTarifAuto(sel,form.nbJours,form.heuresLoc,form.prixJourModifie):{prix:0,label:"—"};
@@ -2430,12 +2430,12 @@ function AppContent(){
                 const ca=vContrats.reduce((s,c)=>s+(c.totalCalc||0),0);
                 const dep=depenses.filter(d=>d.vehicleId===v.id&&inPeriod(d.date)).reduce((s,d)=>s+parseFloat(d.montant||0),0);
                 const caution=vContrats.reduce((s,c)=>s+(retours[c.id]?.montantRetenu||0),0);
-                return{label:v.marque+" "+v.modele,immat:v.immat,ca,dep,caution,net:ca-dep,color:vColors[i%vColors.length]};
+                return{label:v.marque+" "+v.modele,immat:v.immat,ca,dep,caution,net:ca-dep+caution,color:vColors[i%vColors.length]};
               });
               const totalCA=rows.reduce((s,r)=>s+r.ca,0);
               const totalDep=rows.reduce((s,r)=>s+r.dep,0);
               const totalCaution=rows.reduce((s,r)=>s+r.caution,0);
-              const totalNet=totalCA-totalDep;
+              const totalNet=totalCA-totalDep+totalCaution;
               return(
                 <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)",marginBottom:16}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>

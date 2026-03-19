@@ -171,10 +171,10 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   let docsLocHtml="";
   if(dl.cniRecto||dl.cniVerso||dl.justifDom||dl.photoAr){
     docsLocHtml="<div style='margin-top:8px;padding:8px;background:#f8fafc;border-radius:6px'><div style='font-size:10px;font-weight:bold;color:#0a1940;margin-bottom:6px'>Pieces jointes locataire</div><div style='display:flex;flex-wrap:wrap;gap:8px'>";
-    if(dl.cniRecto)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:2px'>CNI Recto</div><img src='"+dl.cniRecto+"' style='width:110px;height:80px;object-fit:cover;border-radius:5px'></div>";
-    if(dl.cniVerso)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:2px'>CNI Verso</div><img src='"+dl.cniVerso+"' style='width:110px;height:80px;object-fit:cover;border-radius:5px'></div>";
-    if(dl.justifDom)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:2px'>Justif. domicile</div><img src='"+dl.justifDom+"' style='width:110px;height:80px;object-fit:cover;border-radius:5px'></div>";
-    if(dl.photoAr)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:2px'>Photo arriere</div><img src='"+dl.photoAr+"' style='width:110px;height:80px;object-fit:cover;border-radius:5px'></div>";
+    if(dl.cniRecto)docsLocHtml+="<div style='text-align:center'><div style='font-size:10px;font-weight:bold;color:#0a1940;margin-bottom:3px'>CNI Recto</div><img src='"+dl.cniRecto+"' style='width:150px;height:110px;object-fit:contain;border-radius:6px;border:1px solid #ddd;background:#f8fafc'></div>";
+    if(dl.cniVerso)docsLocHtml+="<div style='text-align:center'><div style='font-size:10px;font-weight:bold;color:#0a1940;margin-bottom:3px'>CNI Verso</div><img src='"+dl.cniVerso+"' style='width:150px;height:110px;object-fit:contain;border-radius:6px;border:1px solid #ddd;background:#f8fafc'></div>";
+    if(dl.justifDom)docsLocHtml+="<div style='text-align:center'><div style='font-size:10px;font-weight:bold;color:#0a1940;margin-bottom:3px'>Justif. domicile</div><img src='"+dl.justifDom+"' style='width:150px;height:110px;object-fit:contain;border-radius:6px;border:1px solid #ddd;background:#f8fafc'></div>";
+    if(dl.photoAr)docsLocHtml+="<div style='text-align:center'><div style='font-size:10px;font-weight:bold;color:#0a1940;margin-bottom:3px'>Photo locataire</div><img src='"+dl.photoAr+"' style='width:150px;height:110px;object-fit:contain;border-radius:6px;border:1px solid #ddd;background:#f8fafc'></div>";
     docsLocHtml+="</div></div>";
   }
   const remise=parseFloat(contrat.remise)||0;
@@ -1162,7 +1162,7 @@ function AppContent(){
 
   function ouvrirProlon(c){
     setProlonContrat(c);
-    setProlonDateFin(c.dateFin||"");
+    setProlonDateFin("");
     setProlonHeureFin(c.heureFin||"10:00");
   }
   async function prolongerContrat(){
@@ -1437,11 +1437,24 @@ function AppContent(){
               {(selectedClient.docs?.cniRecto||selectedClient.docs?.cniVerso||selectedClient.docs?.justifDom||selectedClient.docs?.photoAr)&&(
                 <div style={{marginBottom:16}}>
                   <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>Documents</div>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:10}}>
-                    {selectedClient.docs?.cniRecto&&<div style={{textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280",marginBottom:3}}>CNI Recto</div><img src={selectedClient.docs.cniRecto} alt="" style={{width:120,height:85,objectFit:"cover",borderRadius:8,border:"2px solid #2563eb"}}/></div>}
-                    {selectedClient.docs?.cniVerso&&<div style={{textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280",marginBottom:3}}>CNI Verso</div><img src={selectedClient.docs.cniVerso} alt="" style={{width:120,height:85,objectFit:"cover",borderRadius:8,border:"2px solid #2563eb"}}/></div>}
-                    {selectedClient.docs?.justifDom&&<div style={{textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280",marginBottom:3}}>Justif.</div><img src={selectedClient.docs.justifDom} alt="" style={{width:120,height:85,objectFit:"cover",borderRadius:8,border:"2px solid #7c3aed"}}/></div>}
-                    {selectedClient.docs?.photoAr&&<div style={{textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280",marginBottom:3}}>Photo arr.</div><img src={selectedClient.docs.photoAr} alt="" style={{width:120,height:85,objectFit:"cover",borderRadius:8,border:"2px solid #16a34a"}}/></div>}
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12}}>
+                    {[["cniRecto","CNI Recto","#2563eb"],["cniVerso","CNI Verso","#2563eb"],["justifDom","Justif. domicile","#7c3aed"],["photoAr","Photo locataire","#16a34a"]].map(([k,lbl,col])=>{
+                      const src=selectedClient.docs?.[k];
+                      if(!src)return null;
+                      function dlDoc(){
+                        const ext=src.startsWith("data:image/png")?"png":src.startsWith("data:image/gif")?"gif":src.startsWith("data:application/pdf")?"pdf":"jpg";
+                        const a=document.createElement("a");a.href=src;a.download=`${selectedClient.nom.replace(/\s+/g,"_")}_${k}.${ext}`;a.click();
+                      }
+                      return(
+                        <div key={k} style={{borderRadius:10,border:`2px solid ${col}`,overflow:"hidden",background:"white"}}>
+                          <img src={src} alt={lbl} style={{width:"100%",height:120,objectFit:"contain",background:"#f8fafc",display:"block",cursor:"zoom-in"}} onClick={()=>window.open(src,"_blank")}/>
+                          <div style={{padding:"6px 8px",background:"#f8fafc",borderTop:`1px solid ${col}22`}}>
+                            <div style={{fontSize:10,fontWeight:700,color:col,marginBottom:4}}>{lbl}</div>
+                            <button onClick={dlDoc} style={{width:"100%",padding:"4px 0",background:col,color:"white",border:"none",borderRadius:5,fontSize:10,fontWeight:700,cursor:"pointer"}}>⬇ Télécharger</button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1751,12 +1764,29 @@ function AppContent(){
                 </div>
               ))}
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:20}}>
               <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #1e3a8a"}}><div style={{fontSize:10,color:"#6b7280"}}>Total contrats</div><div style={{fontSize:22,fontWeight:800}}>{contrats.length}</div></div>
               <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #16a34a"}}><div style={{fontSize:10,color:"#6b7280"}}>Retours effectués</div><div style={{fontSize:22,fontWeight:800}}>{Object.keys(retours).length}</div></div>
               <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #d97706"}}><div style={{fontSize:10,color:"#6b7280"}}>En attente</div><div style={{fontSize:22,fontWeight:800,color:"#d97706"}}>{contrats.filter(c=>!retours[c.id]).length}</div></div>
               <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #2563eb"}}><div style={{fontSize:10,color:"#6b7280"}}>CA total</div><div style={{fontSize:22,fontWeight:800,color:"#2563eb"}}>{caT} {sym}</div></div>
             </div>
+            {contrats.filter(c=>!retours[c.id]).length>0&&(
+              <div style={{background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #fde68a"}}>
+                <div style={{fontWeight:800,fontSize:13,color:"#b45309",marginBottom:10}}>🔄 Contrats en cours ({contrats.filter(c=>!retours[c.id]).length})</div>
+                {contrats.filter(c=>!retours[c.id]).map(c=>(
+                  <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f9fafb",gap:8,flexWrap:"wrap"}}>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:13}}>{c.locNom}</div>
+                      <div style={{fontSize:11,color:"#6b7280"}}>{c.vehicleLabel} · fin le <b style={{color:"#dc2626"}}>{c.dateFin}</b></div>
+                    </div>
+                    <div style={{display:"flex",gap:6}}>
+                      <button onClick={()=>ouvrirProlon(c)} style={{padding:"5px 10px",background:"#fef3c7",color:"#b45309",border:"none",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer"}}>⏳ Prolonger</button>
+                      <button onClick={()=>setRetourContratId(c.id)} style={{padding:"5px 10px",background:"#f0fdf4",color:"#16a34a",border:"none",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer"}}>Retour</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

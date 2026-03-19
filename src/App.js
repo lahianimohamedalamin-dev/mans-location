@@ -8,17 +8,14 @@ const DEF_FRAIS=[
   {id:7,label:"Dégât RSV",montant:17000},
 ];
 const DEF_CLAUSES=[
-  {id:1,titre:"Clause d'immobilisation",texte:"Toute immobilisation causée par une faute du Locataire entraînera une facturation de 60 €/jour jusqu'à réparation."},
-  {id:2,titre:"Carburant",texte:"Le véhicule est remis avec le plein. Il devra être rendu avec le même niveau. Manquement = 20 € + coût carburant."},
-  {id:3,titre:"Amendes & Infractions",texte:"Le Locataire est responsable des infractions. Toute amende sera transmise avec frais de gestion (30-50 €/dossier)."},
-  {id:4,titre:"État du véhicule",texte:"Un état des lieux est effectué. Toute dégradation non signalée sera retenue sur la caution. Nettoyage = 80 €."},
-  {id:5,titre:"Utilisation du véhicule",texte:"Le locataire s'engage à utiliser le véhicule avec diligence et prudence. Usage illégal interdit."},
-  {id:6,titre:"Véhicule RSV",texte:"En cas d'accident RSV, la somme de 17 000 € sera demandée si la responsabilité du locataire est engagée."},
-  {id:7,titre:"Exclusivité de conduite",texte:"Seul le Locataire est autorisé à conduire. Toute conduite par un tiers est strictement interdite."},
-  {id:8,titre:"Limitation géographique",texte:"Le véhicule ne peut être utilisé que sur le territoire français. Pénalité de 250 € en cas de non-respect."},
-  {id:9,titre:"Interdiction de sous-location",texte:"Le Locataire s'engage à ne pas sous-louer le véhicule. Résiliation sans remboursement en cas de non-respect."},
-  {id:10,titre:"Non-fumeur",texte:"Il est interdit de fumer dans le véhicule. Forfait nettoyage de 20-80 € en cas d'odeur ou traces."},
-  {id:11,titre:"Dégradations",texte:"En cas de dégradation, aucune somme versée ne sera remboursée. Les frais excédant la caution seront facturés."},
+  {id:1,titre:"Amendes & Infractions",texte:"Le Locataire est responsable des infractions commises pendant la durée du contrat. Toute amende sera transmise avec frais de gestion (30-50 €/dossier)."},
+  {id:2,titre:"Utilisation du véhicule",texte:"Le locataire s'engage à utiliser le véhicule avec diligence et prudence. Tout usage illégal est strictement interdit."},
+  {id:3,titre:"Exclusivité de conduite",texte:"Seul le Locataire désigné sur le contrat est autorisé à conduire le véhicule. Toute conduite par un tiers est strictement interdite."},
+  {id:4,titre:"Limitation géographique",texte:"Le véhicule ne peut être utilisé que sur le territoire français métropolitain. Pénalité de 250 € en cas de non-respect."},
+  {id:5,titre:"Interdiction de sous-location",texte:"Le Locataire s'engage expressément à ne pas sous-louer le véhicule à un tiers. Tout manquement entraîne la résiliation immédiate du contrat sans remboursement."},
+  {id:6,titre:"Non-fumeur",texte:"Il est strictement interdit de fumer dans le véhicule. En cas d'odeur ou de traces de tabac, un forfait nettoyage sera appliqué (voir Frais déductibles)."},
+  {id:7,titre:"Carburant",texte:"Le véhicule est remis avec le plein d'essence. Il devra être restitué avec le même niveau de carburant. Tout manquement sera facturé (voir Frais déductibles)."},
+  {id:8,titre:"État du véhicule",texte:"Un état des lieux contradictoire est effectué au départ et au retour. Toute dégradation non signalée lors du départ sera retenue sur la caution (voir Frais déductibles)."},
 ];
 const CARRO_ELEMENTS=[
   {id:"aile_avg",label:"Aile avant gauche",zone:"Avant"},{id:"aile_avd",label:"Aile avant droite",zone:"Avant"},
@@ -116,7 +113,7 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   const nb=contrat.nbJours||1,total=contrat.totalCalc||0,pm=contrat.paiement;
   const frais=vehicle.frais||DEF_FRAIS,clauses=vehicle.clauses||DEF_CLAUSES;
   const fraisRows=frais.map(f=>"<tr><td>"+f.label+"</td><td style='text-align:right;font-weight:bold'>"+f.montant+" €</td></tr>").join("");
-  const clausesHtml=clauses.map((c,i)=>"<div class='cl'><span class='cl-t'>"+(i+6)+". "+c.titre+"</span><br>"+c.texte+"</div>").join("");
+  const clausesHtml=clauses.map((c,i)=>"<div class='cl'><span class='cl-t'>"+(i+1)+". "+c.titre+"</span><br>"+c.texte+"</div>").join("");
   const sL=sigL?"<img src='"+sigL+"' style='max-width:160px;height:60px;display:block;margin:0 auto;border-bottom:1px solid #333'>":"<div style='border-bottom:1px solid #333;height:60px;width:160px;margin:0 auto'></div>";
   const sLoc=sigLoc?"<img src='"+sigLoc+"' style='max-width:160px;height:60px;display:block;margin:0 auto;border-bottom:1px solid #333'>":"<div style='border-bottom:1px solid #333;height:60px;width:160px;margin:0 auto'></div>";
   const fuelPct=contrat.carburantDepart||0;
@@ -166,7 +163,7 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
     "<div>["+(pm==="especes"?"X":" ")+"] Especes ["+(pm==="cb"?"X":" ")+"] CB ["+(pm==="virement"?"X":" ")+"] Virement ["+(pm==="cheque"?"X":" ")+"] Cheque</div></div>",
     "<div style='margin-bottom:8px'><div class='st'>Caution - "+vehicle.caution+" EUR ("+cautionMode+")</div>",
     "<table class='ft'><tr style='background:#e8edf5;font-weight:bold'><td colspan='2'>Frais deductibles</td></tr>"+fraisRows+"</table></div>",
-    "<div style='margin-bottom:8px'><div class='st'>Clauses</div>"+clausesHtml+"</div>",
+    "<div style='margin-bottom:8px'><div class='st'>Conditions générales de location</div>"+clausesHtml+"</div>",
     "<hr><p style='font-size:10px;margin-bottom:12px'>Fait a "+profil.ville+", le "+new Date().toLocaleDateString("fr-FR")+"</p>",
     "<div class='sig-area'><div class='sig-box'><p>Loueur ("+profil.nom+")</p>"+sL+"</div>",
     "<div class='sig-box'><p>Locataire ("+contrat.locNom+")</p>"+sLoc+"</div></div>",
@@ -175,7 +172,7 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
 
 function buildPVRetourHTML(contrat,vehicle,retourData,sigLoueur,sigLocataire,profil){
   const d=retourData,caution=vehicle?.caution||0;
-  const total=(contrat.totalCalc||0)+(d.surplusKm||0)+(d.montantRetenu||0);
+  const total=(contrat.totalCalc||0)+(d.surplusKm||0)+(d.montantRetenu||0)+(d.totalFraisSup||0);
   const fBar=pct=>"<div style='background:#e5e7eb;border-radius:99px;height:8px;width:120px;display:inline-block;vertical-align:middle;overflow:hidden;margin-left:6px'><div style='width:"+pct+"%;background:"+fuelColor(pct)+";height:100%'></div></div>";
   const carroNOK=CARRO_ELEMENTS.filter(e=>d.carro&&d.carro[e.id]===false);
   const carroRows=carroNOK.length>0?carroNOK.map(e=>"<tr><td>"+e.label+"</td><td style='color:#dc2626;font-weight:700'>Degat</td><td>"+(d.carroNotes&&d.carroNotes[e.id]?d.carroNotes[e.id]:"-")+"</td>"+(d.carroPhotos&&d.carroPhotos[e.id]?"<td><img src='"+d.carroPhotos[e.id]+"' style='width:80px;height:60px;object-fit:cover;border-radius:4px'></td>":"<td>-</td>")+"</tr>").join(""):"<tr><td colspan='4' style='color:#16a34a;font-weight:600;text-align:center'>Aucun degat</td></tr>";
@@ -215,7 +212,12 @@ table th{background:#e8edf5;font-weight:700}
   <div style='font-weight:800;font-size:13px;margin-bottom:8px'>Bilan financier</div>
   <div class='br'><span>Location</span><span>${contrat.totalCalc||0} EUR</span></div>
   ${(d.surplusKm||0)>0?"<div class='br'><span>Km sup</span><span>+"+((d.surplusKm||0).toFixed(2))+" EUR</span></div>":""}
-  ${(d.montantRetenu||0)>0?"<div class='br'><span>Retenue</span><span>+"+d.montantRetenu+" EUR</span></div>":""}
+  ${(d.fraisSup?.carburantManquant&&parseFloat(d.fraisSup.carburantManquant)>0)?"<div class='br'><span>Carburant manquant</span><span>+"+parseFloat(d.fraisSup.carburantManquant).toFixed(2)+" EUR</span></div>":""}
+  ${(d.fraisSup?.nettoyageInt&&parseFloat(d.fraisSup.nettoyageInt)>0)?"<div class='br'><span>Nettoyage intérieur</span><span>+"+parseFloat(d.fraisSup.nettoyageInt).toFixed(2)+" EUR</span></div>":""}
+  ${(d.fraisSup?.nettoyageExt&&parseFloat(d.fraisSup.nettoyageExt)>0)?"<div class='br'><span>Nettoyage extérieur</span><span>+"+parseFloat(d.fraisSup.nettoyageExt).toFixed(2)+" EUR</span></div>":""}
+  ${(d.fraisSup?.rayuresDommages&&parseFloat(d.fraisSup.rayuresDommages)>0)?"<div class='br'><span>Rayures et dommages</span><span>+"+parseFloat(d.fraisSup.rayuresDommages).toFixed(2)+" EUR</span></div>":""}
+  ${(d.fraisSup?.immobilisationJours&&parseFloat(d.fraisSup.immobilisationJours)>0)?"<div class='br'><span>Immobilisation ("+d.fraisSup.immobilisationJours+"j × 60 EUR)</span><span>+"+(parseFloat(d.fraisSup.immobilisationJours)*60).toFixed(2)+" EUR</span></div>":""}
+  ${(d.montantRetenu||0)>0?"<div class='br'><span>Retenue caution</span><span>+"+d.montantRetenu+" EUR</span></div>":""}
   <div class='br' style='border-top:1px solid rgba(255,255,255,.2);margin-top:4px;padding-top:6px'><span style='font-weight:800'>Total</span><span style='font-size:16px;font-weight:900;color:#4ade80'>${total.toFixed(2)} EUR</span></div>
 </div>
 <hr><p style='font-size:10px;margin-bottom:14px'>Fait a ${profil.ville}, le ${new Date().toLocaleDateString("fr-FR")}</p>
@@ -481,8 +483,8 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
   const[carroNotes,setCarroNotes]=useState({});
   const[photos,setPhotos]=useState({});
   const[notes,setNotes]=useState({});
-  const[fraisSup,setFraisSup]=useState({carburantManquant:"",nettoyageInt:"",nettoyageExt:""});
-  const totalFraisSup=(parseFloat(fraisSup.carburantManquant)||0)+(parseFloat(fraisSup.nettoyageInt)||0)+(parseFloat(fraisSup.nettoyageExt)||0);
+  const[fraisSup,setFraisSup]=useState({carburantManquant:"",nettoyageInt:"",nettoyageExt:"",rayuresDommages:"",immobilisationJours:""});
+  const totalFraisSup=(parseFloat(fraisSup.carburantManquant)||0)+(parseFloat(fraisSup.nettoyageInt)||0)+(parseFloat(fraisSup.nettoyageExt)||0)+(parseFloat(fraisSup.rayuresDommages)||0)+((parseFloat(fraisSup.immobilisationJours)||0)*60);
   const[cautionRestituee,setCautionRestituee]=useState(null);
   const[montantRetenu,setMontantRetenu]=useState("");
   const[raisonRetenue,setRaisonRetenue]=useState("");
@@ -561,11 +563,31 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
               <label style={LBL_STYLE}>Nettoyage extérieur ({sym})</label>
               <input type="number" style={IS} placeholder="ex: 50" value={fraisSup.nettoyageExt} onChange={e=>setFraisSup(f=>({...f,nettoyageExt:e.target.value}))}/>
             </div>
+            <div style={{background:"white",borderRadius:12,padding:16,border:"1px solid #e5e7eb"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+                <span style={{fontSize:22}}>💥</span>
+                <div style={{fontWeight:700,fontSize:14,color:"#0a1940"}}>Frais de dommages</div>
+              </div>
+              <label style={LBL_STYLE}>Rayures et dommages ({sym})</label>
+              <input type="number" style={IS} placeholder="ex: 300" value={fraisSup.rayuresDommages} onChange={e=>setFraisSup(f=>({...f,rayuresDommages:e.target.value}))}/>
+            </div>
+            <div style={{background:"white",borderRadius:12,padding:16,border:"1px solid #e5e7eb"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                <span style={{fontSize:22}}>🔒</span>
+                <div style={{fontWeight:700,fontSize:14,color:"#0a1940"}}>Clause d'immobilisation</div>
+              </div>
+              <div style={{fontSize:11,color:"#6b7280",marginBottom:10}}>60 {sym}/jour jusqu'à réparation du véhicule</div>
+              <label style={LBL_STYLE}>Nombre de jours d'immobilisation</label>
+              <input type="number" style={IS} placeholder="ex: 3" value={fraisSup.immobilisationJours} onChange={e=>setFraisSup(f=>({...f,immobilisationJours:e.target.value}))}/>
+              {parseFloat(fraisSup.immobilisationJours)>0&&<div style={{marginTop:8,padding:"6px 10px",background:"#fef3c7",borderRadius:7,fontSize:12,fontWeight:700,color:"#92400e"}}>= {(parseFloat(fraisSup.immobilisationJours)*60).toFixed(2)} {sym}</div>}
+            </div>
             {totalFraisSup>0&&<div style={{background:"#0a1940",borderRadius:12,padding:14,color:"white"}}>
               <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>Total frais supplémentaires</div>
               {fraisSup.carburantManquant&&parseFloat(fraisSup.carburantManquant)>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,opacity:.8,marginBottom:4}}><span>Carburant manquant</span><span>{fraisSup.carburantManquant} {sym}</span></div>}
               {fraisSup.nettoyageInt&&parseFloat(fraisSup.nettoyageInt)>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,opacity:.8,marginBottom:4}}><span>Nettoyage intérieur</span><span>{fraisSup.nettoyageInt} {sym}</span></div>}
               {fraisSup.nettoyageExt&&parseFloat(fraisSup.nettoyageExt)>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,opacity:.8,marginBottom:4}}><span>Nettoyage extérieur</span><span>{fraisSup.nettoyageExt} {sym}</span></div>}
+              {fraisSup.rayuresDommages&&parseFloat(fraisSup.rayuresDommages)>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,opacity:.8,marginBottom:4}}><span>Rayures et dommages</span><span>{fraisSup.rayuresDommages} {sym}</span></div>}
+              {fraisSup.immobilisationJours&&parseFloat(fraisSup.immobilisationJours)>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12,opacity:.8,marginBottom:4}}><span>Immobilisation ({fraisSup.immobilisationJours}j × 60 {sym})</span><span>{(parseFloat(fraisSup.immobilisationJours)*60).toFixed(2)} {sym}</span></div>}
               <div style={{display:"flex",justifyContent:"space-between",borderTop:"1px solid rgba(255,255,255,.2)",marginTop:6,paddingTop:6}}><span style={{fontWeight:800}}>Total</span><span style={{fontWeight:900,fontSize:16,color:"#fbbf24"}}>{totalFraisSup.toFixed(2)} {sym}</span></div>
             </div>}
           </div>}
@@ -684,7 +706,7 @@ function ContratModal({vehicle,onClose,onSave}){
           <button onClick={onClose} style={{fontSize:22,background:"none",border:"none",cursor:"pointer"}}>x</button>
         </div>
         <div style={{display:"flex",borderBottom:"1px solid #e5e7eb",padding:"0 18px"}}>
-          {[["frais","Frais"],["clauses","Clauses"]].map(([id,lbl])=><button key={id} onClick={()=>setTab(id)} style={{padding:"10px 14px",fontSize:12,fontWeight:tab===id?700:400,color:tab===id?"#2563eb":"#6b7280",background:"none",border:"none",borderBottom:tab===id?"2px solid #2563eb":"2px solid transparent",cursor:"pointer"}}>{lbl}</button>)}
+          {[["frais","Frais déductibles"],["clauses","Conditions générales"]].map(([id,lbl])=><button key={id} onClick={()=>setTab(id)} style={{padding:"10px 14px",fontSize:12,fontWeight:tab===id?700:400,color:tab===id?"#2563eb":"#6b7280",background:"none",border:"none",borderBottom:tab===id?"2px solid #2563eb":"2px solid transparent",cursor:"pointer"}}>{lbl}</button>)}
         </div>
         <div style={{flex:1,overflowY:"auto",padding:16}}>
           {tab==="frais"&&<div>
@@ -708,7 +730,7 @@ function ContratModal({vehicle,onClose,onSave}){
             {clauses.map((c,i)=>(
               <div key={c.id} style={{padding:10,background:"#f9fafb",borderRadius:10,border:"1px solid #e5e7eb",marginBottom:8}}>
                 <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6}}>
-                  <span style={{fontSize:10,background:"#dbeafe",color:"#1d4ed8",fontWeight:700,padding:"2px 7px",borderRadius:999}}>{i+6}</span>
+                  <span style={{fontSize:10,background:"#dbeafe",color:"#1d4ed8",fontWeight:700,padding:"2px 7px",borderRadius:999}}>{i+1}</span>
                   <input style={{...IS,flex:1,fontWeight:600}} value={c.titre} onChange={e=>setClauses(x=>x.map(a=>a.id===c.id?{...a,titre:e.target.value}:a))}/>
                   <button onClick={()=>setClauses(x=>x.filter(a=>a.id!==c.id))} style={{padding:"3px 7px",background:"#fef2f2",color:"#ef4444",border:"none",borderRadius:5,cursor:"pointer"}}>X</button>
                 </div>

@@ -180,7 +180,8 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   const remise=parseFloat(contrat.remise)||0;
   const accompte=parseFloat(contrat.accompte)||0;
   const resteAPayer=parseFloat(contrat.resteAPayer)||Math.max(0,total-accompte);
-  const kmInclus=contrat.kmInclus;
+  const kmInclusParJour=contrat.kmInclus||0;
+  const kmInclus=kmInclusParJour*(contrat.nbJours||1);
   const prixKmSup=contrat.prixKmSup;
   const ext=contrat.exterieurPropre;
   const intr=contrat.interieurPropre;
@@ -270,7 +271,7 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
     // PAIEMENT + FINANCES
     "<div style='margin-bottom:8px'><div class='st'>Conditions financieres</div>",
     (contrat.tarifLabel?"<div><span class='lbl'>Tarif : </span><span class='val'>"+escHtml(contrat.tarifLabel)+"</span></div>":""),
-    ((kmInclus&&!contrat.kmIllimite)?"<div><span class='lbl'>Km inclus : </span><span class='val'>"+escHtml(String(kmInclus))+" km</span></div>":""),
+    ((kmInclus&&!contrat.kmIllimite)?"<div><span class='lbl'>Km inclus : </span><span class='val'>"+escHtml(String(kmInclus))+" km total ("+escHtml(String(kmInclusParJour))+" km/j × "+escHtml(String(contrat.nbJours||1))+" j)</span></div>":""),
     (contrat.kmIllimite?"<div><span class='lbl'>Kilometrage : </span><span class='val'>Illimite</span></div>":""),
     ((prixKmSup&&!contrat.kmIllimite)?"<div><span class='lbl'>Prix km sup : </span><span class='val'>"+escHtml(String(prixKmSup))+" EUR/km</span></div>":""),
     "<div class='row' style='margin-top:6px'><span>Montant location</span><span style='font-weight:bold'>"+total+" EUR</span></div>",
@@ -632,7 +633,7 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
   const kmDep=parseFloat(contrat.kmDepart||vehicle?.km||0);
   const kmRet=parseFloat(kmRetour)||0;
   const kmParcourus=kmRet>0?kmRet-kmDep:0;
-  const kmInclus=parseFloat(vehicle?.kmInclus||0);
+  const kmInclus=parseFloat(contrat.kmInclus||vehicle?.kmInclus||0)*parseFloat(contrat.nbJours||1);
   const prixKmSup=parseFloat(vehicle?.prixKmSup||0);
   const kmSup=Math.max(0,kmParcourus-kmInclus);
   const surplusKm=kmSup*prixKmSup;
@@ -668,6 +669,7 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
                 <div><div style={{fontSize:10,color:"#6b7280",marginBottom:3}}>Km au départ</div><div style={{padding:"8px 10px",background:"#f3f4f6",borderRadius:8,fontSize:14,fontWeight:700}}>{contrat.kmDepart||vehicle?.km||"—"} km</div></div>
                 <div><div style={{fontSize:10,color:"#6b7280",marginBottom:3}}>Km au retour</div><input type="number" style={IS} placeholder="ex: 55350" value={kmRetour} onChange={e=>setKmRetour(e.target.value)}/></div>
               </div>
+              {kmInclus>0&&!contrat.kmIllimite&&<div style={{fontSize:11,color:"#6b7280",marginBottom:4}}>Km autorisés : <b style={{color:"#1e3a8a"}}>{kmInclus} km</b> ({parseFloat(contrat.kmInclus||vehicle?.kmInclus||0)} km/j × {contrat.nbJours||1} j)</div>}
               {kmRetour&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                 <div style={{background:"#eff6ff",borderRadius:8,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280"}}>Parcourus</div><div style={{fontWeight:800,fontSize:16,color:"#2563eb"}}>{kmParcourus} km</div></div>
                 <div style={{background:kmSup>0?"#fef3c7":"#f0fdf4",borderRadius:8,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280"}}>Surplus</div><div style={{fontWeight:800,fontSize:16,color:kmSup>0?"#d97706":"#16a34a"}}>{kmSup} km</div></div>

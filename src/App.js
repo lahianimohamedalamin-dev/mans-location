@@ -475,6 +475,7 @@ function DemandeVehicule({vehicle,profil,userId}){
 }
 
 function RetourModal({contrat,vehicle,profil,onClose,onSave}){
+  const sym=(DEVISES.find(d=>d.code===(profil?.devise||"EUR"))||DEVISES[0]).symbol;
   const initC={};RETOUR_CHECKS.forEach(c=>{initC[c.id]=null;});
   const initCar={};CARRO_ELEMENTS.forEach(e=>{initCar[e.id]=null;});
   const[checks,setChecks]=useState(initC);
@@ -591,6 +592,7 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
               <div style={{display:"flex",justifyContent:"space-between",borderTop:"1px solid rgba(255,255,255,.2)",marginTop:6,paddingTop:6}}><span style={{fontWeight:800}}>Total</span><span style={{fontWeight:900,fontSize:16,color:"#fbbf24"}}>{totalFraisSup.toFixed(2)} {sym}</span></div>
             </div>}
           </div>}
+          {tab==="carro"&&<div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <div style={{fontWeight:700,fontSize:13}}>Carrosserie ({nbNOK} dégât{nbNOK>1?"s":""})</div>
               <div style={{display:"flex",gap:6}}>

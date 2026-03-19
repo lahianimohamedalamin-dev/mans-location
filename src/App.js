@@ -808,8 +808,17 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
 }
 
 function ContratModal({vehicle,onClose,onSave}){
-  const[frais,setFrais]=useState(vehicle.frais.map(f=>({...f})));
-  const[clauses,setClauses]=useState(vehicle.clauses.map(c=>({...c})));
+  const OLD_CLAUSES_TITRES=["Clause d'immobilisation","Carburant","Amendes & Infractions","État du véhicule","Utilisation du véhicule","Véhicule RSV","Exclusivité de conduite","Limitation géographique","Interdiction de sous-location","Non-fumeur","Dégradations"];
+  // Auto-migration : on fusionne les frais sauvés avec les nouveaux défauts (sans doublons)
+  function migratefrais(saved){
+    const labels=saved.map(f=>f.label.toLowerCase());
+    const extras=DEF_FRAIS.filter(d=>!labels.includes(d.label.toLowerCase()));
+    // Retirer les entrées obsolètes remplacées (Retour véhicule sale → Nettoyage véhicule)
+    const cleaned=saved.filter(f=>f.label!=="Retour véhicule sale");
+    return [...cleaned,...extras];
+  }
+  const[frais,setFrais]=useState(()=>migratefrais(vehicle.frais.map(f=>({...f}))));
+  const[clauses,setClauses]=useState(()=>vehicle.clauses.filter(c=>!OLD_CLAUSES_TITRES.includes(c.titre)).map(c=>({...c})));
   const[nf,setNf]=useState({label:"",montant:""});
   const[nc,setNc]=useState({titre:"",texte:""});
   const[tab,setTab]=useState("frais");
@@ -826,6 +835,9 @@ function ContratModal({vehicle,onClose,onSave}){
         </div>
         <div style={{flex:1,overflowY:"auto",padding:16}}>
           {tab==="frais"&&<div>
+            <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
+              <button onClick={()=>setFrais(DEF_FRAIS.map(f=>({...f})))} style={{fontSize:11,padding:"4px 10px",background:"#fef3c7",color:"#b45309",border:"1px solid #fde68a",borderRadius:6,cursor:"pointer",fontWeight:600}}>↺ Réinitialiser aux défauts</button>
+            </div>
             {frais.map(f=>(
               <div key={f.id} style={{display:"flex",gap:8,alignItems:"center",padding:8,background:"#f9fafb",borderRadius:8,marginBottom:6}}>
                 <input style={{...IS,flex:1}} value={f.label} onChange={e=>setFrais(x=>x.map(a=>a.id===f.id?{...a,label:e.target.value}:a))}/>
@@ -843,16 +855,18 @@ function ContratModal({vehicle,onClose,onSave}){
             </div>
           </div>}
           {tab==="clauses"&&<div>
+            {clauses.length===0&&<div style={{textAlign:"center",color:"#9ca3af",fontSize:12,padding:24,background:"#f9fafb",borderRadius:10,marginBottom:8}}>Aucune clause particulière — les conditions générales (12 articles) s'appliquent automatiquement dans le contrat PDF.</div>}
             {clauses.map((c,i)=>(
               <div key={c.id} style={{padding:10,background:"#f9fafb",borderRadius:10,border:"1px solid #e5e7eb",marginBottom:8}}>
                 <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6}}>
-                  <span style={{fontSize:10,background:"#dbeafe",color:"#1d4ed8",fontWeight:700,padding:"2px 7px",borderRadius:999}}>{i+6}</span>
+                  <span style={{fontSize:10,background:"#dbeafe",color:"#1d4ed8",fontWeight:700,padding:"2px 7px",borderRadius:999}}>{i+1}</span>
                   <input style={{...IS,flex:1,fontWeight:600}} value={c.titre} onChange={e=>setClauses(x=>x.map(a=>a.id===c.id?{...a,titre:e.target.value}:a))}/>
                   <button onClick={()=>setClauses(x=>x.filter(a=>a.id!==c.id))} style={{padding:"3px 7px",background:"#fef2f2",color:"#ef4444",border:"none",borderRadius:5,cursor:"pointer"}}>X</button>
                 </div>
                 <textarea style={{...IS,resize:"vertical",minHeight:50,fontFamily:"inherit"}} value={c.texte} onChange={e=>setClauses(x=>x.map(a=>a.id===c.id?{...a,texte:e.target.value}:a))}/>
               </div>
             ))}
+            <div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 12px",marginBottom:8,fontSize:11,color:"#15803d"}}>ℹ️ Les clauses ici sont des conditions <b>spécifiques à ce véhicule</b>. Les 12 articles de conditions générales sont déjà inclus automatiquement dans tous les contrats.</div>
             <div style={{background:"#eff6ff",borderRadius:10,padding:12,border:"1px solid #bfdbfe"}}>
               <input style={{...IS,marginBottom:6}} placeholder="Titre" value={nc.titre} onChange={e=>setNc(x=>({...x,titre:e.target.value}))}/>
               <textarea style={{...IS,resize:"vertical",minHeight:50,fontFamily:"inherit"}} placeholder="Texte..." value={nc.texte} onChange={e=>setNc(x=>({...x,texte:e.target.value}))}/>

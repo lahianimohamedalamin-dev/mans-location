@@ -503,6 +503,7 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
   const zones=[...new Set(CARRO_ELEMENTS.map(e=>e.zone))];
   const nbNOK=CARRO_ELEMENTS.filter(e=>carro[e.id]===false).length;
   const IS=INP_STYLE();
+  const sym=(DEVISES.find(d=>d.code===(profil?.devise||"EUR"))||DEVISES[0]).symbol;
   function handlePhoto(id,file,setter){if(!file)return;const r=new FileReader();r.onload=ev=>setter(p=>({...p,[id]:ev.target.result}));r.readAsDataURL(file);}
   function pickFile(id,setter){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>handlePhoto(id,e.target.files[0],setter);i.click();}
   function pickCamera(id,setter){const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>handlePhoto(id,e.target.files[0],setter);i.click();}

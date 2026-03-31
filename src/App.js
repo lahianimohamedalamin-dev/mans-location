@@ -625,6 +625,7 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
   const[raisonRetenue,setRaisonRetenue]=useState("");
   const[kmRetour,setKmRetour]=useState("");
   const[carburantRetour,setCarburantRetour]=useState(contrat.carburantDepart||100);
+  const[remiseRetour,setRemiseRetour]=useState("");
   const[tab,setTab]=useState("km");
   const[sigRetourLoueur,setSigRetourLoueur]=useState(null);
   const[sigRetourLocataire,setSigRetourLocataire]=useState(null);
@@ -644,7 +645,8 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
   function handlePhoto(id,file,setter){if(!file)return;const r=new FileReader();r.onload=ev=>setter(p=>({...p,[id]:ev.target.result}));r.readAsDataURL(file);}
   function pickFile(id,setter){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>handlePhoto(id,e.target.files[0],setter);i.click();}
   function pickCamera(id,setter){const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>handlePhoto(id,e.target.files[0],setter);i.click();}
-  function getRetourData(){return{checks,carro,carroPhotos,carroNotes,photos,notes,cautionRestituee,montantRetenu:retenu,raisonRetenue,rembourse:cautionRestituee?caution:Math.max(0,caution-retenu),kmRetour,kmSup,surplusKm,carburantRetour,fraisSup,totalFraisSup,date:new Date().toISOString(),sigRetourLoueur,sigRetourLocataire};}
+  const remiseRet=parseFloat(remiseRetour)||0;
+  function getRetourData(){return{checks,carro,carroPhotos,carroNotes,photos,notes,cautionRestituee,montantRetenu:retenu,raisonRetenue,rembourse:cautionRestituee?caution:Math.max(0,caution-retenu),kmRetour,kmSup,surplusKm,carburantRetour,fraisSup,totalFraisSup,remiseRetour:remiseRet,date:new Date().toISOString(),sigRetourLoueur,sigRetourLocataire};}
   function downloadPV(){const data=getRetourData();dlPDF(buildPVRetourHTML(contrat,vehicle,data,sigRetourLoueur,sigRetourLocataire,profil));}
   function save(){if(cautionRestituee===null){alert("Précisez si la caution est restituée.");return;}const data=getRetourData();onSave(data);dlPDF(buildPVRetourHTML(contrat,vehicle,data,sigRetourLoueur,sigRetourLocataire,profil));}
   const TABS=[["km","Km"],["frais","Frais sup."],["carro","Carrosserie"],["checks","État"],["caution","Caution"],["sig","Signatures"]];
@@ -785,12 +787,23 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
               </div>}
               {cautionRestituee===true&&<div style={{background:"#f0fdf4",borderRadius:10,padding:12,border:"1px solid #bbf7d0",textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#16a34a"}}>{caution} EUR remboursés ✓</div></div>}
             </div>
+            {/* Remise au retour */}
+            <div style={{background:"white",borderRadius:12,padding:14,border:"1px solid #e5e7eb"}}>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:6}}>Remise (optionnelle)</div>
+              <div style={{fontSize:11,color:"#6b7280",marginBottom:8}}>Appliquer une réduction sur le montant final du loyer</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:8,alignItems:"center"}}>
+                <input type="number" style={IS} placeholder="ex: 20" value={remiseRetour} onChange={e=>setRemiseRetour(e.target.value)}/>
+                <span style={{fontWeight:700,color:"#374151",fontSize:13}}>EUR</span>
+              </div>
+              {remiseRet>0&&<div style={{marginTop:8,background:"#f0fdf4",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#16a34a",fontWeight:700}}>Remise de {remiseRet} EUR appliquée ✓</div>}
+            </div>
             {cautionRestituee!==null&&<div style={{background:"#1e3a8a",borderRadius:12,padding:14,color:"white"}}>
               <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>Bilan du retour</div>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{opacity:.7}}>Loyer</span><span style={{fontWeight:700}}>{contrat.totalCalc||0} EUR</span></div>
               {surplusKm>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{opacity:.7}}>Surplus km</span><span style={{fontWeight:700,color:"#fbbf24"}}>+{surplusKm.toFixed(2)} EUR</span></div>}
-              {retenu>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{opacity:.7}}>Retenue</span><span style={{fontWeight:700,color:"#fbbf24"}}>+{retenu} EUR</span></div>}
-              <div style={{display:"flex",justifyContent:"space-between",borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:6,marginTop:4}}><span style={{fontWeight:700}}>Total encaissé</span><span style={{fontWeight:900,fontSize:16,color:"#4ade80"}}>{(contrat.totalCalc||0)+surplusKm+retenu} EUR</span></div>
+              {retenu>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{opacity:.7}}>Retenue caution</span><span style={{fontWeight:700,color:"#fbbf24"}}>+{retenu} EUR</span></div>}
+              {remiseRet>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{opacity:.7}}>Remise</span><span style={{fontWeight:700,color:"#4ade80"}}>-{remiseRet} EUR</span></div>}
+              <div style={{display:"flex",justifyContent:"space-between",borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:6,marginTop:4}}><span style={{fontWeight:700}}>Total encaissé</span><span style={{fontWeight:900,fontSize:16,color:"#4ade80"}}>{Math.max(0,(contrat.totalCalc||0)+surplusKm+retenu-remiseRet)} EUR</span></div>
             </div>}
           </div>}
           {tab==="sig"&&<div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -1102,7 +1115,7 @@ function AppContent(){
       if(depRes.data){setDepenses(depRes.data.map(d=>({id:d.id,label:d.label||'',montant:d.montant||0,categorie:d.categorie||'Carburant',date:d.date||'',vehicleId:d.vehicle_id||''})));}
       if(retRes.data){
         const rMap={};
-        retRes.data.forEach(r=>{rMap[r.contrat_id]={id:r.id,kmRetour:r.km_retour||'',carburantRetour:r.carburant_retour??100,montantRetenu:r.montant_retenu||0,raisonRetenue:r.raison_retenue||'',rembourse:r.rembourse||0,kmSup:r.km_sup||0,surplusKm:r.surplus_km||0,cautionRestituee:r.caution_restituee,checks:r.checks||{},carro:r.carro||{},carroPhotos:r.carro_photos||{},carroNotes:r.carro_notes||{},photos:r.photos||{},notes:r.notes||{},date:r.date||''};});
+        retRes.data.forEach(r=>{rMap[r.contrat_id]={id:r.id,kmRetour:r.km_retour||'',carburantRetour:r.carburant_retour??100,montantRetenu:r.montant_retenu||0,raisonRetenue:r.raison_retenue||'',rembourse:r.rembourse||0,kmSup:r.km_sup||0,surplusKm:r.surplus_km||0,cautionRestituee:r.caution_restituee,checks:r.checks||{},carro:r.carro||{},carroPhotos:r.carro_photos||{},carroNotes:r.carro_notes||{},photos:r.photos||{},notes:r.notes||{},remiseRetour:r.remise_retour||0,date:r.date||''};});
         setRetours(rMap);
       }
       if(qRes.data){setQuestions(qRes.data.map(q=>({id:q.id,vehicleLabel:q.vehicle_label||'',clientNom:q.client_nom||'',question:q.question||'',reponse:q.reponse||'',lu:q.lu||false,createdAt:q.created_at||''})));}
@@ -1241,7 +1254,7 @@ function AppContent(){
     if(ct&&data.kmRetour)setVehicles(vs=>vs.map(v=>v.id===ct.vehicleId?{...v,km:parseFloat(data.kmRetour)}:v));
     toast_("Retour enregistré + PV PDF généré !");setRetourContratId(null);
     if(user){
-      await supabase.from('retours').insert([{user_id:user.id,contrat_id:contratId,km_retour:data.kmRetour||null,carburant_retour:data.carburantRetour??null,montant_retenu:data.montantRetenu||0,raison_retenue:data.raisonRetenue||'',rembourse:data.rembourse||0,km_sup:data.kmSup||0,surplus_km:data.surplusKm||0,caution_restituee:data.cautionRestituee,checks:data.checks||{},carro:data.carro||{},carro_photos:data.carroPhotos||{},carro_notes:data.carroNotes||{},photos:data.photos||{},notes:data.notes||'',date:data.date||new Date().toISOString()}]);
+      await supabase.from('retours').insert([{user_id:user.id,contrat_id:contratId,km_retour:data.kmRetour||null,carburant_retour:data.carburantRetour??null,montant_retenu:data.montantRetenu||0,raison_retenue:data.raisonRetenue||'',rembourse:data.rembourse||0,km_sup:data.kmSup||0,surplus_km:data.surplusKm||0,caution_restituee:data.cautionRestituee,checks:data.checks||{},carro:data.carro||{},carro_photos:data.carroPhotos||{},carro_notes:data.carroNotes||{},photos:data.photos||{},notes:data.notes||'',remise_retour:data.remiseRetour||0,date:data.date||new Date().toISOString()}]);
       if(ct&&data.kmRetour)await supabase.from('vehicules').update({km:parseFloat(data.kmRetour)}).eq('id',ct.vehicleId).eq('user_id',user.id);
     }
   }
@@ -2028,122 +2041,164 @@ function AppContent(){
         )}
 
         {/* PLANNING */}
-        {page==="planning"&&(
+        {page==="planning"&&(()=>{
+          const GDW=38;
+          const calWeeks=(()=>{
+            const y=planMonth.getFullYear(),m=planMonth.getMonth();
+            const first=new Date(y,m,1);
+            const startDay=(first.getDay()+6)%7;
+            const daysInMonth=new Date(y,m+1,0).getDate();
+            const cells=[];
+            for(let i=0;i<startDay;i++)cells.push(null);
+            for(let i=1;i<=daysInMonth;i++)cells.push(new Date(y,m,i));
+            while(cells.length%7!==0)cells.push(null);
+            const weeks=[];
+            for(let i=0;i<cells.length;i+=7)weeks.push(cells.slice(i,i+7));
+            return weeks;
+          })();
+          const todayStr=new Date().toDateString();
+          return(
           <div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
+            {/* Header */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Planning</h1>
-              <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
                 <div style={{display:"flex",background:"white",borderRadius:8,border:"1px solid #e5e7eb",overflow:"hidden"}}>
-                  <button onClick={()=>setPlanView("calendrier")} style={{padding:"6px 12px",fontSize:11,fontWeight:planView==="calendrier"?700:400,background:planView==="calendrier"?"#1e3a8a":"white",color:planView==="calendrier"?"white":"#374151",border:"none",cursor:"pointer"}}>Calendrier</button>
-                  <button onClick={()=>setPlanView("gantt")} style={{padding:"6px 12px",fontSize:11,fontWeight:planView==="gantt"?700:400,background:planView==="gantt"?"#1e3a8a":"white",color:planView==="gantt"?"white":"#374151",border:"none",cursor:"pointer"}}>Gantt</button>
+                  <button onClick={()=>setPlanView("calendrier")} style={{padding:"6px 14px",fontSize:11,fontWeight:600,background:planView==="calendrier"?"#1e3a8a":"white",color:planView==="calendrier"?"white":"#374151",border:"none",cursor:"pointer"}}>📅 Calendrier</button>
+                  <button onClick={()=>setPlanView("gantt")} style={{padding:"6px 14px",fontSize:11,fontWeight:600,background:planView==="gantt"?"#1e3a8a":"white",color:planView==="gantt"?"white":"#374151",border:"none",cursor:"pointer"}}>📊 Gantt</button>
                 </div>
-                {planView==="calendrier"&&(
-                  <>
-                    <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()-1);setPlanMonth(new Date(d));}} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>◀</button>
-                    <span style={{fontWeight:700,fontSize:13,minWidth:130,textAlign:"center",textTransform:"capitalize"}}>{planMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</span>
-                    <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()+1);setPlanMonth(new Date(d));}} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>▶</button>
-                  </>
-                )}
-                {planView==="gantt"&&(
-                  <>
-                    <button onClick={ganttPrevMonth} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>◀</button>
-                    <select value={`${ganttStartDate.getFullYear()}-${ganttStartDate.getMonth()}`} onChange={e=>{const[y,m]=e.target.value.split("-");setGanttStartDate(new Date(parseInt(y),parseInt(m),1));}} style={{padding:"5px 8px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:12}}>
-                      {Array.from({length:24},(_,i)=>{const d=new Date();d.setMonth(d.getMonth()-12+i);return d;}).map(d=><option key={`${d.getFullYear()}-${d.getMonth()}`} value={`${d.getFullYear()}-${d.getMonth()}`}>{MONTH_NAMES[d.getMonth()]} {d.getFullYear()}</option>)}
-                    </select>
-                    <button onClick={ganttNextMonth} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>▶</button>
-                    <button onClick={ganttGoToday} style={{padding:"5px 12px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700}}>Aujourd'hui</button>
-                  </>
-                )}
+                {planView==="calendrier"&&<>
+                  <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()-1);setPlanMonth(new Date(d));}} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>◀</button>
+                  <span style={{fontWeight:700,fontSize:13,minWidth:120,textAlign:"center",textTransform:"capitalize"}}>{planMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</span>
+                  <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()+1);setPlanMonth(new Date(d));}} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>▶</button>
+                  <button onClick={()=>setPlanMonth(new Date())} style={{padding:"6px 10px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700}}>Aujourd'hui</button>
+                </>}
+                {planView==="gantt"&&<>
+                  <button onClick={ganttPrevMonth} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>◀</button>
+                  <span style={{fontWeight:700,fontSize:13,minWidth:120,textAlign:"center",textTransform:"capitalize"}}>{MONTH_NAMES[ganttStartDate.getMonth()]} {ganttStartDate.getFullYear()}</span>
+                  <button onClick={ganttNextMonth} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>▶</button>
+                  <button onClick={ganttGoToday} style={{padding:"6px 10px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700}}>Aujourd'hui</button>
+                </>}
               </div>
             </div>
-            {planView==="calendrier"&&vehicles.map((v,vi)=>{
-              const vContrats=contrats.filter(c=>c.vehicleId===v.id);
-              const vColor=ganttColors[vi%ganttColors.length];
-              return(
-                <div key={v.id} style={{background:"white",borderRadius:14,marginBottom:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:`1px solid #e5e7eb`,borderLeft:`4px solid ${vColor}`}}>
-                  <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div><span style={{color:"white",fontWeight:800,fontSize:13}}>{v.marque} {v.modele}</span><span style={{color:"rgba(255,255,255,.6)",fontSize:11,marginLeft:10}}>{v.immat}</span></div>
-                    <Badge s={statut(v.id)}/>
-                  </div>
-                  <div style={{overflowX:"auto"}}>
-                    <div style={{display:"flex",minWidth:days.length*28+130}}>
-                      <div style={{width:130,flexShrink:0}}/>
-                      {days.map(d=>{
-                        const isToday=d.toDateString()===new Date().toDateString();
-                        const isWE=d.getDay()===0||d.getDay()===6;
-                        return <div key={d.getTime()} style={{width:28,flexShrink:0,textAlign:"center",padding:"5px 0",fontSize:10,fontWeight:isToday?800:400,color:isToday?"#2563eb":isWE?"#9ca3af":"#6b7280",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:"1px solid #f0f0f0"}}>{d.getDate()}</div>;
-                      })}
-                    </div>
-                    <div style={{display:"flex",minWidth:days.length*28+130,padding:"4px 0"}}>
-                      <div style={{width:130,flexShrink:0,padding:"0 8px",fontSize:10,fontWeight:600,color:"#374151",display:"flex",alignItems:"center"}}>Disponibilite</div>
-                      {days.map(d=>{
-                        const b=isBooked(v.id,d);
-                        return <div key={d.getTime()} style={{width:28,flexShrink:0,height:28,display:"flex",alignItems:"center",justifyContent:"center",background:b?vColor+"22":"white",borderLeft:"1px solid #f0f0f0"}}><div style={{width:20,height:20,borderRadius:4,background:b?vColor:"#dcfce7"}}/></div>;
-                      })}
-                    </div>
-                  </div>
-                  {vContrats.length>0&&(
-                    <div style={{padding:"8px 12px",borderTop:"1px solid #f0f0f0",display:"flex",flexWrap:"wrap",gap:6}}>
-                      {vContrats.map(c=>{
-                        const mStart=new Date(c.dateDebut).getMonth(),mEnd=new Date(c.dateFin).getMonth(),y=planMonth.getMonth();
-                        if(mStart!==y&&mEnd!==y)return null;
-                        return <div key={c.id} style={{background:vColor+"18",borderRadius:8,padding:"4px 10px",fontSize:11,border:`1px solid ${vColor}44`}}><span style={{fontWeight:700,color:vColor}}>{c.locNom}</span><span style={{color:"#6b7280",marginLeft:6}}>{c.dateDebut} → {c.dateFin}</span></div>;
-                      })}
-                    </div>
-                  )}
+
+            {/* Légende véhicules */}
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+              {vehicles.map((v,vi)=>(
+                <div key={v.id} style={{display:"flex",alignItems:"center",gap:5,background:"white",borderRadius:20,padding:"4px 10px",fontSize:11,boxShadow:"0 1px 4px rgba(0,0,0,.08)",border:`1px solid ${ganttColors[vi%ganttColors.length]}44`}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:ganttColors[vi%ganttColors.length],flexShrink:0}}/>
+                  <span style={{fontWeight:700,color:"#1f2937"}}>{v.marque} {v.modele}</span>
+                  <span style={{color:"#9ca3af",fontSize:10}}>{v.immat}</span>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+
+            {/* VUE CALENDRIER */}
+            {planView==="calendrier"&&(
+              <div style={{background:"white",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+                {/* Jours semaine */}
+                <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:"#1e3a8a"}}>
+                  {["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].map(j=>(
+                    <div key={j} style={{textAlign:"center",padding:"8px 0",fontSize:11,fontWeight:700,color:"white",opacity:j==="Sam"||j==="Dim"?.6:1}}>{j}</div>
+                  ))}
+                </div>
+                {/* Semaines */}
+                {calWeeks.map((week,wi)=>(
+                  <div key={wi} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",borderTop:"1px solid #f0f0f0"}}>
+                    {week.map((d,di)=>{
+                      const isToday=d&&d.toDateString()===todayStr;
+                      const isWE=di>=5;
+                      const bookedVehicles=d?vehicles.filter((_,vi)=>isBooked(vehicles[vi].id,d)):[];
+                      const reservations=d?contrats.filter(c=>{
+                        const s=new Date(c.dateDebut),e=new Date(c.dateFin);
+                        return d>=s&&d<=e;
+                      }):[];
+                      return(
+                        <div key={di} style={{minHeight:72,padding:"4px",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:di>0?"1px solid #f0f0f0":"none",position:"relative"}}>
+                          {d&&<div style={{fontSize:12,fontWeight:isToday?800:400,color:isToday?"#2563eb":isWE?"#9ca3af":"#374151",marginBottom:3,width:22,height:22,borderRadius:"50%",background:isToday?"#2563eb":"transparent",color:isToday?"white":isWE?"#9ca3af":"#374151",display:"flex",alignItems:"center",justifyContent:"center"}}>{d.getDate()}</div>}
+                          <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                            {reservations.slice(0,3).map((c,ci)=>{
+                              const vi=vehicles.findIndex(v=>v.id===c.vehicleId);
+                              const col=ganttColors[vi%ganttColors.length];
+                              return <div key={c.id} style={{background:col,borderRadius:3,padding:"1px 4px",fontSize:9,fontWeight:700,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={c.locNom+" — "+c.vehicleLabel}>{c.locNom||c.vehicleLabel}</div>;
+                            })}
+                            {reservations.length>3&&<div style={{fontSize:9,color:"#6b7280",fontWeight:600}}>+{reservations.length-3} autres</div>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* VUE GANTT */}
             {planView==="gantt"&&(
               <div style={{background:"white",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <div ref={ganttRef} style={{overflowX:"auto"}}>
-                  <div style={{minWidth:150+ganttDays*DW}}>
-                    <div style={{display:"flex",borderBottom:"2px solid #e5e7eb",background:"#f8fafc"}}>
-                      <div style={{width:150,flexShrink:0,padding:"6px 10px",fontSize:11,fontWeight:700,borderRight:"1px solid #e5e7eb"}}>Véhicule</div>
+                  <div style={{minWidth:160+ganttDays*GDW}}>
+                    {/* En-tête jours */}
+                    <div style={{display:"flex",borderBottom:"2px solid #e5e7eb",background:"#f8fafc",position:"sticky",top:0,zIndex:3}}>
+                      <div style={{width:160,flexShrink:0,padding:"8px 12px",fontSize:12,fontWeight:700,borderRight:"2px solid #e5e7eb",color:"#374151"}}>Véhicule</div>
                       {ganttDates.map((d,i)=>{
                         const isToday=d.toDateString()===today.toDateString();
                         const isWE=d.getDay()===0||d.getDay()===6;
                         const isFirst=d.getDate()===1;
                         return(
-                          <div key={i} style={{width:DW,flexShrink:0,textAlign:"center",padding:"4px 0",fontSize:9,color:isToday?"white":isWE?"#9ca3af":"#6b7280",background:isToday?"#2563eb":isWE?"#f0f0f0":"#f8fafc",borderLeft:"1px solid #e8e8e8",position:"relative",fontWeight:isToday?800:400}}>
-                            {isFirst&&!isToday&&<div style={{position:"absolute",top:0,left:0,right:0,background:"#1e3a8a",color:"white",fontSize:7,textAlign:"center",lineHeight:"10px"}}>{MONTH_NAMES[d.getMonth()]}</div>}
-                            <span style={{position:"relative",top:isFirst&&!isToday?8:0}}>{d.getDate()}</span>
+                          <div key={i} style={{width:GDW,flexShrink:0,textAlign:"center",padding:"4px 0",fontSize:10,color:isToday?"white":isWE?"#9ca3af":"#6b7280",background:isToday?"#2563eb":isWE?"#f0f0f0":"#f8fafc",borderLeft:"1px solid #e8e8e8",position:"relative",fontWeight:isToday?800:400}}>
+                            {isFirst&&<div style={{position:"absolute",top:0,left:0,right:0,background:"#1e3a8a",color:"white",fontSize:8,textAlign:"center",lineHeight:"13px",fontWeight:700}}>{MONTH_NAMES[d.getMonth()].slice(0,3)}</div>}
+                            <span style={{position:"relative",top:isFirst?11:0}}>{d.getDate()}</span>
                           </div>
                         );
                       })}
                     </div>
-                    {vehicles.map(v=>(
-                      <div key={v.id} style={{display:"flex",borderBottom:"1px solid #f0f0f0"}}>
-                        <div style={{width:150,flexShrink:0,padding:"8px 10px",fontSize:11,borderRight:"1px solid #e5e7eb",background:"#fafafa"}}>
-                          <div style={{fontWeight:700}}>{v.marque} {v.modele}</div>
-                          <div style={{fontSize:9,color:"#9ca3af"}}>{v.immat}</div>
+                    {/* Lignes véhicules */}
+                    {vehicles.map((v,vi)=>{
+                      const vColor=ganttColors[vi%ganttColors.length];
+                      const vContrats=contrats.filter(c=>c.vehicleId===v.id&&c.dateDebut&&c.dateFin);
+                      return(
+                        <div key={v.id} style={{display:"flex",borderBottom:"1px solid #e5e7eb"}}>
+                          <div style={{width:160,flexShrink:0,padding:"10px 12px",borderRight:"2px solid #e5e7eb",background:"#fafafa",display:"flex",alignItems:"center",gap:8}}>
+                            <div style={{width:8,height:36,borderRadius:4,background:vColor,flexShrink:0}}/>
+                            <div>
+                              <div style={{fontWeight:700,fontSize:12,color:"#1f2937"}}>{v.marque} {v.modele}</div>
+                              <div style={{fontSize:10,color:"#9ca3af"}}>{v.immat}</div>
+                            </div>
+                          </div>
+                          <div style={{flex:1,position:"relative",height:56}}>
+                            {todayOffset>=0&&todayOffset<ganttDays&&<div style={{position:"absolute",left:todayOffset*GDW+GDW/2,top:0,bottom:0,width:2,background:"#ef4444",zIndex:2,opacity:.8}}/>}
+                            {ganttDates.map((d,i)=>{
+                              const isWE=d.getDay()===0||d.getDay()===6;
+                              return <div key={i} style={{position:"absolute",left:i*GDW,top:0,width:GDW,height:"100%",background:isWE?"rgba(0,0,0,.04)":"transparent",borderLeft:"1px solid #f0f0f0"}}/>;
+                            })}
+                            {vContrats.map((c,ci)=>{
+                              const s=new Date(c.dateDebut),e=new Date(c.dateFin);
+                              const off=Math.floor((s-ganttStartDate)/86400000);
+                              const w=Math.max(Math.ceil((e-s)/86400000)+1,1);
+                              if(off>ganttDays||off+w<0)return null;
+                              const clampedLeft=Math.max(0,off);
+                              const clampedRight=Math.min(w+off,ganttDays);
+                              const barW=Math.max(clampedRight-clampedLeft,1)*GDW-3;
+                              return(
+                                <div key={c.id} style={{position:"absolute",left:clampedLeft*GDW+1,top:8,height:40,width:barW,background:vColor,borderRadius:7,display:"flex",alignItems:"center",padding:"0 8px",overflow:"hidden",zIndex:1,cursor:"pointer",boxShadow:"0 2px 6px rgba(0,0,0,.25)"}} title={`${c.locNom} — ${c.dateDebut} → ${c.dateFin} — ${c.totalCalc}€`}>
+                                  <div style={{overflow:"hidden"}}>
+                                    <div style={{color:"white",fontSize:11,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.locNom}</div>
+                                    {barW>60&&<div style={{color:"rgba(255,255,255,.75)",fontSize:9,whiteSpace:"nowrap"}}>{c.dateDebut} → {c.dateFin}</div>}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                        <div style={{flex:1,position:"relative",height:44}}>
-                          {todayOffset>=0&&todayOffset<ganttDays&&<div style={{position:"absolute",left:todayOffset*DW+DW/2,top:0,bottom:0,width:2,background:"#ef4444",zIndex:2,opacity:.5}}/>}
-                          {ganttDates.map((d,i)=>{
-                            const isWE=d.getDay()===0||d.getDay()===6;
-                            return <div key={i} style={{position:"absolute",left:i*DW,top:0,width:DW,height:"100%",background:isWE?"rgba(0,0,0,.025)":"transparent",borderLeft:"1px solid #f5f5f5"}}/>;
-                          })}
-                          {contrats.filter(c=>c.vehicleId===v.id&&c.dateDebut&&c.dateFin).map((c,ci)=>{
-                            const s=new Date(c.dateDebut),e=new Date(c.dateFin);
-                            const off=Math.floor((s-ganttStartDate)/86400000);
-                            const w=Math.max(Math.ceil((e-s)/86400000)+1,1);
-                            if(off>ganttDays||off+w<0)return null;
-                            return(
-                              <div key={c.id} style={{position:"absolute",left:Math.max(0,off)*DW+2,top:8,height:28,width:Math.max(Math.min(w+off,ganttDays)-Math.max(off,0),1)*DW-4,background:ganttColors[ci%ganttColors.length],borderRadius:6,display:"flex",alignItems:"center",padding:"0 6px",overflow:"hidden",zIndex:1,cursor:"pointer"}} title={c.locNom+" — "+c.dateDebut+" → "+c.dateFin}>
-                                <span style={{color:"white",fontSize:9,fontWeight:700,whiteSpace:"nowrap"}}>{c.locNom}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
             )}
           </div>
-        )}
+          );
+        })()}
 
         {/* HISTORIQUE CONTRATS */}
         {page==="contrats"&&(

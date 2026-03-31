@@ -16,5 +16,6 @@ root.render(
   </React.StrictMode>
 );
 
-serviceWorkerRegistration.register();
+// Désactiver le SW et vider son cache pour éviter de servir une version périmée
+serviceWorkerRegistration.unregister();
 reportWebVitals();

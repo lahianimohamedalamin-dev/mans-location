@@ -2729,7 +2729,7 @@ function AuthPage(){
 
     setLoading(true);setError("");setSuccess("");
     if(mode==="forgot"){
-      const{error:fErr}=await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(),{redirectTo:window.location.origin+"/reset-password"});
+      const{error:fErr}=await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(),{redirectTo:window.location.origin});
       if(fErr){setError("Erreur : "+fErr.message);setLoading(false);return;}
       setSuccess("Email de réinitialisation envoyé ! Vérifiez votre boîte mail (et spam).");
       setLoading(false);return;

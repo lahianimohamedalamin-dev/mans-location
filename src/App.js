@@ -1328,7 +1328,8 @@ function AppContent(){
       });
     }
     return Array.from({length:6},(_,i)=>{
-      const d=new Date();d.setMonth(d.getMonth()-5+i);
+      const now=new Date();
+      const d=new Date(now.getFullYear(),now.getMonth()-5+i,1);
       const m=d.getMonth(),a=d.getFullYear();
       const ca=contrats.filter(c=>{const cd=new Date(c.dateDebut);return cd.getMonth()===m&&cd.getFullYear()===a;}).reduce((s,c)=>s+(c.totalCalc||0),0);
       const dep=depenses.filter(dd=>{const dt=new Date(dd.date);return dt.getMonth()===m&&dt.getFullYear()===a;}).reduce((s,d2)=>s+parseFloat(d2.montant||0),0);

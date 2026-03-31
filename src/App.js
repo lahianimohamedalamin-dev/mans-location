@@ -993,7 +993,8 @@ function AppContent(){
   const[depenses,setDepenses]=useState([]);
   const[clients,setClients]=useState([]);
   const[profil,setProfil]=useState(INIT_PROFIL);
-  const[page,setPage]=useState("vitrine");
+  const[page,setPage]=useState(()=>{try{return localStorage.getItem("ml_page")||"vitrine";}catch{return "vitrine";}});
+  const setPagePersist=useCallback(p=>{setPage(p);try{localStorage.setItem("ml_page",p);}catch{}},[]);
   const[selId,setSelId]=useState(null);
   const FORM0={locPrenom:"",locNom:"",locEntreprise:"",locAdresse:"",locCodePostal:"",locVille:"",locTel:"+33 ",locEmail:"",locPermis:"",locReseaux:"",loc2Prenom:"",loc2Nom:"",dateDebut:"",heureDebut:"10:00",dateFin:"",heureFin:"10:00",paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null,prixJourModifie:"",accompte:"",remise:"",codePromo:""};
   const[form,setForm]=useState(FORM0);
@@ -1078,6 +1079,7 @@ function AppContent(){
     setSelId(null);setDocsId(null);setContratModalId(null);
     setLastContrat(null);setRetourContratId(null);setTarifsVehicleId(null);
     setDataLoaded(false);
+    try{localStorage.removeItem("ml_page");}catch{}
   },[]);
 
   useEffect(()=>{
@@ -1454,7 +1456,7 @@ function AppContent(){
           </div>
           <div style={{display:"flex",overflowX:"auto",gap:0,WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none",flex:1}}>
             {PAGES.map(p=>(
-              <button key={p.id} onClick={()=>setPage(p.id)} style={{flexShrink:0,padding:"4px 6px",borderRadius:6,fontSize:10,fontWeight:page===p.id?700:400,background:page===p.id?"rgba(255,255,255,0.2)":"transparent",color:page===p.id?"white":"rgba(255,255,255,0.65)",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:1,position:"relative",minWidth:44}}>
+              <button key={p.id} onClick={()=>setPagePersist(p.id)} style={{flexShrink:0,padding:"4px 6px",borderRadius:6,fontSize:10,fontWeight:page===p.id?700:400,background:page===p.id?"rgba(255,255,255,0.2)":"transparent",color:page===p.id?"white":"rgba(255,255,255,0.65)",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:1,position:"relative",minWidth:44}}>
                 <span style={{fontSize:16}}>{p.icon}</span>
                 <span style={{fontSize:8,whiteSpace:"nowrap"}}>{p.label}</span>
                 {p.id==="questions"&&nbQSansReponse>0&&<span style={{position:"absolute",top:1,right:1,background:"#ef4444",color:"white",borderRadius:"50%",width:13,height:13,fontSize:7,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{nbQSansReponse}</span>}
@@ -1588,7 +1590,7 @@ function AppContent(){
             </div>
             <div style={{padding:"12px 16px",borderTop:"1px solid #e5e7eb",background:"white"}}>
               <div style={{display:"flex",gap:8,marginBottom:deleteClientConfirm!==null?8:0}}>
-                <button onClick={()=>{setForm(f=>({...f,locNom:selectedClient.nom,locTel:selectedClient.tel,locAdresse:selectedClient.adresse||"",locEmail:selectedClient.email||"",locPermis:selectedClient.permis||""}));setDocsLocataire({...selectedClient.docs});setSelectedClient(null);setDeleteClientConfirm("");setPage("nouveau");toast_("Client chargé !");}} style={{flex:1,background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Créer un contrat pour ce client</button>
+                <button onClick={()=>{setForm(f=>({...f,locNom:selectedClient.nom,locTel:selectedClient.tel,locAdresse:selectedClient.adresse||"",locEmail:selectedClient.email||"",locPermis:selectedClient.permis||""}));setDocsLocataire({...selectedClient.docs});setSelectedClient(null);setDeleteClientConfirm("");setPagePersist("nouveau");toast_("Client chargé !");}} style={{flex:1,background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Créer un contrat pour ce client</button>
                 <button onClick={()=>setDeleteClientConfirm(prev=>prev===null?"":null)} style={{padding:"10px 14px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>🗑️</button>
               </div>
               {deleteClientConfirm!==null&&(
@@ -1870,7 +1872,7 @@ function AppContent(){
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:20}}>Contrats</h1>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:16,marginBottom:24}}>
               {[{id:"nouveau",icon:"📝",label:"Nouveau contrat",desc:"Créer un contrat de location",color:"#1e3a8a",bg:"#eff6ff",border:"#bfdbfe"},{id:"retours",icon:"🔄",label:"Retours",desc:"Gérer les retours de véhicules",color:"#16a34a",bg:"#f0fdf4",border:"#bbf7d0"},{id:"contrats",icon:"📋",label:"Historique",desc:"Voir tous les contrats",color:"#7c3aed",bg:"#f5f3ff",border:"#ddd6fe"}].map(x=>(
-                <div key={x.id} onClick={()=>setPage(x.id)} style={{background:x.bg,borderRadius:16,padding:24,border:`2px solid ${x.border}`,cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.06)"}} onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.12)";}} onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
+                <div key={x.id} onClick={()=>setPagePersist(x.id)} style={{background:x.bg,borderRadius:16,padding:24,border:`2px solid ${x.border}`,cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.06)"}} onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.12)";}} onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
                   <div style={{fontSize:40,marginBottom:12}}>{x.icon}</div>
                   <div style={{fontWeight:800,fontSize:15,color:x.color,marginBottom:4}}>{x.label}</div>
                   <div style={{fontSize:12,color:"#6b7280"}}>{x.desc}</div>
@@ -1907,7 +1909,7 @@ function AppContent(){
         {page==="nouveau"&&(
           <div style={{maxWidth:680,margin:"0 auto"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-              <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
+              <button onClick={()=>setPagePersist("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Nouveau contrat</h1>
             </div>
             <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
@@ -2217,7 +2219,7 @@ function AppContent(){
         {page==="contrats"&&(
           <div>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-              <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
+              <button onClick={()=>setPagePersist("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Historique ({contratsFiltres.length}/{contrats.length})</h1>
             </div>
             <div style={{background:"white",borderRadius:12,padding:14,marginBottom:14,display:"flex",flexDirection:"column",gap:8}}>
@@ -2270,7 +2272,7 @@ function AppContent(){
         {page==="retours"&&(
           <div>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-              <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
+              <button onClick={()=>setPagePersist("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Retours</h1>
             </div>
             {contrats.filter(c=>!retours[c.id]).length>0&&(
@@ -2773,7 +2775,9 @@ function AuthPage(){
   const[mode,setMode]=useState("login");
   const[email,setEmail]=useState("");
   const[password,setPassword]=useState("");
-  const[showPassword,setShowPassword]=useState(false);
+  const[password2,setPassword2]=useState("");
+  const[showPwd,setShowPwd]=useState(false);
+  const[showPwd2,setShowPwd2]=useState(false);
   const[loading,setLoading]=useState(false);
   const[error,setError]=useState("");
   const[success,setSuccess]=useState("");
@@ -2784,53 +2788,60 @@ function AuthPage(){
   const[resendLoading,setResendLoading]=useState(false);
   const[resendDone,setResendDone]=useState(false);
 
-  // Décompte si verrouillé
+  // Captcha mathématique
+  const genCaptcha=()=>{const a=Math.floor(Math.random()*9)+1,b=Math.floor(Math.random()*9)+1;return{a,b,ans:a+b};};
+  const[captcha,setCaptcha]=useState(genCaptcha);
+  const[captchaVal,setCaptchaVal]=useState("");
+  const refreshCaptcha=()=>{setCaptcha(genCaptcha());setCaptchaVal("");};
+
   useEffect(()=>{
     if(!lockedUntil)return;
-    const tick=()=>{
-      const left=lockedUntil-Date.now();
-      if(left<=0){setLockedUntil(null);setAttempts(0);setRemaining(0);}
-      else setRemaining(Math.ceil(left/1000));
-    };
-    tick();
-    const t=setInterval(tick,1000);
-    return()=>clearInterval(t);
+    const tick=()=>{const left=lockedUntil-Date.now();if(left<=0){setLockedUntil(null);setAttempts(0);setRemaining(0);}else setRemaining(Math.ceil(left/1000));};
+    tick();const t=setInterval(tick,1000);return()=>clearInterval(t);
   },[lockedUntil]);
 
   const isLocked=lockedUntil&&Date.now()<lockedUntil;
 
+  function switchMode(m){setMode(m);setError("");setSuccess("");setPassword("");setPassword2("");setEmail("");setCaptchaVal("");setCaptcha(genCaptcha());}
+
+  function translateError(msg){
+    const m=msg.toLowerCase();
+    if(m.includes("user already registered")||m.includes("already registered"))return "Cette adresse email est déjà utilisée. Connectez-vous ou utilisez 'Mot de passe oublié'.";
+    if(m.includes("email not confirmed")||m.includes("not confirmed"))return null; // handled separately
+    if(m.includes("invalid login")||m.includes("invalid credentials")||m.includes("email or password"))return "Email ou mot de passe incorrect.";
+    if(m.includes("email rate limit")||m.includes("rate limit"))return "Trop de tentatives. Attendez quelques minutes.";
+    if(m.includes("weak password")||m.includes("password should"))return "Mot de passe trop faible. Utilisez au moins 8 caractères.";
+    if(m.includes("invalid email"))return "Adresse email invalide.";
+    return "Erreur : "+msg;
+  }
+
   async function handleSubmit(){
     if(isLocked)return;
-    // Validation basique côté client
-    if(!email.trim()||!email.includes("@")){setError("Adresse email invalide.");return;}
-    if(mode!=="forgot"&&password.length<6){setError("Le mot de passe doit contenir au moins 6 caractères.");return;}
-
+    if(!email.trim()||!email.includes("@")||!email.includes(".")){setError("Adresse email invalide.");return;}
+    if(mode!=="forgot"&&password.length<8){setError("Le mot de passe doit contenir au moins 8 caractères.");return;}
+    if(mode==="signup"){
+      if(password!==password2){setError("Les mots de passe ne correspondent pas.");return;}
+      if(parseInt(captchaVal)!==captcha.ans){setError("Réponse au captcha incorrecte.");refreshCaptcha();return;}
+    }
     setLoading(true);setError("");setSuccess("");
     if(mode==="forgot"){
       const{error:fErr}=await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(),{redirectTo:window.location.origin});
-      if(fErr){setError("Erreur : "+fErr.message);setLoading(false);return;}
-      setSuccess("Email de réinitialisation envoyé ! Vérifiez votre boîte mail (et spam).");
+      if(fErr){setError(translateError(fErr.message));setLoading(false);return;}
+      setSuccess("Email de réinitialisation envoyé ! Vérifiez votre boîte mail (et spams).");
       setLoading(false);return;
     }
     let result;
     if(mode==="login")result=await supabase.auth.signInWithPassword({email:email.trim().toLowerCase(),password});
     else result=await supabase.auth.signUp({email:email.trim().toLowerCase(),password,options:{emailRedirectTo:window.location.origin}});
-
     if(result.error){
-      const msg=result.error.message||"";
-      if(msg.toLowerCase().includes("email not confirmed")||msg.toLowerCase().includes("not confirmed")){
-        setNeedsConfirm(true);
-        setError("");
-      } else {
-        const newAttempts=attempts+1;
-        setAttempts(newAttempts);
-        if(newAttempts>=MAX_LOGIN_ATTEMPTS){
-          setLockedUntil(Date.now()+LOCKOUT_DURATION_MS);
-          setError("Trop de tentatives. Accès bloqué pendant 15 minutes.");
-        } else {
-          setError("Email ou mot de passe incorrect. ("+(MAX_LOGIN_ATTEMPTS-newAttempts)+" tentative(s) restante(s))");
-        }
-      }
+      const raw=result.error.message||"";
+      const translated=translateError(raw);
+      if(translated===null){setNeedsConfirm(true);setError("");}
+      else if(mode==="login"){
+        const na=attempts+1;setAttempts(na);
+        if(na>=MAX_LOGIN_ATTEMPTS){setLockedUntil(Date.now()+LOCKOUT_DURATION_MS);setError("Trop de tentatives. Accès bloqué 15 min.");}
+        else setError(translated+" ("+(MAX_LOGIN_ATTEMPTS-na)+" essai(s) restant(s))");
+      } else setError(translated);
     } else if(mode==="signup"){
       setNeedsConfirm(true);
       setSuccess("Compte créé ! Un email de confirmation a été envoyé à "+email.trim().toLowerCase());
@@ -2838,47 +2849,69 @@ function AuthPage(){
     setLoading(false);
   }
 
+  const IS2={width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"};
   return(
-    <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"#f1f5f9"}}>
-      <div style={{background:"white",borderRadius:16,padding:"40px 32px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
+    <div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"#f1f5f9",padding:16}}>
+      <div style={{background:"white",borderRadius:16,padding:"36px 28px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
         <div style={{textAlign:"center",marginBottom:24}}>
-          <img src="/logo.png" alt="Man's Loc" style={{height:120,width:"auto"}}/>
+          <img src="/logo.png" alt="Man's Loc" style={{height:110,width:"auto"}}/>
         </div>
         {mode!=="forgot"&&(
-          <div style={{display:"flex",marginBottom:24,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
-            {["login","signup"].map(m=><button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600}}>{m==="login"?"Connexion":"Inscription"}</button>)}
+          <div style={{display:"flex",marginBottom:20,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
+            {["login","signup"].map(m=><button key={m} onClick={()=>switchMode(m)} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600,fontSize:13}}>{m==="login"?"Connexion":"Inscription"}</button>)}
           </div>
         )}
+        {mode==="forgot"&&<p style={{fontWeight:700,fontSize:15,marginBottom:16,color:"#1f2937"}}>Réinitialiser le mot de passe</p>}
         {isLocked&&(
           <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"10px 14px",marginBottom:14,textAlign:"center"}}>
             <div style={{fontSize:13,color:"#dc2626",fontWeight:700}}>Accès temporairement bloqué</div>
             <div style={{fontSize:12,color:"#6b7280",marginTop:4}}>Réessayez dans {Math.floor(remaining/60)}:{String(remaining%60).padStart(2,"0")}</div>
           </div>
         )}
-        <input placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoComplete="email" style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
+        {/* Email */}
+        <input placeholder="Adresse email" type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoComplete="email" style={{...IS2,marginBottom:12}}/>
+        {/* Mot de passe */}
         {mode!=="forgot"&&(
-          <div style={{position:"relative",marginBottom:16}}>
-            <input placeholder="Mot de passe" type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoComplete={mode==="login"?"current-password":"new-password"} style={{width:"100%",padding:"10px 12px",paddingRight:40,border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
-            <span onClick={()=>setShowPassword(!showPassword)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:18,color:"#6b7280",userSelect:"none"}}>{showPassword?"🙈":"👁️"}</span>
+          <div style={{position:"relative",marginBottom:mode==="signup"?10:16}}>
+            <input placeholder="Mot de passe (8 caractères min.)" type={showPwd?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoComplete={mode==="login"?"current-password":"new-password"} style={{...IS2,paddingRight:44}}/>
+            <span onClick={()=>setShowPwd(v=>!v)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:17,userSelect:"none"}}>{showPwd?"🙈":"👁️"}</span>
           </div>
+        )}
+        {/* Confirmation mot de passe (inscription seulement) */}
+        {mode==="signup"&&(
+          <>
+            <div style={{position:"relative",marginBottom:14}}>
+              <input placeholder="Confirmer le mot de passe" type={showPwd2?"text":"password"} value={password2} onChange={e=>setPassword2(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoComplete="new-password" style={{...IS2,paddingRight:44,borderColor:password2&&password&&password2!==password?"#ef4444":"#e5e7eb"}}/>
+              <span onClick={()=>setShowPwd2(v=>!v)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:17,userSelect:"none"}}>{showPwd2?"🙈":"👁️"}</span>
+            </div>
+            {password2&&password&&password2!==password&&<p style={{fontSize:12,color:"#dc2626",marginBottom:10,marginTop:-10}}>Les mots de passe ne correspondent pas.</p>}
+            {/* Captcha */}
+            <div style={{background:"#f8fafc",borderRadius:10,padding:"12px 14px",marginBottom:14,border:"1px solid #e5e7eb"}}>
+              <div style={{fontSize:12,color:"#374151",marginBottom:8,fontWeight:600}}>Vérification anti-robot</div>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{background:"#1e3a8a",color:"white",borderRadius:8,padding:"8px 16px",fontWeight:800,fontSize:16,letterSpacing:2,flexShrink:0}}>{captcha.a} + {captcha.b} = ?</div>
+                <input type="number" placeholder="Réponse" value={captchaVal} onChange={e=>setCaptchaVal(e.target.value)} style={{...IS2,width:90,flexShrink:0}}/>
+                <button onClick={refreshCaptcha} style={{background:"none",border:"1px solid #e5e7eb",borderRadius:7,padding:"8px 10px",cursor:"pointer",fontSize:14,flexShrink:0}} title="Nouveau calcul">🔄</button>
+              </div>
+            </div>
+          </>
         )}
         {error&&<p style={{color:"#dc2626",fontSize:13,marginBottom:12,background:"#fef2f2",padding:"8px 10px",borderRadius:7,border:"1px solid #fecaca"}}>{error}</p>}
         {success&&<p style={{color:"#16a34a",fontSize:13,marginBottom:12,background:"#f0fdf4",padding:"8px 10px",borderRadius:7,border:"1px solid #bbf7d0"}}>{success}</p>}
         {needsConfirm&&(
           <div style={{background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:10,padding:"14px 16px",marginBottom:14}}>
             <div style={{fontWeight:700,fontSize:13,color:"#b45309",marginBottom:6}}>📧 Email de confirmation requis</div>
-            <div style={{fontSize:12,color:"#78350f",marginBottom:10}}>Un email de confirmation a été envoyé à <b>{email.trim().toLowerCase()}</b>.<br/>Vérifiez votre boîte de réception et vos <b>spams</b>. Cliquez sur le lien pour activer votre compte.</div>
+            <div style={{fontSize:12,color:"#78350f",marginBottom:10}}>Un email a été envoyé à <b>{email.trim().toLowerCase()}</b>.<br/>Vérifiez votre boîte et vos <b>spams</b>. Cliquez sur le lien pour activer votre compte.</div>
             {resendDone
               ?<div style={{fontSize:12,color:"#16a34a",fontWeight:600}}>✅ Email renvoyé ! Vérifiez vos spams.</div>
-              :<button onClick={async()=>{setResendLoading(true);await supabase.auth.resend({type:"signup",email:email.trim().toLowerCase(),options:{emailRedirectTo:window.location.origin}});setResendLoading(false);setResendDone(true);}} disabled={resendLoading} style={{width:"100%",padding:"8px 0",background:"#d97706",color:"white",border:"none",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer"}}>{resendLoading?"Envoi...":"🔁 Renvoyer l'email de confirmation"}</button>
-            }
+              :<button onClick={async()=>{setResendLoading(true);await supabase.auth.resend({type:"signup",email:email.trim().toLowerCase(),options:{emailRedirectTo:window.location.origin}});setResendLoading(false);setResendDone(true);}} disabled={resendLoading} style={{width:"100%",padding:"8px 0",background:"#d97706",color:"white",border:"none",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer"}}>{resendLoading?"Envoi...":"🔁 Renvoyer l'email de confirmation"}</button>}
           </div>
         )}
-        <button onClick={handleSubmit} disabled={loading||isLocked} style={{width:"100%",padding:"12px",background:isLocked?"#9ca3af":"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:isLocked?"not-allowed":"pointer"}}>
+        <button onClick={handleSubmit} disabled={loading||isLocked} style={{width:"100%",padding:"12px",background:isLocked?"#9ca3af":"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:isLocked?"not-allowed":"pointer",marginBottom:12}}>
           {loading?"...":(mode==="login"?"Se connecter":mode==="signup"?"Créer mon compte":"Envoyer le lien")}
         </button>
-        {mode==="login"&&<p style={{textAlign:"center",marginTop:14,fontSize:13}}><span onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Mot de passe oublié ?</span></p>}
-        {mode==="forgot"&&<p style={{textAlign:"center",marginTop:14,fontSize:13}}><span onClick={()=>{setMode("login");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Retour</span></p>}
+        {mode==="login"&&<p style={{textAlign:"center",fontSize:13,margin:0}}><span onClick={()=>switchMode("forgot")} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Mot de passe oublié ?</span></p>}
+        {mode==="forgot"&&<p style={{textAlign:"center",fontSize:13,margin:0}}><span onClick={()=>switchMode("login")} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>← Retour à la connexion</span></p>}
       </div>
     </div>
   );

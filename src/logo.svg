@@ -1,20 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120" width="300" height="120">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
   <!-- Fond noir -->
-  <rect width="300" height="120" fill="#0a0a0a" rx="10"/>
+  <rect width="500" height="500" fill="#000000"/>
 
-  <!-- Silhouette voiture jaune -->
-  <g fill="none" stroke="#f5c400" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M55 70 Q75 50 105 46 L185 46 Q215 46 235 70" />
-    <line x1="45" y1="76" x2="245" y2="76" stroke="#f5c400" stroke-width="2"/>
-    <circle cx="88" cy="76" r="9" stroke="#f5c400" stroke-width="2.5" fill="#0a0a0a"/>
-    <circle cx="88" cy="76" r="3.5" fill="#f5c400"/>
-    <circle cx="202" cy="76" r="9" stroke="#f5c400" stroke-width="2.5" fill="#0a0a0a"/>
-    <circle cx="202" cy="76" r="3.5" fill="#f5c400"/>
-  </g>
+  <!-- Silhouette voiture jaune - ligne du bas -->
+  <line x1="80" y1="242" x2="420" y2="242" stroke="#f5c400" stroke-width="2.5" stroke-linecap="round"/>
 
-  <!-- MAN'S en blanc -->
-  <text x="150" y="58" font-family="Arial Black, sans-serif" font-size="28" font-weight="900" fill="white" text-anchor="middle" letter-spacing="5">MAN'S</text>
+  <!-- Silhouette voiture jaune - carrosserie extérieure -->
+  <path d="M80 242 Q110 242 150 210 Q200 170 250 162 Q310 155 360 175 Q395 190 420 242"
+        fill="none" stroke="#f5c400" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- LOCATION en jaune -->
-  <text x="150" y="100" font-family="Arial Black, sans-serif" font-size="12" font-weight="700" fill="#f5c400" text-anchor="middle" letter-spacing="9">LOCATION</text>
+  <!-- Ligne intérieure (toit/vitre) -->
+  <path d="M155 210 Q195 178 248 170 Q300 163 348 180 Q375 190 395 210"
+        fill="none" stroke="#f5c400" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+
+  <!-- MAN'S LOC en blanc -->
+  <text x="250" y="300" font-family="Georgia, 'Times New Roman', serif" font-size="72" font-weight="bold" fill="white" text-anchor="middle" letter-spacing="6">MAN'S LOC</text>
+
+  <!-- LOCATION DE VÉHICULE en jaune -->
+  <text x="250" y="338" font-family="Georgia, 'Times New Roman', serif" font-size="18" fill="#f5c400" text-anchor="middle" letter-spacing="5">LOCATION DE VÉHICULE</text>
 </svg>

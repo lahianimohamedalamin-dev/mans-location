@@ -2560,7 +2560,7 @@ function AppContent(){
                     ?<div style={{textAlign:"center",color:"#9ca3af",padding:20,fontSize:12}}>Aucun véhicule</div>
                     :<div style={{overflowX:"auto"}}>
                       <div style={{minWidth:360}}>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr auto auto auto auto",gap:"4px 10px",alignItems:"center",marginBottom:10,paddingBottom:8,borderBottom:"2px solid #f3f4f6"}}>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 80px 80px",gap:"4px 8px",alignItems:"center",marginBottom:10,paddingBottom:8,borderBottom:"2px solid #f3f4f6"}}>
                         <span style={{fontSize:10,color:"#9ca3af",fontWeight:700}}>VÉHICULE</span>
                         <span style={{fontSize:10,color:"#2563eb",fontWeight:700,textAlign:"right"}}>CA</span>
                         <span style={{fontSize:10,color:"#ef4444",fontWeight:700,textAlign:"right"}}>DÉPENSES</span>
@@ -2568,7 +2568,7 @@ function AppContent(){
                         <span style={{fontSize:10,color:"#16a34a",fontWeight:700,textAlign:"right"}}>NET</span>
                       </div>
                       {rows.map((r,i)=>(
-                        <div key={i} style={{display:"grid",gridTemplateColumns:"1fr auto auto auto auto",gap:"4px 10px",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>
+                        <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 80px 80px",gap:"4px 8px",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>
                           <div>
                             <div style={{fontWeight:700,fontSize:12,color:r.color}}>{r.label}</div>
                             <div style={{fontSize:10,color:"#9ca3af"}}>{r.immat}</div>
@@ -2579,7 +2579,7 @@ function AppContent(){
                           <span style={{fontWeight:700,fontSize:12,color:r.net>=0?"#16a34a":"#dc2626",textAlign:"right"}}>{r.net.toFixed(0)} {sym}</span>
                         </div>
                       ))}
-                      <div style={{display:"grid",gridTemplateColumns:"1fr auto auto auto auto",gap:"4px 10px",alignItems:"center",paddingTop:10,marginTop:4,borderTop:"2px solid #1e3a8a"}}>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 80px 80px",gap:"4px 8px",alignItems:"center",paddingTop:10,marginTop:4,borderTop:"2px solid #1e3a8a"}}>
                         <span style={{fontWeight:800,fontSize:12,color:"#1f2937"}}>TOTAL</span>
                         <span style={{fontWeight:800,fontSize:12,color:"#2563eb",textAlign:"right"}}>{totalCA} {sym}</span>
                         <span style={{fontWeight:800,fontSize:12,color:"#ef4444",textAlign:"right"}}>{totalDep.toFixed(0)} {sym}</span>

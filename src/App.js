@@ -4,22 +4,15 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const DEF_FRAIS=[
   {id:1,label:"Rayure",montant:300},{id:2,label:"Jantes rayées",montant:300},
   {id:3,label:"Élément touché",montant:300},{id:4,label:"Siège abîmé",montant:350},
-  {id:5,label:"Retour véhicule sale",montant:20},{id:6,label:"Mise en fourrière",montant:250},
-  {id:7,label:"Dégât RSV",montant:17000},
+  {id:5,label:"Mise en fourrière",montant:250},{id:6,label:"Dégât RSV",montant:17000},
+  {id:7,label:"Carburant manquant",montant:20},
+  {id:8,label:"Nettoyage véhicule",montant:50},
+  {id:9,label:"Forfait tabac (mineur)",montant:20},{id:10,label:"Forfait tabac (fort)",montant:80},
+  {id:11,label:"Frais gestion amende",montant:50},
+  {id:12,label:"Sortie territoire non autorisée",montant:250},
+  {id:13,label:"Immobilisation journalière",montant:60},
 ];
-const DEF_CLAUSES=[
-  {id:1,titre:"Clause d'immobilisation",texte:"Toute immobilisation causée par une faute du Locataire entraînera une facturation de 60 €/jour jusqu'à réparation."},
-  {id:2,titre:"Carburant",texte:"Le véhicule est remis avec le plein. Il devra être rendu avec le même niveau. Manquement = 20 € + coût carburant."},
-  {id:3,titre:"Amendes & Infractions",texte:"Le Locataire est responsable des infractions. Toute amende sera transmise avec frais de gestion (30-50 €/dossier)."},
-  {id:4,titre:"État du véhicule",texte:"Un état des lieux est effectué. Toute dégradation non signalée sera retenue sur la caution. Nettoyage = 80 €."},
-  {id:5,titre:"Utilisation du véhicule",texte:"Le locataire s'engage à utiliser le véhicule avec diligence et prudence. Usage illégal interdit."},
-  {id:6,titre:"Véhicule RSV",texte:"En cas d'accident RSV, la somme de 17 000 € sera demandée si la responsabilité du locataire est engagée."},
-  {id:7,titre:"Exclusivité de conduite",texte:"Seul le Locataire est autorisé à conduire. Toute conduite par un tiers est strictement interdite."},
-  {id:8,titre:"Limitation géographique",texte:"Le véhicule ne peut être utilisé que sur le territoire français. Pénalité de 250 € en cas de non-respect."},
-  {id:9,titre:"Interdiction de sous-location",texte:"Le Locataire s'engage à ne pas sous-louer le véhicule. Résiliation sans remboursement en cas de non-respect."},
-  {id:10,titre:"Non-fumeur",texte:"Il est interdit de fumer dans le véhicule. Forfait nettoyage de 20-80 € en cas d'odeur ou traces."},
-  {id:11,titre:"Dégradations",texte:"En cas de dégradation, aucune somme versée ne sera remboursée. Les frais excédant la caution seront facturés."},
-];
+const DEF_CLAUSES=[];
 const CARRO_ELEMENTS=[
   {id:"aile_avg",label:"Aile avant gauche",zone:"Avant"},{id:"aile_avd",label:"Aile avant droite",zone:"Avant"},
   {id:"pare_choc_av",label:"Pare-choc avant",zone:"Avant"},{id:"capot",label:"Capot",zone:"Avant"},
@@ -58,35 +51,79 @@ const TARIFS_PRESETS=[
 ];
 const INIT_PROFIL={nom:"",entreprise:"",siren:"",siret:"",kbis:"",tel:"",whatsapp:"",snap:"",email:"",adresse:"",ville:"",iban:"",devise:"EUR"};
 const CAR_BRANDS={
-  "Renault":["Clio","Megane","Captur","Kadjar","Scenic","Twingo","Arkana","Austral","Zoe","Kangoo","Trafic","Master"],
-  "Peugeot":["108","208","308","408","508","2008","3008","5008","Rifter","Partner","Expert"],
-  "Citroën":["C1","C3","C3 Aircross","C4","C4 X","C5 Aircross","C5 X","Berlingo","Jumpy","ë-C4"],
-  "Volkswagen":["Polo","Golf","T-Roc","T-Cross","Tiguan","Touareg","Passat","ID.3","ID.4","Caddy","Transporter"],
-  "BMW":["Série 1","Série 2","Série 3","Série 4","Série 5","X1","X2","X3","X4","X5","X6","iX1","iX3"],
-  "Mercedes":["Classe A","Classe B","Classe C","Classe E","Classe S","CLA","GLA","GLB","GLC","GLE","GLS","EQA","EQB"],
-  "Audi":["A1","A3","A4","A5","A6","Q2","Q3","Q5","Q7","Q8","e-tron","TT"],
-  "Toyota":["Aygo X","Yaris","Yaris Cross","Corolla","C-HR","RAV4","Camry","Land Cruiser","Hilux","Proace"],
-  "Dacia":["Sandero","Duster","Jogger","Spring","Logan"],
-  "Fiat":["500","500X","Panda","Tipo","Punto","Doblo"],
-  "Opel":["Corsa","Astra","Mokka","Crossland","Grandland","Combo","Vivaro"],
-  "Hyundai":["i10","i20","i30","Kona","Tucson","Santa Fe","Ioniq 5","Ioniq 6","Bayon"],
-  "Kia":["Picanto","Rio","Ceed","Sportage","Sorento","Niro","EV6","Stonic"],
-  "Nissan":["Micra","Juke","Qashqai","X-Trail","Leaf","Ariya","Navara"],
-  "Ford":["Fiesta","Focus","Puma","Kuga","Explorer","Mustang","Ranger","Transit","Transit Custom"],
-  "Seat":["Ibiza","Leon","Arona","Ateca","Tarraco"],
-  "Skoda":["Fabia","Octavia","Scala","Kamiq","Karoq","Kodiaq","Enyaq"],
-  "Tesla":["Model 3","Model Y","Model S","Model X"],
-  "Volvo":["XC40","XC60","XC90","S60","V60","C40"],
-  "Mini":["Cooper","Countryman","Clubman"],
-  "Jeep":["Renegade","Compass","Cherokee","Wrangler","Grand Cherokee","Avenger"],
-  "Alfa Romeo":["Giulia","Stelvio","Tonale","Giulietta"],
+  // === VOITURES ===
+  "Alfa Romeo":["Giulia","Stelvio","Tonale","Giulietta","MiTo","4C"],
+  "Aston Martin":["Vantage","DB11","DBS","DBX","Valkyrie"],
+  "Audi":["A1","A3","A4","A5","A6","A7","A8","Q2","Q3","Q5","Q7","Q8","TT","R8","S3","S4","S5","S6","S7","RS3","RS4","RS5","RS6","RS7","e-tron","Q4 e-tron","etron GT"],
+  "BMW":["Série 1","Série 2","Série 2 Gran Coupé","Série 3","Série 4","Série 4 Gran Coupé","Série 5","Série 7","Série 8","X1","X2","X3","X4","X5","X6","X7","XM","Z4","i3","i4","i5","i7","iX","iX1","iX3","M2","M3","M4","M5","M8","X3M","X4M","X5M","X6M"],
+  "Bentley":["Continental GT","Bentayga","Flying Spur"],
+  "Bugatti":["Chiron","Chiron Sport","Chiron Super Sport","Veyron","Divo"],
+  "Chevrolet":["Camaro","Corvette","Silverado","Tahoe","Colorado","Equinox","Traverse","Suburban"],
+  "Citroën":["C1","C3","C3 Aircross","C4","C4 X","C5 Aircross","C5 X","Berlingo","Jumpy","Jumper","SpaceTourer","ë-C4","ë-Berlingo","ë-Jumpy","ë-Jumper","Ami"],
+  "Cupra":["Ateca","Formentor","Leon","Born","Tavascan"],
+  "Dacia":["Sandero","Sandero Stepway","Duster","Jogger","Spring","Logan"],
+  "Dodge":["Challenger","Charger","Durango","Ram 1500"],
   "DS":["DS 3","DS 4","DS 7","DS 9"],
-  "Cupra":["Formentor","Born","Leon","Ateca"],
-  "Suzuki":["Swift","Ignis","Vitara","S-Cross","Jimny"],
-  "Mazda":["Mazda2","Mazda3","CX-3","CX-30","CX-5","MX-5","CX-60"],
-  "Honda":["Jazz","Civic","HR-V","CR-V","ZR-V","e:Ny1"],
-  "Mitsubishi":["Space Star","ASX","Eclipse Cross","Outlander"],
-  "Land Rover":["Defender","Discovery","Discovery Sport","Range Rover","Range Rover Sport","Range Rover Evoque","Range Rover Velar"]
+  "Ferrari":["488 GTB","F8 Tributo","F8 Spider","296 GTB","296 GTS","Roma","Portofino M","SF90 Stradale","812 Superfast","812 GTS","Purosangue","GTC4Lusso"],
+  "Fiat":["500","500X","500e","Panda","Tipo","Doblo","Ducato","Scudo","Talento"],
+  "Ford":["Fiesta","Focus","Focus ST","Puma","Kuga","Mustang","Mustang Mach-E","Mondeo","Ranger","Transit","Transit Custom","Transit Connect","Transit Courier","Explorer","eTransit"],
+  "GMC":["Sierra","Canyon","Savana"],
+  "Honda":["Jazz","Civic","Civic Type R","Accord","HR-V","CR-V","ZR-V","e","NSX","e:Ny1"],
+  "Hyundai":["i10","i20","i30","i30 N","Elantra","Kona","Tucson","Santa Fe","Ioniq 5","Ioniq 6","Ioniq 9","Bayon","H1"],
+  "Iveco":["Daily Van","Daily Châssis","Daily Bus","eDaily"],
+  "Isuzu":["D-Max"],
+  "Jaguar":["XE","XF","XJ","E-Pace","F-Pace","I-Pace","F-Type"],
+  "Jeep":["Renegade","Compass","Cherokee","Grand Cherokee","Wrangler","Gladiator","Avenger"],
+  "Kia":["Picanto","Rio","Ceed","ProCeed","XCeed","Sportage","Sorento","Stinger","EV6","EV9","EV3","Stonic","Niro"],
+  "Koenigsegg":["Jesko","Agera RS","Regera","Gemera"],
+  "Lamborghini":["Huracan","Huracan EVO","Huracan STO","Huracan Tecnica","Aventador","Aventador SVJ","Revuelto","Urus","Urus S","Sian"],
+  "Land Rover":["Defender","Discovery","Discovery Sport","Range Rover","Range Rover Sport","Range Rover Velar","Range Rover Evoque"],
+  "MAN Utilitaire":["TGE"],
+  "Maserati":["Ghibli","Quattroporte","Levante","MC20","GranTurismo","Grecale"],
+  "Maxus":["V80","V90","eDeliver 3","eDeliver 9","T60"],
+  "Mazda":["Mazda2","Mazda3","Mazda6","CX-3","CX-30","CX-5","CX-60","CX-90","MX-5"],
+  "McLaren":["540C","570S","600LT","720S","750S","765LT","Artura","P1","Senna"],
+  "Mercedes":["Classe A","Classe B","CLA","CLS","Classe C","Classe E","Classe S","Classe V","AMG GT","GLA","GLB","GLC","GLE","GLS","Classe G","EQA","EQB","EQC","EQE","EQS","EQE SUV","EQS SUV","A 35 AMG","A 45 AMG","C 43 AMG","C 63 AMG","E 53 AMG","E 63 AMG","S 63 AMG","G 63 AMG","Citan","Vito","Sprinter","eSprinter","eVito"],
+  "Mini":["Cooper","Cooper S","Countryman","Clubman","Paceman","Convertible","Electric"],
+  "Mitsubishi":["Space Star","ASX","Eclipse Cross","Outlander","L200"],
+  "Nissan":["Micra","Juke","Qashqai","X-Trail","Ariya","Leaf","GT-R","Navara","NV200","eNV200","NV300","NV400","Townstar","Interstar"],
+  "Opel":["Corsa","Corsa-e","Astra","Astra-e","Insignia","Mokka","Mokka-e","Crossland","Grandland","Combo","Combo-e","Vivaro","Vivaro-e","Movano","Movano-e"],
+  "Pagani":["Huayra","Huayra BC","Zonda","Utopia"],
+  "Peugeot":["108","208","308","408","508","2008","3008","5008","Rifter","Traveller","Partner","Expert","Boxer","e-208","e-2008","e-308","e-3008","e-5008","e-Expert","e-Boxer"],
+  "Piaggio":["Porter","Ape"],
+  "Porsche":["718 Boxster","718 Cayman","911","Cayenne","Macan","Panamera","Taycan"],
+  "RAM":["1500","2500","3500","ProMaster","ProMaster City"],
+  "Renault":["Twingo","Clio","Megane","Megane RS","Talisman","Captur","Kadjar","Austral","Arkana","Koleos","Scenic","Zoe","Rafale","Kangoo","Kangoo Van","Trafic","Master","Express Van","Alaskan"],
+  "Rimac":["Nevera"],
+  "Rolls-Royce":["Ghost","Phantom","Wraith","Cullinan","Dawn","Silver Shadow"],
+  "Seat":["Ibiza","Leon","Arona","Ateca","Tarraco"],
+  "Skoda":["Fabia","Scala","Octavia","Superb","Kamiq","Karoq","Kodiaq","Enyaq"],
+  "Subaru":["Impreza","WRX","BRZ","Forester","Outback","XV","Solterra","Legacy"],
+  "Suzuki":["Swift","Swift Sport","Ignis","Vitara","S-Cross","Jimny"],
+  "Tesla":["Model S","Model 3","Model X","Model Y","Cybertruck","Roadster"],
+  "Toyota":["Aygo X","Yaris","Yaris Cross","Corolla","Corolla Cross","Camry","Prius","C-HR","RAV4","Highlander","Land Cruiser","Hilux","GR86","GR Yaris","GR Supra","bZ4X","Proace","Proace City"],
+  "Volkswagen":["Polo","Golf","Golf GTI","Golf R","Arteon","T-Cross","T-Roc","Tiguan","Touareg","Passat","ID.3","ID.4","ID.5","ID.Buzz","Amarok","Caddy","Caddy Cargo","Transporter","Crafter","ID.Buzz Cargo","Multivan"],
+  "Volvo":["V40","V60","V90","S60","S90","XC40","XC60","XC90","EX30","EX90","C40"],
+  // === MOTOS ===
+  "Aprilia":["RS 660","RSV4","Tuono 660","Tuono V4","Tuareg 660","Shiver 900","Dorsoduro 900"],
+  "Benelli":["BN 125","BN 302","TRK 502","TRK 502X","Leoncino 500","Leoncino 800","752S"],
+  "BMW Motorrad":["G 310 R","G 310 GS","F 750 GS","F 850 GS","F 900 R","F 900 XR","S 1000 R","S 1000 RR","M 1000 RR","R 1250 R","R 1250 RS","R 1250 GS","R 1250 GS Adventure","R 18","C 400 X","C 400 GT"],
+  "CF Moto":["125 NK","300 NK","650 NK","650 MT","700 CLX","800 MT"],
+  "Ducati":["Monster","Monster 937","Monster 1200","Panigale V2","Panigale V4","Streetfighter V2","Streetfighter V4","Multistrada 950","Multistrada V4","Diavel","XDiavel","Hypermotard 950","Scrambler 800","Scrambler 1100"],
+  "Harley-Davidson":["Iron 883","Forty Eight","Street 750","Sportster S","Nightster","Fat Boy","Breakout","Street Bob","Heritage Classic","Road King","Street Glide","Road Glide","Pan America 1250"],
+  "Honda Moto":["CB 125 R","CB 300 R","CB 500 F","CB 650 R","CB 1000 R","CBR 125 R","CBR 300 R","CBR 500 R","CBR 650 R","CBR 1000 RR","Africa Twin","NC 750 X","Rebel 500","Rebel 1100","Forza 125","Forza 350","X-ADV 750","SH 125","SH 350"],
+  "Indian":["Scout","Scout Bobber","Chief","Springfield","Challenger","Pursuit","FTR 1200"],
+  "Kawasaki":["Z 125","Z 300","Z 400","Z 650","Z 900","ZH2","Ninja 125","Ninja 300","Ninja 400","Ninja 650","Ninja ZX-6R","Ninja ZX-10R","Ninja H2","Versys 650","Versys 1000","Vulcan S"],
+  "KTM":["125 Duke","390 Duke","790 Duke","890 Duke","1290 Super Duke","125 RC","390 RC","390 Adventure","790 Adventure","890 Adventure","1290 Adventure"],
+  "Kymco":["Agility 125","Like 125","XTown 300","AK 550"],
+  "Moto Guzzi":["V7","V9","V85 TT","California","Audace","Eldorado"],
+  "MV Agusta":["Brutale 800","Brutale 1000","Dragster 800","F3","F4","Superveloce","Turismo Veloce"],
+  "SYM":["Jet 14","Symphony 125","Cruisym 300","Maxsym 400"],
+  "Suzuki Moto":["GSX-S 125","GSX-S 750","GSX-S 1000","GSX-R 125","GSX-R 600","GSX-R 750","GSX-R 1000","V-Strom 650","V-Strom 1050","SV 650","Burgman 125","Burgman 400","Hayabusa"],
+  "Triumph":["Street Triple","Speed Triple","Trident 660","Tiger 660","Tiger 850","Tiger 900","Tiger 1200","Bonneville T100","Bonneville T120","Thruxton","Bobber","Rocket 3"],
+  "Vespa":["Primavera","Sprint","GTS 125","GTS 300","GTV"],
+  "Yamaha":["MT-125","MT-03","MT-07","MT-09","MT-10","R125","R3","R6","R7","R1","R1M","Tracer 7","Tracer 9","Ténéré 700","XSR 125","XSR 700","XSR 900","NMAX 125","XMAX 125","XMAX 300","TMAX"],
+  "Zero Motorcycles":["SR","S","SR/F","FX","FXS","DSR","DS"],
 };
 const CAR_COLORS=["Noir","Blanc","Gris","Argent","Bleu","Rouge","Vert","Beige","Marron","Orange","Jaune","Violet","Rose","Bordeaux","Bleu nuit","Gris anthracite","Blanc nacré","Noir métallisé","Bleu métallisé","Gris métallisé"];
 const CURRENT_YEAR=new Date().getFullYear();
@@ -105,6 +142,12 @@ const DEVISES=[
 function fuelLabel(pct){if(pct>=100)return"Plein";if(pct>=75)return"3/4";if(pct>=50)return"1/2";if(pct>=25)return"1/4";return"Réserve";}
 function fuelColor(pct){if(pct>=60)return"#16a34a";if(pct>=30)return"#d97706";return"#dc2626";}
 
+/** Échappe les caractères HTML spéciaux pour prévenir les injections XSS dans les PDF générés */
+function escHtml(str){
+  if(str==null)return"";
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#x27;");
+}
+
 function dlPDF(html){
   const win=window.open('','_blank');
   if(!win){alert("Autorisez les popups");return;}
@@ -115,26 +158,54 @@ function dlPDF(html){
 function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   const nb=contrat.nbJours||1,total=contrat.totalCalc||0,pm=contrat.paiement;
   const frais=vehicle.frais||DEF_FRAIS,clauses=vehicle.clauses||DEF_CLAUSES;
-  const fraisRows=frais.map(f=>"<tr><td>"+f.label+"</td><td style='text-align:right;font-weight:bold'>"+f.montant+" €</td></tr>").join("");
-  const clausesHtml=clauses.map((c,i)=>"<div class='cl'><span class='cl-t'>"+(i+6)+". "+c.titre+"</span><br>"+c.texte+"</div>").join("");
+  const fraisRows=frais.map(f=>"<tr><td>"+escHtml(f.label)+"</td><td style='text-align:right;font-weight:bold'>"+escHtml(f.montant)+" EUR</td></tr>").join("");
+  const clausesHtml=clauses.map((c,i)=>"<div class='cl'><span class='cl-t'>"+(i+1)+". "+escHtml(c.titre)+"</span><br>"+escHtml(c.texte)+"</div>").join("");
   const sL=sigL?"<img src='"+sigL+"' style='max-width:160px;height:60px;display:block;margin:0 auto;border-bottom:1px solid #333'>":"<div style='border-bottom:1px solid #333;height:60px;width:160px;margin:0 auto'></div>";
   const sLoc=sigLoc?"<img src='"+sigLoc+"' style='max-width:160px;height:60px;display:block;margin:0 auto;border-bottom:1px solid #333'>":"<div style='border-bottom:1px solid #333;height:60px;width:160px;margin:0 auto'></div>";
   const fuelPct=contrat.carburantDepart||0;
-  const fuelBar="<div style='margin:6px 0'><span style='font-size:10px;color:#555'>Carburant départ : </span><span style='font-weight:bold'>"+fuelPct+"% — "+fuelLabel(fuelPct)+"</span></div>";
-  const cautionMode=contrat.cautionMode==="especes"?"Espèces":contrat.cautionMode==="virement"?"Virement bancaire":contrat.cautionMode==="emprunt"?"Emprunt bancaire":contrat.cautionMode==="cb"?"Carte bancaire":contrat.cautionMode==="cheque"?"Chèque":"Autre";
+  const fuelBar="<div style='margin:4px 0'><span style='font-size:10px;color:#555'>Carburant depart : </span><span style='font-weight:bold'>"+fuelPct+"% — "+fuelLabel(fuelPct)+"</span></div>";
+  const cautionMode=contrat.cautionMode==="especes"?"Especes":contrat.cautionMode==="virement"?"Virement bancaire":contrat.cautionMode==="emprunt"?"Emprunt bancaire":contrat.cautionMode==="cb"?"Carte bancaire":contrat.cautionMode==="cheque"?"Cheque":"Autre";
   const photosDepart=contrat.photosDepart||[];
   const photosHtml=photosDepart.length>0?"<div style='display:flex;flex-wrap:wrap;gap:6px;margin-top:6px'>"+photosDepart.map(p=>"<img src='"+p.data+"' style='width:120px;height:90px;object-fit:cover;border-radius:6px'>").join("")+"</div>":"";
   const dl=contrat.docsLocataire||{};
   let docsLocHtml="";
   if(dl.cniRecto||dl.cniVerso||dl.justifDom||dl.photoAr){
-    docsLocHtml="<div style='margin-top:10px;padding:10px;background:#f8fafc;border-radius:8px'><div style='font-size:11px;font-weight:bold;color:#0a1940;margin-bottom:8px'>Documents du locataire</div><div style='display:flex;flex-wrap:wrap;gap:10px'>";
-    if(dl.cniRecto)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:3px'>CNI Recto</div><img src='"+dl.cniRecto+"' style='width:130px;height:90px;object-fit:cover;border-radius:6px'></div>";
-    if(dl.cniVerso)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:3px'>CNI Verso</div><img src='"+dl.cniVerso+"' style='width:130px;height:90px;object-fit:cover;border-radius:6px'></div>";
-    if(dl.justifDom)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:3px'>Justif. domicile</div><img src='"+dl.justifDom+"' style='width:130px;height:90px;object-fit:cover;border-radius:6px'></div>";
-    if(dl.photoAr)docsLocHtml+="<div><div style='font-size:9px;color:#555;margin-bottom:3px'>Photo arrière</div><img src='"+dl.photoAr+"' style='width:130px;height:90px;object-fit:cover;border-radius:6px'></div>";
+    docsLocHtml="<div style='margin-top:8px;padding:8px;background:#f8fafc;border-radius:6px'><div style='font-size:10px;font-weight:bold;color:#0a1940;margin-bottom:6px'>Pieces jointes locataire</div><div style='display:flex;flex-wrap:wrap;gap:8px'>";
+    if(dl.cniRecto)docsLocHtml+="<div style='text-align:center'><div style='font-size:10px;font-weight:bold;color:#0a1940;margin-bottom:3px'>CNI Recto</div><img src='"+dl.cniRecto+"' style='width:150px;height:110px;object-fit:contain;border-radius:6px;border:1px solid #ddd;background:#f8fafc'></div>";
+    if(dl.cniVerso)docsLocHtml+="<div style='text-align:center'><div style='font-size:10px;font-weight:bold;color:#0a1940;margin-bottom:3px'>CNI Verso</div><img src='"+dl.cniVerso+"' style='width:150px;height:110px;object-fit:contain;border-radius:6px;border:1px solid #ddd;background:#f8fafc'></div>";
+    if(dl.justifDom)docsLocHtml+="<div style='text-align:center'><div style='font-size:10px;font-weight:bold;color:#0a1940;margin-bottom:3px'>Justif. domicile</div><img src='"+dl.justifDom+"' style='width:150px;height:110px;object-fit:contain;border-radius:6px;border:1px solid #ddd;background:#f8fafc'></div>";
+    if(dl.photoAr)docsLocHtml+="<div style='text-align:center'><div style='font-size:10px;font-weight:bold;color:#0a1940;margin-bottom:3px'>Photo locataire</div><img src='"+dl.photoAr+"' style='width:150px;height:110px;object-fit:contain;border-radius:6px;border:1px solid #ddd;background:#f8fafc'></div>";
     docsLocHtml+="</div></div>";
   }
-  return["<!DOCTYPE html><html><head><meta charset='utf-8'><title>Contrat "+contrat.locNom+"</title>",
+  const remise=parseFloat(contrat.remise)||0;
+  const accompte=parseFloat(contrat.accompte)||0;
+  const resteAPayer=parseFloat(contrat.resteAPayer)||Math.max(0,total-accompte);
+  const kmInclusParJour=contrat.kmInclus||0;
+  const kmInclus=kmInclusParJour*(contrat.nbJours||1);
+  const prixKmSup=contrat.prixKmSup;
+  const ext=contrat.exterieurPropre;
+  const intr=contrat.interieurPropre;
+  const etatHtml="<div style='display:flex;gap:12px;margin-top:4px'>"
+    +"<div><span style='font-size:10px;color:#555'>Exterieur : </span><span style='font-weight:bold'>"+(ext===true?"Propre":ext===false?"Sale":"N/A")+"</span></div>"
+    +"<div><span style='font-size:10px;color:#555'>Interieur : </span><span style='font-weight:bold'>"+(intr===true?"Propre":intr===false?"Sale":"N/A")+"</span></div>"
+    +"</div>";
+  const loc2=((contrat.loc2Prenom||"")+" "+(contrat.loc2Nom||"")).trim();
+  const CG_ARTICLES=[
+    {n:1,t:"Objet et champ d'application",x:"Le present contrat regit les conditions dans lesquelles le loueur met temporairement a disposition du locataire le vehicule designe ci-dessus. La location est consentie a titre strictement personnel, temporaire et non transmissible. Toute sous-location, pret, cession ou mise a disposition a un tiers non autorise par ecrit entraine la resiliation immediate et automatique du contrat aux torts exclusifs du locataire, sans remboursement d'aucune somme versee, et sans prejudice de toutes actions en dommages et interets."},
+    {n:2,t:"Conditions d'acces, conducteurs autorises et controle d'identite",x:"Le locataire et tout conducteur autorise doivent : avoir l'age minimum exige, etre titulaires d'un permis de conduire valide correspondant a la categorie du vehicule, presenter une piece d'identite valide et fournir des informations exactes et completes. Seul le locataire designe est autorise a conduire le vehicule. L'ajout d'un conducteur supplementaire est possible uniquement avec l'accord ecrit prealable du loueur ; le conducteur ajoute doit satisfaire aux memes conditions d'acces. Toute conduite par un tiers non expressement autorise par ecrit est strictement interdite. Toute declaration inexacte ou document falsifie entraine la nullite totale des garanties d'assurance et engage la responsabilite financiere integrale du locataire."},
+    {n:3,t:"Usage autorise et interdictions absolues",x:"Le locataire s'engage a utiliser le vehicule avec diligence et prudence, conformement a sa destination normale. Sont strictement interdits : transport remunere de personnes ou marchandises, participation a toute competition ou rallye, circulation hors voies carrossables, conduite sous emprise d'alcool ou de stupefiants, tout usage illegal ou contraire a l'ordre public. Tout usage non conforme engage la pleine responsabilite du locataire, y compris la nullite des garanties d'assurance."},
+    {n:4,t:"Etat des lieux et degradations",x:"Un etat des lieux contradictoire est realise au depart et au retour avec photographies et signatures des deux parties. A defaut de reserves emises au moment de la remise du vehicule, celui-ci est repute conforme, propre et en parfait etat de marche. Toute degradation constatee au retour sera retenue sur le depot de garantie selon le tableau des frais deductibles. Les frais excedant le montant du depot seront integralement factures au locataire."},
+    {n:5,t:"Assurance, responsabilite civile et sinistres",x:"Le vehicule beneficie au minimum d'une assurance responsabilite civile obligatoire couvrant les dommages causes aux tiers. En cas de sinistre dont la responsabilite du locataire est engagee, ou en cas d'accident sans tiers identifie, le locataire reste redevable de la franchise contractuelle, des frais de gestion, des dommages non couverts, des pertes d'exploitation dues a l'immobilisation du vehicule, et de la perte de valeur residuelle. En cas d'accident grave (RSV), la responsabilite financiere du locataire est pleinement engagee selon le tableau des frais deductibles. Les garanties sont inapplicables en cas de conduite sous influence, fausse declaration, conducteur non autorise ou usage prohibe. Tout sinistre doit etre declare au loueur dans les plus brefs delais avec constat amiable signe."},
+    {n:6,t:"Infractions routieres et frais de gestion",x:"Le locataire est exclusivement et personnellement responsable de toutes contraventions, peages, stationnements abusifs et infractions commises pendant la duree de la location. Il autorise expressement le loueur a transmettre ses coordonnees completes aux autorites competentes, a regler les amendes pour son compte et a y ajouter des frais de gestion par dossier (voir tableau des frais deductibles). Toute mise en fourriere est aux frais exclusifs du locataire."},
+    {n:7,t:"Depot de garantie et prelevement",x:"Le depot de garantie obligatoire permet au loueur de proceder sans delai aux prélèvements suivants : dommages constates, franchises, frais administratifs, pertes d'exploitation, carburant manquant, depassements kilometriques, retard de restitution, frais de nettoyage, amendes et tout solde restant du. L'ensemble des montants applicables figure dans le tableau des frais deductibles en page precedente. La restitution du solde s'effectue dans un delai raisonnable sauf contestation necessitant une expertise contradictoire."},
+    {n:8,t:"Restitution, carburant et penalites d'immobilisation",x:"Le vehicule doit etre restitue a la date, heure et lieu convenus, dans un etat identique a celui du depart (hors usure normale), avec le meme niveau de carburant et une proprete interieure et exterieure assuree. Le carburant manquant sera facture selon le tableau des frais deductibles. Tout retard de restitution est facture au tarif journalier en vigueur. Toute immobilisation du vehicule causee par une faute du locataire entraine une facturation journaliere jusqu'a la remise en etat complete (voir tableau des frais deductibles)."},
+    {n:9,t:"Interdictions specifiques — territoire et tabac",x:"Le vehicule ne peut etre utilise que sur le territoire francais metropolitain, sauf accord ecrit du loueur. Toute sortie non autorisee engage la responsabilite integrale du locataire (voir tableau des frais deductibles). Le vehicule est strictement non-fumeur : toute odeur ou trace de tabac constatee au retour entraine l'application du forfait tabac figure dans le tableau des frais deductibles. Le vehicule doit etre rendu propre interieurement et exterieurement, faute de quoi les frais de nettoyage correspondants seront retenus."},
+    {n:10,t:"Donnees personnelles — RGPD",x:"Les donnees personnelles collectees servent exclusivement a l'execution du present contrat, a la gestion des sinistres, infractions et paiements, ainsi qu'au respect des obligations legales. Elles sont conservees pendant toute la duree de prescription legale applicable, ou plus longtemps en cas de procedure judiciaire. Conformement au RGPD, le locataire dispose d'un droit d'acces, de rectification, d'effacement et de portabilite de ses donnees, exercable par demande ecrite aupres du loueur."},
+    {n:11,t:"Resiliation et manquements",x:"Le loueur peut resilier immediatement et unilateralement le present contrat en cas de non-respect de l'une quelconque des obligations, de fausse declaration, de non-paiement, ou d'usage prohibe. En cas de resiliation aux torts du locataire, aucune somme versee ne sera remboursee ; le depot de garantie sera conserve et les frais excedentaires factures. En dehors de tout litige, la resiliation peut intervenir avec un preavis raisonnable, ou selon les conditions expressement prevues au contrat."},
+    {n:12,t:"Droit applicable et reglement des litiges",x:"Le present contrat est regi exclusivement par le droit francais. En cas de differend, les parties s'engagent a rechercher une resolution amiable pendant un delai de 30 jours a compter de la mise en demeure. A defaut d'accord, les tribunaux competents du lieu d'etablissement du loueur seront seuls competents, sous reserve des dispositions imperatives de protection du consommateur."},
+  ];
+  const cgHtml=CG_ARTICLES.map(a=>"<div class='cg'><span class='cg-t'>Art. "+a.n+" — "+escHtml(a.t)+"</span><br>"+escHtml(a.x)+"</div>").join("");
+  return["<!DOCTYPE html><html><head><meta charset='utf-8'><title>Contrat "+escHtml(contrat.locNom)+"</title>",
     "<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:11px;color:#111}",
     ".header{background:#0a1940;color:#fff;padding:14px 20px;text-align:center}.header h1{font-size:22px;letter-spacing:2px;margin-bottom:4px}.header p{font-size:9px;opacity:.8;margin:2px 0}",
     ".body{padding:14px 20px}.title{text-align:center;font-size:14px;font-weight:bold;margin:10px 0 6px;text-transform:uppercase;border-bottom:2px solid #0a1940;padding-bottom:6px}",
@@ -142,34 +213,100 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
     ".lbl{color:#555;font-size:10px}.val{font-weight:bold}",
     "hr{border:none;border-top:1px solid #ccc;margin:8px 0}table.ft{width:100%;border-collapse:collapse;font-size:10px;margin-top:5px}",
     "table.ft td{border:1px solid #ddd;padding:3px 6px}",
-    ".cl{font-size:9.5px;margin-bottom:5px;line-height:1.5}.cl-t{font-weight:bold;font-size:10px}",
+    ".cl{font-size:9.5px;margin-bottom:5px;line-height:1.4}.cl-t{font-weight:bold;font-size:10px}",
+    ".cg{font-size:8.5px;margin-bottom:4px;line-height:1.4;color:#333}.cg-t{font-weight:bold;font-size:9px;color:#0a1940}",
     ".sig-area{display:flex;justify-content:space-between;margin-top:16px;gap:30px}.sig-box{flex:1;text-align:center}.sig-box p{font-size:10px;font-weight:bold;margin-bottom:6px}",
     ".tot{background:#0a1940;color:#fff;padding:8px 14px;border-radius:6px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}",
+    ".row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0}",
     "@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>",
-    "<div class='header'><h1>"+(profil.entreprise||"MAN'S LOCATION")+"</h1><p>LOCATION DE CITADINES EN IDF</p>",
-    "<p>SIRET : "+(profil.siret||profil.siren)+" | Tel : "+profil.tel+" | "+profil.adresse+"</p></div>",
-    "<div class='body'><div class='title'>Contrat de Location de Vehicule</div>",
-    "<div style='margin-bottom:8px'><div class='st'>Locataire</div>",
-    "<div><span class='lbl'>Nom : </span><span class='val'>"+contrat.locNom.toUpperCase()+"</span></div>",
-    "<div><span class='lbl'>Tel : </span><span class='val'>"+contrat.locTel+"</span></div>",
-    "<div><span class='lbl'>Adresse : </span><span class='val'>"+contrat.locAdresse+"</span></div>",
-    docsLocHtml+"</div><hr>",
-    "<div style='margin-bottom:8px'><div class='st'>Vehicule</div>",
-    "<div><span class='lbl'>Vehicule : </span><span class='val'>"+vehicle.marque+" "+vehicle.modele+" — "+vehicle.immat+"</span></div>",
-    "<div><span class='lbl'>Km depart : </span><span class='val'>"+(contrat.kmDepart||vehicle.km)+" km</span></div>",
-    fuelBar+photosHtml+"</div>",
-    "<div style='margin-bottom:8px'><div class='st'>Duree</div>",
-    "<div><span class='lbl'>Debut : </span><span class='val'>"+contrat.dateDebut+" à "+contrat.heureDebut+"</span></div>",
-    "<div><span class='lbl'>Fin : </span><span class='val'>"+contrat.dateFin+" à "+contrat.heureFin+"</span> — <span class='val'>"+nb+" jour(s)</span></div></div>",
-    "<div style='margin-bottom:8px'><div class='st'>Paiement</div>",
-    "<div class='tot'><span>Total location</span><strong>"+total+" EUR</strong></div>",
-    "<div>["+(pm==="especes"?"X":" ")+"] Especes ["+(pm==="cb"?"X":" ")+"] CB ["+(pm==="virement"?"X":" ")+"] Virement ["+(pm==="cheque"?"X":" ")+"] Cheque</div></div>",
-    "<div style='margin-bottom:8px'><div class='st'>Caution - "+vehicle.caution+" EUR ("+cautionMode+")</div>",
-    "<table class='ft'><tr style='background:#e8edf5;font-weight:bold'><td colspan='2'>Frais deductibles</td></tr>"+fraisRows+"</table></div>",
-    "<div style='margin-bottom:8px'><div class='st'>Clauses</div>"+clausesHtml+"</div>",
-    "<hr><p style='font-size:10px;margin-bottom:12px'>Fait a "+profil.ville+", le "+new Date().toLocaleDateString("fr-FR")+"</p>",
-    "<div class='sig-area'><div class='sig-box'><p>Loueur ("+profil.nom+")</p>"+sL+"</div>",
-    "<div class='sig-box'><p>Locataire ("+contrat.locNom+")</p>"+sLoc+"</div></div>",
+    // EN-TÊTE LOUEUR
+    "<div class='header'>",
+    "<h1>"+escHtml(profil.entreprise||"MAN'S LOCATION")+"</h1>",
+    "<p>SIRET : "+escHtml(profil.siret||profil.siren||"—")+" | Tel : "+escHtml(profil.tel||"—")+(profil.email?" | "+escHtml(profil.email):"")+"</p>",
+    "<p>"+escHtml(profil.adresse||"")+(profil.ville?", "+escHtml(profil.ville):"")+"</p>",
+    "</div>",
+    "<div class='body'>",
+    "<div class='title'>Contrat de Location de Vehicule</div>",
+    // PARTIES
+    "<div style='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px'>",
+    // LOUEUR
+    "<div><div class='st'>Loueur</div>",
+    "<div><span class='lbl'>Societe : </span><span class='val'>"+escHtml(profil.entreprise||"—")+"</span></div>",
+    "<div><span class='lbl'>Representant : </span><span class='val'>"+escHtml(profil.nom||"—")+"</span></div>",
+    "<div><span class='lbl'>SIRET : </span><span class='val'>"+escHtml(profil.siret||profil.siren||"—")+"</span></div>",
+    "<div><span class='lbl'>Adresse : </span><span class='val'>"+escHtml(profil.adresse||"—")+(profil.ville?", "+escHtml(profil.ville):"")+"</span></div>",
+    "<div><span class='lbl'>Tel : </span><span class='val'>"+escHtml(profil.tel||"—")+"</span></div>",
+    "</div>",
+    // LOCATAIRE
+    "<div><div class='st'>Locataire</div>",
+    "<div><span class='lbl'>Nom : </span><span class='val'>"+escHtml(contrat.locNom||"—").toUpperCase()+"</span></div>",
+    (contrat.locEntreprise?"<div><span class='lbl'>Entreprise : </span><span class='val'>"+escHtml(contrat.locEntreprise)+"</span></div>":""),
+    "<div><span class='lbl'>Adresse : </span><span class='val'>"+escHtml(contrat.locAdresse||"—")+"</span></div>",
+    ((contrat.locCodePostal||contrat.locVille)?"<div><span class='lbl'>CP / Ville : </span><span class='val'>"+escHtml((contrat.locCodePostal||"")+" "+(contrat.locVille||"")).trim()+"</span></div>":""),
+    "<div><span class='lbl'>Tel : </span><span class='val'>"+escHtml(contrat.locTel||"—")+"</span></div>",
+    (contrat.locEmail?"<div><span class='lbl'>Email : </span><span class='val'>"+escHtml(contrat.locEmail)+"</span></div>":""),
+    (contrat.locPermis?"<div><span class='lbl'>N° Permis : </span><span class='val'>"+escHtml(contrat.locPermis)+"</span></div>":""),
+    (loc2?"<div style='margin-top:4px;padding:4px 6px;background:#fef9c3;border-radius:4px;font-size:10px'><b>2eme conducteur :</b> "+escHtml(loc2)+"</div>":""),
+    docsLocHtml,
+    "</div>",
+    "</div><hr>",
+    // VEHICULE
+    "<div style='margin-bottom:8px'><div class='st'>Vehicule — Objet du contrat</div>",
+    "<div style='display:grid;grid-template-columns:1fr 1fr;gap:2px'>",
+    "<div><span class='lbl'>Marque/Modele : </span><span class='val'>"+escHtml(vehicle.marque||"")+" "+escHtml(vehicle.modele||"")+"</span></div>",
+    "<div><span class='lbl'>Immatriculation : </span><span class='val'>"+escHtml(vehicle.immat||contrat.immat||"—")+"</span></div>",
+    (vehicle.couleur?"<div><span class='lbl'>Couleur : </span><span class='val'>"+escHtml(vehicle.couleur)+"</span></div>":""),
+    (vehicle.annee?"<div><span class='lbl'>Annee : </span><span class='val'>"+escHtml(vehicle.annee)+"</span></div>":""),
+    (vehicle.vin?"<div><span class='lbl'>VIN : </span><span class='val'>"+escHtml(vehicle.vin)+"</span></div>":""),
+    "<div><span class='lbl'>Km depart : </span><span class='val'>"+escHtml(String(contrat.kmDepart||vehicle.km||"—"))+" km</span></div>",
+    "</div>",
+    fuelBar,etatHtml,photosHtml,"</div><hr>",
+    // PÉRIODE + LIEU
+    "<div style='margin-bottom:8px'><div class='st'>Periode de location et lieu</div>",
+    "<div><span class='lbl'>Lieu de prise en charge : </span><span class='val'>"+escHtml(profil.adresse||"—")+(profil.ville?", "+escHtml(profil.ville):"")+"</span></div>",
+    "<div><span class='lbl'>Depart : </span><span class='val'>"+escHtml(contrat.dateDebut||"—")+" a "+escHtml(contrat.heureDebut||"—")+"</span></div>",
+    "<div><span class='lbl'>Lieu de restitution : </span><span class='val'>"+escHtml(profil.adresse||"—")+(profil.ville?", "+escHtml(profil.ville):"")+"</span></div>",
+    "<div><span class='lbl'>Retour prevu : </span><span class='val'>"+escHtml(contrat.dateFin||"—")+" a "+escHtml(contrat.heureFin||"—")+"</span> — <span class='val'>"+nb+" jour(s)</span></div>",
+    "</div><hr>",
+    // PAIEMENT + FINANCES
+    "<div style='margin-bottom:8px'><div class='st'>Conditions financieres</div>",
+    (contrat.tarifLabel?"<div><span class='lbl'>Tarif : </span><span class='val'>"+escHtml(contrat.tarifLabel)+"</span></div>":""),
+    ((kmInclus&&!contrat.kmIllimite)?"<div><span class='lbl'>Km inclus : </span><span class='val'>"+escHtml(String(kmInclus))+" km total ("+escHtml(String(kmInclusParJour))+" km/j × "+escHtml(String(contrat.nbJours||1))+" j)</span></div>":""),
+    (contrat.kmIllimite?"<div><span class='lbl'>Kilometrage : </span><span class='val'>Illimite</span></div>":""),
+    ((prixKmSup&&!contrat.kmIllimite)?"<div><span class='lbl'>Prix km sup : </span><span class='val'>"+escHtml(String(prixKmSup))+" EUR/km</span></div>":""),
+    "<div class='row' style='margin-top:6px'><span>Montant location</span><span style='font-weight:bold'>"+total+" EUR</span></div>",
+    (remise>0?"<div class='row'><span>Remise</span><span style='font-weight:bold;color:#16a34a'>- "+remise+" EUR</span></div>":""),
+    "<div class='tot'><span>Total net</span><strong>"+(total)+" EUR</strong></div>",
+    (accompte>0?"<div class='row'><span>Accompte verse</span><span style='font-weight:bold;color:#2563eb'>- "+accompte+" EUR</span></div>":""),
+    (accompte>0?"<div class='row' style='font-size:12px;font-weight:bold;border-top:1px solid #ccc;padding-top:4px;margin-top:4px'><span>Reste a payer</span><span style='color:#dc2626'>"+resteAPayer+" EUR</span></div>":""),
+    "<div style='margin-top:6px'>["+(pm==="especes"?"X":" ")+"] Especes ["+(pm==="cb"?"X":" ")+"] CB ["+(pm==="virement"?"X":" ")+"] Virement ["+(pm==="cheque"?"X":" ")+"] Cheque</div>",
+    "</div><hr>",
+    // CAUTION + ASSURANCE
+    "<div style='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px'>",
+    "<div><div class='st'>Caution / Depot de garantie</div>",
+    "<div><span class='lbl'>Montant : </span><span class='val'>"+escHtml(String(vehicle.caution||"—"))+" EUR</span></div>",
+    "<div><span class='lbl'>Mode : </span><span class='val'>"+escHtml(cautionMode)+"</span></div>",
+    "<table class='ft' style='margin-top:6px'><tr style='background:#e8edf5;font-weight:bold'><td colspan='2'>Frais deductibles</td></tr>"+fraisRows+"</table>",
+    "</div>",
+    "<div><div class='st'>Assurance</div>",
+    "<div style='font-size:10px;line-height:1.5'>",
+    "<div>&#10003; Responsabilite civile obligatoire souscrite</div>",
+    "<div><span class='lbl'>Franchise en cas de sinistre :</span><br><span style='font-weight:bold;color:#dc2626'>Montant de la caution retenue selon responsabilite</span></div>",
+    "<div style='margin-top:4px;font-size:9px;color:#555'>Le locataire est tenu de signaler tout sinistre dans les plus brefs delais au loueur, avec constat amiable signe le cas echeant.</div>",
+    "</div></div>",
+    "</div><hr>",
+    // CONDITIONS PARTICULIERES (clauses vehicule)
+    "<div style='margin-bottom:8px'><div class='st'>Conditions particulieres</div>"+clausesHtml+"</div>",
+    // CONDITIONS GENERALES DE LOCATION
+    "<div style='margin-bottom:8px;page-break-before:always'><div class='st'>Conditions generales de location</div>",
+    "<div style='font-size:8px;color:#6b7280;margin-bottom:4px'>En signant ce contrat, le locataire reconnait avoir lu, compris et accepte sans reserve les conditions generales ci-dessous.</div>",
+    cgHtml+"</div><hr>",
+    // SIGNATURES
+    "<p style='font-size:10px;margin-bottom:6px'>Lu et approuve — Fait a "+escHtml(profil.ville||"—")+", le "+new Date().toLocaleDateString("fr-FR")+"</p>",
+    "<div class='sig-area'>",
+    "<div class='sig-box'><p>Loueur — "+escHtml(profil.nom||profil.entreprise||"—")+"</p>"+sL+"<p style='font-size:9px;margin-top:4px'>Signature + Cachet</p></div>",
+    "<div class='sig-box'><p>Locataire — "+escHtml(contrat.locNom||"—")+"</p>"+sLoc+"<p style='font-size:9px;margin-top:4px'>Bon pour accord, lu et approuve</p></div>",
+    "</div>",
     "</div></body></html>"].join("");
 }
 
@@ -496,12 +633,13 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
   const kmDep=parseFloat(contrat.kmDepart||vehicle?.km||0);
   const kmRet=parseFloat(kmRetour)||0;
   const kmParcourus=kmRet>0?kmRet-kmDep:0;
-  const kmInclus=parseFloat(vehicle?.kmInclus||0);
+  const kmInclus=parseFloat(contrat.kmInclus||vehicle?.kmInclus||0)*parseFloat(contrat.nbJours||1);
   const prixKmSup=parseFloat(vehicle?.prixKmSup||0);
   const kmSup=Math.max(0,kmParcourus-kmInclus);
   const surplusKm=kmSup*prixKmSup;
   const zones=[...new Set(CARRO_ELEMENTS.map(e=>e.zone))];
   const nbNOK=CARRO_ELEMENTS.filter(e=>carro[e.id]===false).length;
+  const sym=(DEVISES.find(d=>d.code===(profil?.devise||"EUR"))||DEVISES[0]).symbol;
   const IS=INP_STYLE();
   function handlePhoto(id,file,setter){if(!file)return;const r=new FileReader();r.onload=ev=>setter(p=>({...p,[id]:ev.target.result}));r.readAsDataURL(file);}
   function pickFile(id,setter){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>handlePhoto(id,e.target.files[0],setter);i.click();}
@@ -531,6 +669,7 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
                 <div><div style={{fontSize:10,color:"#6b7280",marginBottom:3}}>Km au départ</div><div style={{padding:"8px 10px",background:"#f3f4f6",borderRadius:8,fontSize:14,fontWeight:700}}>{contrat.kmDepart||vehicle?.km||"—"} km</div></div>
                 <div><div style={{fontSize:10,color:"#6b7280",marginBottom:3}}>Km au retour</div><input type="number" style={IS} placeholder="ex: 55350" value={kmRetour} onChange={e=>setKmRetour(e.target.value)}/></div>
               </div>
+              {kmInclus>0&&!contrat.kmIllimite&&<div style={{fontSize:11,color:"#6b7280",marginBottom:4}}>Km autorisés : <b style={{color:"#1e3a8a"}}>{kmInclus} km</b> ({parseFloat(contrat.kmInclus||vehicle?.kmInclus||0)} km/j × {contrat.nbJours||1} j)</div>}
               {kmRetour&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                 <div style={{background:"#eff6ff",borderRadius:8,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280"}}>Parcourus</div><div style={{fontWeight:800,fontSize:16,color:"#2563eb"}}>{kmParcourus} km</div></div>
                 <div style={{background:kmSup>0?"#fef3c7":"#f0fdf4",borderRadius:8,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280"}}>Surplus</div><div style={{fontWeight:800,fontSize:16,color:kmSup>0?"#d97706":"#16a34a"}}>{kmSup} km</div></div>
@@ -569,6 +708,7 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
               <div style={{display:"flex",justifyContent:"space-between",borderTop:"1px solid rgba(255,255,255,.2)",marginTop:6,paddingTop:6}}><span style={{fontWeight:800}}>Total</span><span style={{fontWeight:900,fontSize:16,color:"#fbbf24"}}>{totalFraisSup.toFixed(2)} {sym}</span></div>
             </div>}
           </div>}
+          {tab==="carro"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <div style={{fontWeight:700,fontSize:13}}>Carrosserie ({nbNOK} dégât{nbNOK>1?"s":""})</div>
               <div style={{display:"flex",gap:6}}>
@@ -670,8 +810,17 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
 }
 
 function ContratModal({vehicle,onClose,onSave}){
-  const[frais,setFrais]=useState(vehicle.frais.map(f=>({...f})));
-  const[clauses,setClauses]=useState(vehicle.clauses.map(c=>({...c})));
+  const OLD_CLAUSES_TITRES=["Clause d'immobilisation","Carburant","Amendes & Infractions","État du véhicule","Utilisation du véhicule","Véhicule RSV","Exclusivité de conduite","Limitation géographique","Interdiction de sous-location","Non-fumeur","Dégradations"];
+  // Auto-migration : on fusionne les frais sauvés avec les nouveaux défauts (sans doublons)
+  function migratefrais(saved){
+    const labels=saved.map(f=>f.label.toLowerCase());
+    const extras=DEF_FRAIS.filter(d=>!labels.includes(d.label.toLowerCase()));
+    // Retirer les entrées obsolètes remplacées (Retour véhicule sale → Nettoyage véhicule)
+    const cleaned=saved.filter(f=>f.label!=="Retour véhicule sale");
+    return [...cleaned,...extras];
+  }
+  const[frais,setFrais]=useState(()=>migratefrais(vehicle.frais.map(f=>({...f}))));
+  const[clauses,setClauses]=useState(()=>vehicle.clauses.filter(c=>!OLD_CLAUSES_TITRES.includes(c.titre)).map(c=>({...c})));
   const[nf,setNf]=useState({label:"",montant:""});
   const[nc,setNc]=useState({titre:"",texte:""});
   const[tab,setTab]=useState("frais");
@@ -688,6 +837,9 @@ function ContratModal({vehicle,onClose,onSave}){
         </div>
         <div style={{flex:1,overflowY:"auto",padding:16}}>
           {tab==="frais"&&<div>
+            <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
+              <button onClick={()=>setFrais(DEF_FRAIS.map(f=>({...f})))} style={{fontSize:11,padding:"4px 10px",background:"#fef3c7",color:"#b45309",border:"1px solid #fde68a",borderRadius:6,cursor:"pointer",fontWeight:600}}>↺ Réinitialiser aux défauts</button>
+            </div>
             {frais.map(f=>(
               <div key={f.id} style={{display:"flex",gap:8,alignItems:"center",padding:8,background:"#f9fafb",borderRadius:8,marginBottom:6}}>
                 <input style={{...IS,flex:1}} value={f.label} onChange={e=>setFrais(x=>x.map(a=>a.id===f.id?{...a,label:e.target.value}:a))}/>
@@ -705,16 +857,18 @@ function ContratModal({vehicle,onClose,onSave}){
             </div>
           </div>}
           {tab==="clauses"&&<div>
+            {clauses.length===0&&<div style={{textAlign:"center",color:"#9ca3af",fontSize:12,padding:24,background:"#f9fafb",borderRadius:10,marginBottom:8}}>Aucune clause particulière — les conditions générales (12 articles) s'appliquent automatiquement dans le contrat PDF.</div>}
             {clauses.map((c,i)=>(
               <div key={c.id} style={{padding:10,background:"#f9fafb",borderRadius:10,border:"1px solid #e5e7eb",marginBottom:8}}>
                 <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6}}>
-                  <span style={{fontSize:10,background:"#dbeafe",color:"#1d4ed8",fontWeight:700,padding:"2px 7px",borderRadius:999}}>{i+6}</span>
+                  <span style={{fontSize:10,background:"#dbeafe",color:"#1d4ed8",fontWeight:700,padding:"2px 7px",borderRadius:999}}>{i+1}</span>
                   <input style={{...IS,flex:1,fontWeight:600}} value={c.titre} onChange={e=>setClauses(x=>x.map(a=>a.id===c.id?{...a,titre:e.target.value}:a))}/>
                   <button onClick={()=>setClauses(x=>x.filter(a=>a.id!==c.id))} style={{padding:"3px 7px",background:"#fef2f2",color:"#ef4444",border:"none",borderRadius:5,cursor:"pointer"}}>X</button>
                 </div>
                 <textarea style={{...IS,resize:"vertical",minHeight:50,fontFamily:"inherit"}} value={c.texte} onChange={e=>setClauses(x=>x.map(a=>a.id===c.id?{...a,texte:e.target.value}:a))}/>
               </div>
             ))}
+            <div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 12px",marginBottom:8,fontSize:11,color:"#15803d"}}>ℹ️ Les clauses ici sont des conditions <b>spécifiques à ce véhicule</b>. Les 12 articles de conditions générales sont déjà inclus automatiquement dans tous les contrats.</div>
             <div style={{background:"#eff6ff",borderRadius:10,padding:12,border:"1px solid #bfdbfe"}}>
               <input style={{...IS,marginBottom:6}} placeholder="Titre" value={nc.titre} onChange={e=>setNc(x=>({...x,titre:e.target.value}))}/>
               <textarea style={{...IS,resize:"vertical",minHeight:50,fontFamily:"inherit"}} placeholder="Texte..." value={nc.texte} onChange={e=>setNc(x=>({...x,texte:e.target.value}))}/>
@@ -762,8 +916,39 @@ function calcTarifAuto(vehicle,nbJours,heuresLoc,prixJourModifie){
 // ─────────────────────────────────────────────
 // APP CONTENT
 // ─────────────────────────────────────────────
+function ResetPasswordModal({onDone}){
+  const[pwd,setPwd]=useState("");
+  const[pwd2,setPwd2]=useState("");
+  const[loading,setLoading]=useState(false);
+  const[error,setError]=useState("");
+  const[success,setSuccess]=useState("");
+  async function handleReset(){
+    if(pwd.length<6){setError("Minimum 6 caractères");return;}
+    if(pwd!==pwd2){setError("Les mots de passe ne correspondent pas");return;}
+    setLoading(true);setError("");
+    const{error:e}=await supabase.auth.updateUser({password:pwd});
+    setLoading(false);
+    if(e){setError(e.message);return;}
+    setSuccess("Mot de passe modifié !");
+    setTimeout(()=>onDone(),2000);
+  }
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{background:"white",borderRadius:16,padding:32,width:"100%",maxWidth:380,margin:"0 16px"}}>
+        <h2 style={{fontSize:18,fontWeight:700,marginBottom:20,textAlign:"center"}}>Nouveau mot de passe</h2>
+        {error&&<div style={{background:"#fef2f2",color:"#dc2626",padding:"10px 14px",borderRadius:8,marginBottom:12,fontSize:13}}>{error}</div>}
+        {success&&<div style={{background:"#f0fdf4",color:"#16a34a",padding:"10px 14px",borderRadius:8,marginBottom:12,fontSize:13}}>{success}</div>}
+        <input type="password" placeholder="Nouveau mot de passe" value={pwd} onChange={e=>setPwd(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,marginBottom:10,boxSizing:"border-box"}}/>
+        <input type="password" placeholder="Confirmer le mot de passe" value={pwd2} onChange={e=>setPwd2(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,marginBottom:16,boxSizing:"border-box"}}/>
+        <button onClick={handleReset} disabled={loading} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer"}}>{loading?"...":"Enregistrer"}</button>
+      </div>
+    </div>
+  );
+}
+
 function AppContent(){
   const[user,setUser]=useState(null);
+  const[showResetPassword,setShowResetPassword]=useState(false);
   const[vehicles,setVehicles]=useState([]);
   const[contrats,setContrats]=useState([]);
   const[depenses,setDepenses]=useState([]);
@@ -791,13 +976,20 @@ function AppContent(){
   const[reponseModal,setReponseModal]=useState(null);
   const[dForm,setDForm]=useState({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});
   const[showAddD,setShowAddD]=useState(false);
+  const[finPeriode,setFinPeriode]=useState("6mois");
   const[profilEdit,setProfilEdit]=useState(false);
   const[profilForm,setProfilForm]=useState(INIT_PROFIL);
+  const[secuEdit,setSecuEdit]=useState(false);
+  const[secuForm,setSecuForm]=useState({newEmail:"",newPassword:"",confirmPassword:""});
+  const[secuLoading,setSecuLoading]=useState(false);
   const[docsId,setDocsId]=useState(null);
   const[contratModalId,setContratModalId]=useState(null);
   const[newDoc,setNewDoc]=useState({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});
   const[lastContrat,setLastContrat]=useState(null);
   const[retourContratId,setRetourContratId]=useState(null);
+  const[prolonContrat,setProlonContrat]=useState(null);
+  const[prolonDateFin,setProlonDateFin]=useState("");
+  const[prolonHeureFin,setProlonHeureFin]=useState("10:00");
   const[retours,setRetours]=useState({});
   const[tarifsVehicleId,setTarifsVehicleId]=useState(null);
   const[tarifsTemp,setTarifsTemp]=useState([]);
@@ -820,6 +1012,7 @@ function AppContent(){
   const[searchClient,setSearchClient]=useState("");
   const[selectedClient,setSelectedClient]=useState(null);
   const[editingClient,setEditingClient]=useState(null);
+  const[deleteClientConfirm,setDeleteClientConfirm]=useState(null);
   const[searchClientContrat,setSearchClientContrat]=useState("");
   const[showClientSuggestions,setShowClientSuggestions]=useState(false);
   const activeUserIdRef=useRef(null);
@@ -857,7 +1050,10 @@ function AppContent(){
       }catch(err){console.error("Auth redirect error:",err);}
     };
     handleAuthRedirect().then(()=>{supabase.auth.getSession().then(({data:{session}})=>setUser(session?.user||null));});
-    const{data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>setUser(session?.user||null));
+    const{data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
+      if(event==="PASSWORD_RECOVERY"){setShowResetPassword(true);}
+      setUser(session?.user||null);
+    });
     return()=>subscription.unsubscribe();
   },[]);
 
@@ -881,7 +1077,7 @@ function AppContent(){
       }
       let loadedContrats=[];
       if(conRes.data){
-        loadedContrats=conRes.data.map(c=>({id:c.id,locNom:c.loc_nom||'',locPrenom:c.loc_prenom||'',locAdresse:c.loc_adresse||'',locTel:c.loc_tel||'',locEmail:c.loc_email||'',locPermis:c.loc_permis||'',dateDebut:c.date_debut||'',heureDebut:c.heure_debut||'10:00',dateFin:c.date_fin||'',heureFin:c.heure_fin||'10:00',paiement:c.paiement||'especes',cautionMode:c.caution_mode||'especes',kmDepart:c.km_depart||'',nbJours:c.nb_jours||1,heuresLoc:c.heures_loc||24,carburantDepart:c.carburant_depart??100,exterieurPropre:c.exterieur_propre,interieurPropre:c.interieur_propre,vehicleId:c.vehicle_id,vehicleLabel:c.vehicle_label||'',immat:c.immat||'',sigL:c.sig_l||null,sigLoc:c.sig_loc||null,totalCalc:c.total_calc||0,tarifLabel:c.tarif_label||'',photosDepart:c.photos_depart||[],docsLocataire:c.docs_locataire||{},fraisSnap:c.frais_snap||[],clausesSnap:c.clauses_snap||[],kmInclus:c.km_inclus,prixKmSup:c.prix_km_sup}));
+        loadedContrats=conRes.data.map(c=>({id:c.id,locNom:c.loc_nom||'',locPrenom:c.loc_prenom||'',locAdresse:c.loc_adresse||'',locTel:c.loc_tel||'',locEmail:c.loc_email||'',locPermis:c.loc_permis||'',dateDebut:c.date_debut||'',heureDebut:c.heure_debut||'10:00',dateFin:c.date_fin||'',heureFin:c.heure_fin||'10:00',paiement:c.paiement||'especes',cautionMode:c.caution_mode||'especes',kmDepart:c.km_depart||'',nbJours:c.nb_jours||1,heuresLoc:c.heures_loc||24,carburantDepart:c.carburant_depart??100,exterieurPropre:c.exterieur_propre,interieurPropre:c.interieur_propre,vehicleId:c.vehicle_id,vehicleLabel:c.vehicle_label||'',immat:c.immat||'',sigL:c.sig_l||null,sigLoc:c.sig_loc||null,totalCalc:c.total_calc||0,tarifLabel:c.tarif_label||'',remise:c.remise||0,accompte:c.accompte||0,resteAPayer:c.reste_a_payer||0,prixJourModifie:c.prix_jour_modifie||'',photosDepart:c.photos_depart||[],docsLocataire:c.docs_locataire||{},fraisSnap:c.frais_snap||[],clausesSnap:c.clauses_snap||[],kmInclus:c.km_inclus,prixKmSup:c.prix_km_sup}));
         setContrats(loadedContrats);
         const clientMap={};
         loadedContrats.forEach(c=>{
@@ -926,11 +1122,15 @@ function AppContent(){
   const loues=contrats.filter(c=>new Date(c.dateFin)>=new Date()).map(c=>c.vehicleId);
   const statut=id=>loues.includes(id)?"loué":"disponible";
   const caT=contrats.reduce((s,c)=>s+(c.totalCalc||0),0);
-  const dT=depenses.reduce((s,d)=>s+parseFloat(d.montant||0),0);
-  const totalRetenues=Object.values(retours).reduce((s,r)=>s+(r.montantRetenu||0),0);
-  const totalSurplusKm=Object.values(retours).reduce((s,r)=>s+(r.surplusKm||0),0);
-  const bT=caT+totalRetenues+totalSurplusKm-dT;
-  const cautionsNonRendues=contrats.filter(c=>!retours[c.id]).reduce((s,c)=>{const v=vehicles.find(x=>x.id===c.vehicleId);return s+(v?v.caution:0);},0);
+  function inPeriodFin(dateStr){if(!dateStr)return false;const d=new Date(dateStr);const now=new Date();if(finPeriode==="mois")return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();if(finPeriode==="6mois"){const cutoff=new Date(now);cutoff.setMonth(cutoff.getMonth()-5);cutoff.setDate(1);return d>=cutoff;}if(finPeriode==="annee")return d.getFullYear()===now.getFullYear();return true;}
+  const fContrats=contrats.filter(c=>inPeriodFin(c.dateDebut));
+  const fDepenses=depenses.filter(d=>inPeriodFin(d.date));
+  const caT_f=fContrats.reduce((s,c)=>s+(c.totalCalc||0),0);
+  const dT_f=fDepenses.reduce((s,d)=>s+parseFloat(d.montant||0),0);
+  const totalRetenues_f=fContrats.reduce((s,c)=>s+(retours[c.id]?.montantRetenu||0),0);
+  const totalSurplusKm_f=fContrats.reduce((s,c)=>s+(retours[c.id]?.surplusKm||0),0);
+  const cautionsNonRendues_f=contrats.filter(c=>!retours[c.id]&&inPeriodFin(c.dateDebut)).reduce((s,c)=>{const v=vehicles.find(x=>x.id===c.vehicleId);return s+(v?v.caution:0);},0);
+  const bT_f=caT_f+totalRetenues_f+totalSurplusKm_f-dT_f;
   const devise=DEVISES.find(d=>d.code===(profil.devise||"EUR"))||DEVISES[0];
   const sym=devise.symbol;
   const tarifAuto=sel?calcTarifAuto(sel,form.nbJours,form.heuresLoc,form.prixJourModifie):{prix:0,label:"—"};
@@ -971,6 +1171,8 @@ function AppContent(){
   async function saveContrat(){
     const miss=req.filter(k=>!form[k]);
     if(!sel||miss.length>0){const t={};req.forEach(k=>t[k]=true);setTouched(t);toast_("Remplissez tous les champs obligatoires","error");return;}
+    const conflict=contrats.find(c=>c.vehicleId===sel.id&&c.dateDebut&&c.dateFin&&form.dateDebut&&form.dateFin&&form.dateDebut<=c.dateFin&&form.dateFin>=c.dateDebut);
+    if(conflict){toast_(`⚠️ Conflit ! ${sel.marque} ${sel.modele} est déjà réservé du ${conflict.dateDebut} au ${conflict.dateFin} par ${conflict.locNom}`,"error");return;}
     const locNom=`${form.locPrenom} ${form.locNom}`.trim();
     const c={id:Date.now(),...form,locNom,vehicleId:sel.id,vehicleLabel:sel.marque+" "+sel.modele,immat:sel.immat,sigL,sigLoc,totalCalc:totalNet,tarifLabel:tarifAuto.label,remise,accompte,resteAPayer,photosDepart:[...photosDepart],docsLocataire:{...docsLocataire},fraisSnap:(sel.frais||DEF_FRAIS).map(f=>({...f})),clausesSnap:(sel.clauses||DEF_CLAUSES).map(cl=>({...cl})),kmInclus:sel.kmInclus,prixKmSup:sel.prixKmSup};
     setContrats(p=>[c,...p]);
@@ -980,9 +1182,9 @@ function AppContent(){
     toast_("Contrat créé !");
     setForm(FORM0);setTouched({});setSelId(null);setSigL(null);setSigLoc(null);setPhotosDepart([]);setDocsLocataire({});setSearchClientContrat("");
     if(user){
-      const{data:ins,error:err}=await supabase.from('contrats').insert([{user_id:user.id,loc_nom:locNom,loc_prenom:form.locPrenom,loc_adresse:form.locAdresse,loc_tel:form.locTel,loc_email:form.locEmail,loc_permis:form.locPermis,date_debut:form.dateDebut,heure_debut:form.heureDebut,date_fin:form.dateFin,heure_fin:form.heureFin,paiement:form.paiement,caution_mode:form.cautionMode,km_depart:form.kmDepart,nb_jours:form.nbJours,heures_loc:form.heuresLoc,carburant_depart:form.carburantDepart,exterieur_propre:form.exterieurPropre,interieur_propre:form.interieurPropre,vehicle_id:c.vehicleId,vehicle_label:c.vehicleLabel,immat:c.immat,sig_l:c.sigL,sig_loc:c.sigLoc,total_calc:c.totalCalc,tarif_label:c.tarifLabel,photos_depart:c.photosDepart,docs_locataire:c.docsLocataire,frais_snap:c.fraisSnap,clauses_snap:c.clausesSnap,km_inclus:c.kmInclus,prix_km_sup:c.prixKmSup}]).select().single();
+      const{data:ins,error:err}=await supabase.from('contrats').insert([{user_id:user.id,loc_prenom:form.locPrenom||'',loc_nom:locNom,loc_adresse:form.locAdresse,loc_tel:form.locTel,loc_email:form.locEmail,loc_permis:form.locPermis,date_debut:form.dateDebut,heure_debut:form.heureDebut,date_fin:form.dateFin,heure_fin:form.heureFin,paiement:form.paiement,caution_mode:form.cautionMode,km_depart:form.kmDepart,nb_jours:form.nbJours,heures_loc:form.heuresLoc,carburant_depart:form.carburantDepart,exterieur_propre:form.exterieurPropre,interieur_propre:form.interieurPropre,vehicle_id:c.vehicleId,vehicle_label:c.vehicleLabel,immat:c.immat,sig_l:c.sigL,sig_loc:c.sigLoc,total_calc:c.totalCalc,tarif_label:c.tarifLabel,remise:c.remise||0,accompte:c.accompte||0,reste_a_payer:c.resteAPayer||0,prix_jour_modifie:form.prixJourModifie||null,photos_depart:c.photosDepart,docs_locataire:c.docsLocataire,frais_snap:c.fraisSnap,clauses_snap:c.clausesSnap,km_inclus:c.kmInclus,prix_km_sup:c.prixKmSup}]).select().single();
       if(!err&&ins)setContrats(p=>p.map(x=>x.id===c.id?{...x,id:ins.id}:x));
-      if(err)console.error(err);
+      if(err){console.error(err);toast_("Erreur sauvegarde contrat: "+err.message,"error");}
     }
   }
 
@@ -995,6 +1197,29 @@ function AppContent(){
     const r=retours[c.id];if(!r)return;
     const v=vehicles.find(x=>x.id===c.vehicleId)||{};
     dlPDF(buildPVRetourHTML(c,v,r,r.sigRetourLoueur||null,r.sigRetourLocataire||null,profil));
+  }
+
+  function ouvrirProlon(c){
+    setProlonContrat(c);
+    setProlonDateFin("");
+    setProlonHeureFin(c.heureFin||"10:00");
+  }
+  async function prolongerContrat(){
+    if(!prolonContrat||!prolonDateFin)return;
+    const c=prolonContrat;
+    const v=vehicles.find(x=>x.id===c.vehicleId);
+    const debut=new Date(c.dateDebut);
+    const fin=new Date(prolonDateFin);
+    if(fin<=debut){toast_("La nouvelle date doit être après le début","error");return;}
+    const newNbJours=Math.max(1,Math.ceil((fin-debut)/86400000));
+    const tarifJ=parseFloat(c.tarifLabel?.match(/(\d+(?:\.\d+)?)\s*€\/j/)?.[1])||( v?v.tarif:0);
+    const newTotal=Math.max(0,tarifJ*newNbJours-(c.remise||0));
+    const newLabel=`Prolongé — ${tarifJ} €/j x ${newNbJours}j`;
+    const updated={...c,dateFin:prolonDateFin,heureFin:prolonHeureFin,nbJours:newNbJours,totalCalc:newTotal,tarifLabel:newLabel};
+    setContrats(cs=>cs.map(x=>x.id===c.id?updated:x));
+    if(user){await supabase.from('contrats').update({date_fin:prolonDateFin,heure_fin:prolonHeureFin,nb_jours:newNbJours,total_calc:newTotal,tarif_label:newLabel}).eq('id',c.id).eq('user_id',user.id);}
+    toast_("Contrat prolongé jusqu'au "+prolonDateFin+" !");
+    setProlonContrat(null);
   }
 
   async function saveRetour(contratId,data){
@@ -1071,13 +1296,34 @@ function AppContent(){
   const isBooked=(vid,date)=>contrats.some(c=>c.vehicleId===vid&&date>=new Date(c.dateDebut)&&date<=new Date(c.dateFin));
   const days=getDays(planMonth);
 
-  const caP=Array.from({length:6},(_,i)=>{
-    const d=new Date();d.setMonth(d.getMonth()-5+i);
-    const m=d.getMonth(),a=d.getFullYear();
-    const ca=contrats.filter(c=>{const cd=new Date(c.dateDebut);return cd.getMonth()===m&&cd.getFullYear()===a;}).reduce((s,c)=>s+(c.totalCalc||0),0);
-    const dep=depenses.filter(dd=>{const dt=new Date(dd.date);return dt.getMonth()===m&&dt.getFullYear()===a;}).reduce((s,d2)=>s+parseFloat(d2.montant||0),0);
-    return{label:d.toLocaleDateString("fr-FR",{month:"short"}),ca,dep};
-  });
+  const caP=(()=>{
+    const now=new Date();
+    if(finPeriode==="mois"){
+      const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+      return Array.from({length:4},(_,i)=>{
+        const wStart=new Date(now.getFullYear(),now.getMonth(),1+i*7);
+        const wEnd=new Date(now.getFullYear(),now.getMonth(),Math.min(7+i*7,daysInMonth));
+        const ca=contrats.filter(c=>{const cd=new Date(c.dateDebut);return cd>=wStart&&cd<=wEnd;}).reduce((s,c)=>s+(c.totalCalc||0),0);
+        const dep=depenses.filter(dd=>{const dt=new Date(dd.date);return dt>=wStart&&dt<=wEnd;}).reduce((s,d2)=>s+parseFloat(d2.montant||0),0);
+        return{label:"S"+(i+1),ca,dep};
+      });
+    }
+    if(finPeriode==="annee"){
+      return Array.from({length:12},(_,i)=>{
+        const d=new Date(now.getFullYear(),i,1);
+        const ca=contrats.filter(c=>{const cd=new Date(c.dateDebut);return cd.getMonth()===i&&cd.getFullYear()===now.getFullYear();}).reduce((s,c)=>s+(c.totalCalc||0),0);
+        const dep=depenses.filter(dd=>{const dt=new Date(dd.date);return dt.getMonth()===i&&dt.getFullYear()===now.getFullYear();}).reduce((s,d2)=>s+parseFloat(d2.montant||0),0);
+        return{label:d.toLocaleDateString("fr-FR",{month:"short"}),ca,dep};
+      });
+    }
+    return Array.from({length:6},(_,i)=>{
+      const d=new Date();d.setMonth(d.getMonth()-5+i);
+      const m=d.getMonth(),a=d.getFullYear();
+      const ca=contrats.filter(c=>{const cd=new Date(c.dateDebut);return cd.getMonth()===m&&cd.getFullYear()===a;}).reduce((s,c)=>s+(c.totalCalc||0),0);
+      const dep=depenses.filter(dd=>{const dt=new Date(dd.date);return dt.getMonth()===m&&dt.getFullYear()===a;}).reduce((s,d2)=>s+parseFloat(d2.montant||0),0);
+      return{label:d.toLocaleDateString("fr-FR",{month:"short"}),ca,dep};
+    });
+  })();
   const maxCA=Math.max(...caP.map(x=>Math.max(x.ca,x.dep)),1);
 
   const docsV=vehicles.find(v=>v.id===docsId);
@@ -1126,6 +1372,7 @@ function AppContent(){
   function pickDocFile(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setNewDoc(d=>({...d,file:f.name,fileData:ev.target.result}));r.readAsDataURL(f);}
 
   if(!user)return <AuthPage/>;
+  if(showResetPassword)return <ResetPasswordModal onDone={()=>setShowResetPassword(false)}/>;
   if(!dataLoaded)return(
     <div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"#f1f5f9"}}>
       <div style={{textAlign:"center"}}><div style={{fontSize:36,marginBottom:12}}>⏳</div><p style={{color:"#6b7280",fontSize:14}}>Chargement...</p></div>
@@ -1150,7 +1397,7 @@ function AppContent(){
             <TelInput value={profilForm[k]||""} onChange={v=>setProfilForm(p=>({...p,[k]:v}))} placeholder={l.replace(" *","")}/>
           </div>
         ))}
-        <button onClick={async()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel)return;setProfil({...profilForm});if(user)await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>Commencer</button>
+        <button onClick={async()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel)return;setProfil({...profilForm});if(user)await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...profilForm},{onConflict:'user_id'});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>Commencer</button>
         <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
       </div>
     </div>
@@ -1199,13 +1446,13 @@ function AppContent(){
 
       {/* Modal fiche client */}
       {selectedClient&&(
-        <div onClick={e=>{if(e.target===e.currentTarget){setSelectedClient(null);setEditingClient(null);}}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+        <div onClick={e=>{if(e.target===e.currentTarget){setSelectedClient(null);setEditingClient(null);setDeleteClientConfirm(null);}}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
           <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:560,maxHeight:"90vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
             <div style={{padding:"14px 18px",background:"linear-gradient(135deg,#0a1940,#1e3a8a)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div><b style={{color:"white",fontSize:15}}>👤 {selectedClient.nom}</b><div style={{color:"rgba(255,255,255,.6)",fontSize:11}}>{selectedClient.tel}</div></div>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={()=>setEditingClient({...selectedClient})} style={{padding:"5px 10px",background:"rgba(255,255,255,.2)",color:"white",border:"none",borderRadius:7,fontSize:11,cursor:"pointer"}}>Modifier</button>
-                <button onClick={()=>{setSelectedClient(null);setEditingClient(null);}} style={{fontSize:22,background:"none",border:"none",cursor:"pointer",color:"white"}}>x</button>
+                <button onClick={()=>{setSelectedClient(null);setEditingClient(null);setDeleteClientConfirm(null);}} style={{fontSize:22,background:"none",border:"none",cursor:"pointer",color:"white"}}>x</button>
               </div>
             </div>
             <div style={{flex:1,overflowY:"auto",padding:16}}>
@@ -1215,8 +1462,40 @@ function AppContent(){
                     <div key={k}><label style={LBL_STYLE}>{l}</label><input style={INP_STYLE()} value={editingClient[k]||""} onChange={e=>setEditingClient(c=>({...c,[k]:e.target.value}))}/></div>
                   ))}
                   <div><label style={LBL_STYLE}>Téléphone</label><TelInput value={editingClient.tel||""} onChange={v=>setEditingClient(c=>({...c,tel:v}))}/></div>
-                  <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>{setClients(cs=>cs.map(c=>c.key===editingClient.key?{...editingClient}:c));setSelectedClient({...editingClient});setEditingClient(null);toast_("Client mis à jour !");}} style={{flex:1,background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+                  {/* Documents dans mode édition */}
+                  <div>
+                    <div style={{fontWeight:700,fontSize:13,marginBottom:8,borderTop:"1px solid #e5e7eb",paddingTop:10}}>Documents</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                      {[{k:"cniRecto",l:"CNI / Passeport - Recto",col:"#2563eb",ic:"🪪"},{k:"cniVerso",l:"CNI / Passeport - Verso",col:"#2563eb",ic:"🪪"},{k:"justifDom",l:"Justificatif de domicile",col:"#7c3aed",ic:"🏠"},{k:"photoAr",l:"Photo locataire",col:"#16a34a",ic:"👤"}].map(({k,l,col,ic})=>{
+                        const src=(editingClient.docs||{})[k];
+                        function pickD(capture){const i=document.createElement("input");i.type="file";i.accept="image/*,application/pdf";if(capture)i.capture="environment";i.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setEditingClient(c=>({...c,docs:{...(c.docs||{}),[k]:ev.target.result}}));r.readAsDataURL(f);};i.click();}
+                        function dlD(){const ext=src.startsWith("data:image/png")?"png":src.startsWith("data:image/gif")?"gif":src.startsWith("data:application/pdf")?"pdf":"jpg";const a=document.createElement("a");a.href=src;a.download=`${(editingClient.nom||"client").replace(/\s+/g,"_")}_${k}.${ext}`;a.click();}
+                        return(
+                          <div key={k} style={{borderRadius:10,border:`2px solid ${src?col:"#e5e7eb"}`,background:src?"#f8fafc":"white",overflow:"hidden"}}>
+                            <div style={{padding:"8px 12px",display:"flex",alignItems:"center",gap:8}}>
+                              <span style={{fontSize:16}}>{ic}</span>
+                              <span style={{flex:1,fontWeight:600,fontSize:11,color:src?col:"#374151"}}>{l}</span>
+                              {src?(
+                                <div style={{display:"flex",gap:4}}>
+                                  <button onClick={()=>window.open(src,"_blank")} style={{padding:"3px 7px",background:"#eff6ff",color:"#2563eb",border:"none",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:700}}>👁</button>
+                                  <button onClick={dlD} style={{padding:"3px 7px",background:col,color:"white",border:"none",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:700}}>⬇</button>
+                                  <button onClick={()=>setEditingClient(c=>{const d={...(c.docs||{})};delete d[k];return{...c,docs:d};})} style={{padding:"3px 7px",background:"#fef2f2",color:"#ef4444",border:"none",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:700}}>✕</button>
+                                </div>
+                              ):(
+                                <div style={{display:"flex",gap:4}}>
+                                  <button onClick={()=>pickD(false)} title="Galerie" style={{padding:"4px 8px",background:"#1e3a8a",color:"white",border:"none",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>📁</button>
+                                  <button onClick={()=>pickD(true)} title="Caméra" style={{padding:"4px 8px",background:"#7c3aed",color:"white",border:"none",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer"}}>📷</button>
+                                </div>
+                              )}
+                            </div>
+                            {src&&<div style={{padding:"0 12px 10px"}}><img src={src} alt={l} style={{width:"100%",maxHeight:140,objectFit:"contain",borderRadius:8,border:`2px solid ${col}`,background:"#f1f5f9",cursor:"zoom-in"}} onClick={()=>window.open(src,"_blank")}/></div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:8,marginTop:4}}>
+                    <button onClick={async()=>{const updated={...editingClient};setClients(cs=>cs.map(c=>c.key===updated.key?updated:c));setSelectedClient(updated);setEditingClient(null);toast_("Client mis à jour !");if(user){const lastC=contrats.filter(c=>c.locNom===updated.nom&&c.locTel===updated.tel).sort((a,b)=>new Date(b.dateDebut)-new Date(a.dateDebut))[0];if(lastC)await supabase.from('contrats').update({docs_locataire:updated.docs||{}}).eq('id',lastC.id).eq('user_id',user.id);}}} style={{flex:1,background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
                     <button onClick={()=>setEditingClient(null)} style={{padding:"8px 14px",background:"#e5e7eb",border:"none",borderRadius:8,cursor:"pointer"}}>Annuler</button>
                   </div>
                 </div>
@@ -1230,11 +1509,24 @@ function AppContent(){
               {(selectedClient.docs?.cniRecto||selectedClient.docs?.cniVerso||selectedClient.docs?.justifDom||selectedClient.docs?.photoAr)&&(
                 <div style={{marginBottom:16}}>
                   <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>Documents</div>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:10}}>
-                    {selectedClient.docs?.cniRecto&&<div style={{textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280",marginBottom:3}}>CNI Recto</div><img src={selectedClient.docs.cniRecto} alt="" style={{width:120,height:85,objectFit:"cover",borderRadius:8,border:"2px solid #2563eb"}}/></div>}
-                    {selectedClient.docs?.cniVerso&&<div style={{textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280",marginBottom:3}}>CNI Verso</div><img src={selectedClient.docs.cniVerso} alt="" style={{width:120,height:85,objectFit:"cover",borderRadius:8,border:"2px solid #2563eb"}}/></div>}
-                    {selectedClient.docs?.justifDom&&<div style={{textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280",marginBottom:3}}>Justif.</div><img src={selectedClient.docs.justifDom} alt="" style={{width:120,height:85,objectFit:"cover",borderRadius:8,border:"2px solid #7c3aed"}}/></div>}
-                    {selectedClient.docs?.photoAr&&<div style={{textAlign:"center"}}><div style={{fontSize:9,color:"#6b7280",marginBottom:3}}>Photo arr.</div><img src={selectedClient.docs.photoAr} alt="" style={{width:120,height:85,objectFit:"cover",borderRadius:8,border:"2px solid #16a34a"}}/></div>}
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:12}}>
+                    {[["cniRecto","CNI Recto","#2563eb"],["cniVerso","CNI Verso","#2563eb"],["justifDom","Justif. domicile","#7c3aed"],["photoAr","Photo locataire","#16a34a"]].map(([k,lbl,col])=>{
+                      const src=selectedClient.docs?.[k];
+                      if(!src)return null;
+                      function dlDoc(){
+                        const ext=src.startsWith("data:image/png")?"png":src.startsWith("data:image/gif")?"gif":src.startsWith("data:application/pdf")?"pdf":"jpg";
+                        const a=document.createElement("a");a.href=src;a.download=`${selectedClient.nom.replace(/\s+/g,"_")}_${k}.${ext}`;a.click();
+                      }
+                      return(
+                        <div key={k} style={{borderRadius:10,border:`2px solid ${col}`,overflow:"hidden",background:"white"}}>
+                          <img src={src} alt={lbl} style={{width:"100%",height:120,objectFit:"contain",background:"#f8fafc",display:"block",cursor:"zoom-in"}} onClick={()=>window.open(src,"_blank")}/>
+                          <div style={{padding:"6px 8px",background:"#f8fafc",borderTop:`1px solid ${col}22`}}>
+                            <div style={{fontSize:10,fontWeight:700,color:col,marginBottom:4}}>{lbl}</div>
+                            <button onClick={dlDoc} style={{width:"100%",padding:"4px 0",background:col,color:"white",border:"none",borderRadius:5,fontSize:10,fontWeight:700,cursor:"pointer"}}>⬇ Télécharger</button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1253,9 +1545,21 @@ function AppContent(){
                   ))}
               </div>
             </div>
-            <div style={{padding:"12px 16px",borderTop:"1px solid #e5e7eb",background:"white",display:"flex",gap:8}}>
-              <button onClick={()=>{setForm(f=>({...f,locNom:selectedClient.nom,locTel:selectedClient.tel,locAdresse:selectedClient.adresse||"",locEmail:selectedClient.email||"",locPermis:selectedClient.permis||""}));setDocsLocataire({...selectedClient.docs});setSelectedClient(null);setPage("nouveau");toast_("Client chargé !");}} style={{flex:1,background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Créer un contrat pour ce client</button>
-              <button onClick={()=>{if(window.confirm("Supprimer ce client ? Ses contrats seront conservés.")){setClients(cs=>cs.filter(c=>c.key!==selectedClient.key));setSelectedClient(null);toast_("Client supprimé");}}} style={{padding:"10px 14px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>🗑️</button>
+            <div style={{padding:"12px 16px",borderTop:"1px solid #e5e7eb",background:"white"}}>
+              <div style={{display:"flex",gap:8,marginBottom:deleteClientConfirm!==null?8:0}}>
+                <button onClick={()=>{setForm(f=>({...f,locNom:selectedClient.nom,locTel:selectedClient.tel,locAdresse:selectedClient.adresse||"",locEmail:selectedClient.email||"",locPermis:selectedClient.permis||""}));setDocsLocataire({...selectedClient.docs});setSelectedClient(null);setDeleteClientConfirm("");setPage("nouveau");toast_("Client chargé !");}} style={{flex:1,background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Créer un contrat pour ce client</button>
+                <button onClick={()=>setDeleteClientConfirm(prev=>prev===null?"":null)} style={{padding:"10px 14px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>🗑️</button>
+              </div>
+              {deleteClientConfirm!==null&&(
+                <div style={{background:"#fef2f2",borderRadius:10,padding:12,border:"1px solid #fecaca",marginTop:8}}>
+                  <p style={{fontSize:12,color:"#dc2626",fontWeight:600,marginBottom:8}}>Pour confirmer la suppression, tapez <b>SUPPRIMER</b> :</p>
+                  <input value={deleteClientConfirm||""} onChange={e=>setDeleteClientConfirm(e.target.value)} placeholder="SUPPRIMER" style={{width:"100%",padding:"8px 10px",border:"2px solid #fca5a5",borderRadius:8,fontSize:13,fontFamily:"monospace",boxSizing:"border-box",marginBottom:8,outline:"none"}}/>
+                  <div style={{display:"flex",gap:8}}>
+                    <button disabled={deleteClientConfirm!=="SUPPRIMER"} onClick={()=>{setClients(cs=>cs.filter(c=>c.key!==selectedClient.key));setSelectedClient(null);setDeleteClientConfirm("");toast_("Client supprimé");}} style={{flex:1,background:deleteClientConfirm==="SUPPRIMER"?"#dc2626":"#e5e7eb",color:deleteClientConfirm==="SUPPRIMER"?"white":"#9ca3af",border:"none",borderRadius:8,padding:"8px 0",fontSize:13,fontWeight:700,cursor:deleteClientConfirm==="SUPPRIMER"?"pointer":"not-allowed"}}>Confirmer la suppression</button>
+                    <button onClick={()=>setDeleteClientConfirm("")} style={{padding:"8px 14px",background:"#e5e7eb",border:"none",borderRadius:8,fontSize:12,cursor:"pointer"}}>Annuler</button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1342,7 +1646,7 @@ function AppContent(){
             <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",borderRadius:14,padding:"14px 16px",marginBottom:14,color:"white"}}>
               <div style={{fontSize:16,fontWeight:800,marginBottom:2}}>Bonjour, {profil.nom.split(" ")[0]} 👋</div>
               <div style={{fontSize:11,opacity:.7,textTransform:"capitalize"}}>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginTop:12}}>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(80px,1fr))",gap:8,marginTop:12}}>
                 <div style={{background:"rgba(255,255,255,.12)",borderRadius:10,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,opacity:.7}}>CA total</div><div style={{fontWeight:800,fontSize:14}}>{caT} {sym}</div></div>
                 <div style={{background:"rgba(255,255,255,.12)",borderRadius:10,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,opacity:.7}}>Véhicules</div><div style={{fontWeight:800,fontSize:14}}>{vehicles.length}</div></div>
                 <div style={{background:"rgba(255,255,255,.12)",borderRadius:10,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,opacity:.7}}>Contrats</div><div style={{fontWeight:800,fontSize:14}}>{contrats.length}</div></div>
@@ -1354,6 +1658,7 @@ function AppContent(){
                 <div style={{background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px",fontSize:11,wordBreak:"break-all",marginBottom:8}}>{window.location.origin}/vitrine/{user?.id?.slice(0,8)}</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                   <button onClick={()=>{navigator.clipboard.writeText(window.location.origin+"/vitrine/"+user?.id?.slice(0,8));toast_("Lien copié !");}} style={{padding:"7px 14px",background:"white",color:"#1e3a8a",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Copier le lien</button>
+                  <button onClick={()=>window.open(window.location.origin+"/vitrine/"+user?.id?.slice(0,8),"_blank")} style={{padding:"7px 14px",background:"rgba(255,255,255,.15)",color:"white",border:"1px solid rgba(255,255,255,.4)",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Ouvrir</button>
                   <button onClick={()=>{const msg="Bonjour, voici notre catalogue : "+window.location.origin+"/vitrine/"+user?.id?.slice(0,8);window.open("https://wa.me/"+(profil.whatsapp||profil.tel||"").replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");}} style={{padding:"7px 14px",background:"#25D366",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>WhatsApp</button>
                 </div>
               </div>
@@ -1531,12 +1836,29 @@ function AppContent(){
                 </div>
               ))}
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:20}}>
               <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #1e3a8a"}}><div style={{fontSize:10,color:"#6b7280"}}>Total contrats</div><div style={{fontSize:22,fontWeight:800}}>{contrats.length}</div></div>
               <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #16a34a"}}><div style={{fontSize:10,color:"#6b7280"}}>Retours effectués</div><div style={{fontSize:22,fontWeight:800}}>{Object.keys(retours).length}</div></div>
               <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #d97706"}}><div style={{fontSize:10,color:"#6b7280"}}>En attente</div><div style={{fontSize:22,fontWeight:800,color:"#d97706"}}>{contrats.filter(c=>!retours[c.id]).length}</div></div>
               <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #2563eb"}}><div style={{fontSize:10,color:"#6b7280"}}>CA total</div><div style={{fontSize:22,fontWeight:800,color:"#2563eb"}}>{caT} {sym}</div></div>
             </div>
+            {contrats.filter(c=>!retours[c.id]).length>0&&(
+              <div style={{background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #fde68a"}}>
+                <div style={{fontWeight:800,fontSize:13,color:"#b45309",marginBottom:10}}>🔄 Contrats en cours ({contrats.filter(c=>!retours[c.id]).length})</div>
+                {contrats.filter(c=>!retours[c.id]).map(c=>(
+                  <div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f9fafb",gap:8,flexWrap:"wrap"}}>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:13}}>{c.locNom}</div>
+                      <div style={{fontSize:11,color:"#6b7280"}}>{c.vehicleLabel} · fin le <b style={{color:"#dc2626"}}>{c.dateFin}</b></div>
+                    </div>
+                    <div style={{display:"flex",gap:6}}>
+                      <button onClick={()=>ouvrirProlon(c)} style={{padding:"5px 10px",background:"#fef3c7",color:"#b45309",border:"none",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer"}}>⏳ Prolonger</button>
+                      <button onClick={()=>setRetourContratId(c.id)} style={{padding:"5px 10px",background:"#f0fdf4",color:"#16a34a",border:"none",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer"}}>Retour</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -1720,10 +2042,11 @@ function AppContent(){
                 )}
               </div>
             </div>
-            {planView==="calendrier"&&vehicles.map(v=>{
+            {planView==="calendrier"&&vehicles.map((v,vi)=>{
               const vContrats=contrats.filter(c=>c.vehicleId===v.id);
+              const vColor=ganttColors[vi%ganttColors.length];
               return(
-                <div key={v.id} style={{background:"white",borderRadius:14,marginBottom:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #e5e7eb"}}>
+                <div key={v.id} style={{background:"white",borderRadius:14,marginBottom:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:`1px solid #e5e7eb`,borderLeft:`4px solid ${vColor}`}}>
                   <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div><span style={{color:"white",fontWeight:800,fontSize:13}}>{v.marque} {v.modele}</span><span style={{color:"rgba(255,255,255,.6)",fontSize:11,marginLeft:10}}>{v.immat}</span></div>
                     <Badge s={statut(v.id)}/>
@@ -1741,7 +2064,7 @@ function AppContent(){
                       <div style={{width:130,flexShrink:0,padding:"0 8px",fontSize:10,fontWeight:600,color:"#374151",display:"flex",alignItems:"center"}}>Disponibilite</div>
                       {days.map(d=>{
                         const b=isBooked(v.id,d);
-                        return <div key={d.getTime()} style={{width:28,flexShrink:0,height:28,display:"flex",alignItems:"center",justifyContent:"center",background:b?"#dbeafe":"white",borderLeft:"1px solid #f0f0f0"}}><div style={{width:20,height:20,borderRadius:4,background:b?"#2563eb":"#dcfce7"}}/></div>;
+                        return <div key={d.getTime()} style={{width:28,flexShrink:0,height:28,display:"flex",alignItems:"center",justifyContent:"center",background:b?vColor+"22":"white",borderLeft:"1px solid #f0f0f0"}}><div style={{width:20,height:20,borderRadius:4,background:b?vColor:"#dcfce7"}}/></div>;
                       })}
                     </div>
                   </div>
@@ -1750,7 +2073,7 @@ function AppContent(){
                       {vContrats.map(c=>{
                         const mStart=new Date(c.dateDebut).getMonth(),mEnd=new Date(c.dateFin).getMonth(),y=planMonth.getMonth();
                         if(mStart!==y&&mEnd!==y)return null;
-                        return <div key={c.id} style={{background:"#eff6ff",borderRadius:8,padding:"4px 10px",fontSize:11,border:"1px solid #bfdbfe"}}><span style={{fontWeight:700,color:"#1e3a8a"}}>{c.locNom}</span><span style={{color:"#6b7280",marginLeft:6}}>{c.dateDebut} → {c.dateFin}</span></div>;
+                        return <div key={c.id} style={{background:vColor+"18",borderRadius:8,padding:"4px 10px",fontSize:11,border:`1px solid ${vColor}44`}}><span style={{fontWeight:700,color:vColor}}>{c.locNom}</span><span style={{color:"#6b7280",marginLeft:6}}>{c.dateDebut} → {c.dateFin}</span></div>;
                       })}
                     </div>
                   )}
@@ -1815,14 +2138,14 @@ function AppContent(){
               <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Historique ({contratsFiltres.length}/{contrats.length})</h1>
             </div>
-            <div style={{background:"white",borderRadius:12,padding:14,marginBottom:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <div style={{gridColumn:"span 2"}}><input placeholder="🔍 Nom, immat, téléphone..." style={INP_STYLE()} value={searchContrat} onChange={e=>setSearchContrat(e.target.value)}/></div>
+            <div style={{background:"white",borderRadius:12,padding:14,marginBottom:14,display:"flex",flexDirection:"column",gap:8}}>
+              <input placeholder="🔍 Nom, immat, téléphone..." style={INP_STYLE()} value={searchContrat} onChange={e=>setSearchContrat(e.target.value)}/>
               <div><label style={LBL_STYLE}>Véhicule</label><select style={INP_STYLE()} value={filterVehicleContrat} onChange={e=>setFilterVehicleContrat(e.target.value)}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele} — {v.immat}</option>)}</select></div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                 <div><label style={LBL_STYLE}>Début après</label><input type="date" style={INP_STYLE()} value={filterDateDebut} onChange={e=>setFilterDateDebut(e.target.value)}/></div>
                 <div><label style={LBL_STYLE}>Fin avant</label><input type="date" style={INP_STYLE()} value={filterDateFin} onChange={e=>setFilterDateFin(e.target.value)}/></div>
               </div>
-              {(searchContrat||filterVehicleContrat||filterDateDebut||filterDateFin)&&<div style={{gridColumn:"span 2"}}><button onClick={()=>{setSearchContrat("");setFilterVehicleContrat("");setFilterDateDebut("");setFilterDateFin("");}} style={{padding:"5px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>✕ Effacer</button></div>}
+              {(searchContrat||filterVehicleContrat||filterDateDebut||filterDateFin)&&<div><button onClick={()=>{setSearchContrat("");setFilterVehicleContrat("");setFilterDateDebut("");setFilterDateFin("");}} style={{padding:"5px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>✕ Effacer</button></div>}
             </div>
             {contratsFiltres.length===0
               ?<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><p>Aucun contrat trouvé</p></div>
@@ -1850,6 +2173,7 @@ function AppContent(){
                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                       <button onClick={()=>rePrint(c)} style={{padding:"5px 10px",background:"#eff6ff",color:"#2563eb",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>📄 PDF</button>
                       {!r&&<button onClick={()=>setRetourContratId(c.id)} style={{padding:"5px 10px",background:"#f0fdf4",color:"#16a34a",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>Retour</button>}
+                      {!r&&<button onClick={()=>ouvrirProlon(c)} style={{padding:"5px 10px",background:"#fef3c7",color:"#b45309",border:"none",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer"}}>⏳ Prolonger</button>}
                       {r&&<button onClick={()=>reDownloadPV(c)} style={{padding:"5px 10px",background:"#fef3c7",color:"#d97706",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>📄 PV</button>}
                       <button onClick={()=>{const cl=clients.find(x=>x.nom===c.locNom&&x.tel===c.locTel);if(cl)setSelectedClient(cl);}} style={{padding:"5px 10px",background:"#f5f3ff",color:"#7c3aed",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer"}}>👤 Fiche</button>
                       <button onClick={async()=>{if(window.confirm("Supprimer ?")){setContrats(cs=>cs.filter(x=>x.id!==c.id));if(user)await supabase.from('contrats').delete().eq('id',c.id).eq('user_id',user.id);}}} style={{padding:"5px 10px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:7,fontSize:11,cursor:"pointer"}}>Supprimer</button>
@@ -1871,9 +2195,12 @@ function AppContent(){
               <div style={{marginBottom:16}}>
                 <h2 style={{fontSize:13,fontWeight:700,color:"#6b7280",marginBottom:8}}>En attente ({contrats.filter(c=>!retours[c.id]).length})</h2>
                 {contrats.filter(c=>!retours[c.id]).map(c=>(
-                  <div key={c.id} style={{background:"white",borderRadius:12,padding:12,marginBottom:8,border:"1px solid #fde68a",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div key={c.id} style={{background:"white",borderRadius:12,padding:12,marginBottom:8,border:"1px solid #fde68a",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                     <div><div style={{fontWeight:700}}>{c.locNom}</div><div style={{fontSize:11,color:"#6b7280"}}>{c.vehicleLabel} · {c.dateDebut} → {c.dateFin}</div></div>
-                    <button onClick={()=>setRetourContratId(c.id)} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"7px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Faire le retour</button>
+                    <div style={{display:"flex",gap:6}}>
+                      <button onClick={()=>ouvrirProlon(c)} style={{background:"#fef3c7",color:"#b45309",border:"none",borderRadius:8,padding:"7px 10px",fontSize:12,fontWeight:700,cursor:"pointer"}}>⏳ Prolonger</button>
+                      <button onClick={()=>setRetourContratId(c.id)} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"7px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Faire le retour</button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1881,14 +2208,14 @@ function AppContent(){
             {contrats.filter(c=>retours[c.id]).length>0&&(
               <div>
                 <h2 style={{fontSize:13,fontWeight:700,color:"#6b7280",marginBottom:8}}>Retours effectués</h2>
-                <div style={{background:"white",borderRadius:12,padding:12,marginBottom:12,display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                  <div style={{gridColumn:"span 2"}}><input placeholder="🔍 Nom, immat..." style={INP_STYLE()} value={searchRetour} onChange={e=>setSearchRetour(e.target.value)}/></div>
+                <div style={{background:"white",borderRadius:12,padding:12,marginBottom:12,display:"flex",flexDirection:"column",gap:8}}>
+                  <input placeholder="🔍 Nom, immat..." style={INP_STYLE()} value={searchRetour} onChange={e=>setSearchRetour(e.target.value)}/>
                   <div><label style={LBL_STYLE}>Véhicule</label><select style={INP_STYLE()} value={filterVehicleRetour} onChange={e=>setFilterVehicleRetour(e.target.value)}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele}</option>)}</select></div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                     <div><label style={LBL_STYLE}>Après</label><input type="date" style={INP_STYLE()} value={filterRetourDateDebut} onChange={e=>setFilterRetourDateDebut(e.target.value)}/></div>
                     <div><label style={LBL_STYLE}>Avant</label><input type="date" style={INP_STYLE()} value={filterRetourDateFin} onChange={e=>setFilterRetourDateFin(e.target.value)}/></div>
                   </div>
-                  {(searchRetour||filterVehicleRetour||filterRetourDateDebut||filterRetourDateFin)&&<div style={{gridColumn:"span 2"}}><button onClick={()=>{setSearchRetour("");setFilterVehicleRetour("");setFilterRetourDateDebut("");setFilterRetourDateFin("");}} style={{padding:"5px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>✕ Effacer</button></div>}
+                  {(searchRetour||filterVehicleRetour||filterRetourDateDebut||filterRetourDateFin)&&<div><button onClick={()=>{setSearchRetour("");setFilterVehicleRetour("");setFilterRetourDateDebut("");setFilterRetourDateFin("");}} style={{padding:"5px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:11,cursor:"pointer",fontWeight:700}}>✕ Effacer</button></div>}
                 </div>
                 {retoursFiltres.map(c=>{
                   const r=retours[c.id];
@@ -2041,21 +2368,80 @@ function AppContent(){
           </div>
         )}
 
+        {/* MODAL PROLONGEMENT */}
+        {prolonContrat&&(()=>{
+          const c=prolonContrat;
+          const v=vehicles.find(x=>x.id===c.vehicleId);
+          const tarifJ=parseFloat(c.tarifLabel?.match(/(\d+(?:\.\d+)?)\s*€\/j/)?.[1])||(v?v.tarif:0);
+          const debutD=new Date(c.dateDebut);
+          const finNouvelle=prolonDateFin?new Date(prolonDateFin):null;
+          const newNbJours=finNouvelle?Math.max(1,Math.ceil((finNouvelle-debutD)/86400000)):c.nbJours;
+          const joursExtra=newNbJours-c.nbJours;
+          const newTotal=Math.max(0,tarifJ*newNbJours-(c.remise||0));
+          const coutExtra=tarifJ*Math.max(0,joursExtra);
+          return(
+            <div onClick={e=>{if(e.target===e.currentTarget)setProlonContrat(null);}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+              <div style={{background:"white",borderRadius:18,padding:22,width:"100%",maxWidth:400,boxShadow:"0 8px 40px rgba(0,0,0,.2)"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                  <div>
+                    <div style={{fontWeight:900,fontSize:16,color:"#1e3a8a"}}>⏳ Prolonger le contrat</div>
+                    <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>{c.locNom} · {c.vehicleLabel}</div>
+                  </div>
+                  <button onClick={()=>setProlonContrat(null)} style={{background:"#f3f4f6",border:"none",borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:14,fontWeight:700}}>✕</button>
+                </div>
+                <div style={{background:"#f8fafc",borderRadius:10,padding:12,marginBottom:14,fontSize:12}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:"#6b7280"}}>Début</span><span style={{fontWeight:700}}>{c.dateDebut} à {c.heureDebut}</span></div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:"#6b7280"}}>Fin actuelle</span><span style={{fontWeight:700,color:"#dc2626"}}>{c.dateFin} à {c.heureFin}</span></div>
+                  <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#6b7280"}}>Durée actuelle</span><span style={{fontWeight:700}}>{c.nbJours} jour{c.nbJours>1?"s":""}</span></div>
+                </div>
+                <div style={{marginBottom:12}}>
+                  <label style={{fontSize:11,color:"#6b7280",fontWeight:700,display:"block",marginBottom:4}}>Nouvelle date de fin</label>
+                  <input type="date" min={c.dateFin} value={prolonDateFin} onChange={e=>setProlonDateFin(e.target.value)} style={{width:"100%",padding:"9px 12px",borderRadius:8,border:"2px solid #e5e7eb",fontSize:13,fontWeight:600,boxSizing:"border-box"}}/>
+                </div>
+                <div style={{marginBottom:16}}>
+                  <label style={{fontSize:11,color:"#6b7280",fontWeight:700,display:"block",marginBottom:4}}>Heure de restitution</label>
+                  <input type="time" value={prolonHeureFin} onChange={e=>setProlonHeureFin(e.target.value)} style={{width:"100%",padding:"9px 12px",borderRadius:8,border:"2px solid #e5e7eb",fontSize:13,fontWeight:600,boxSizing:"border-box"}}/>
+                </div>
+                {finNouvelle&&joursExtra>0&&(
+                  <div style={{background:"#fef3c7",borderRadius:10,padding:12,marginBottom:16,border:"1px solid #fde68a"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}><span style={{color:"#92400e"}}>Jours supplémentaires</span><span style={{fontWeight:800,color:"#b45309"}}>+ {joursExtra} jour{joursExtra>1?"s":""}</span></div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:4}}><span style={{color:"#92400e"}}>Coût extension ({tarifJ} {sym}/j)</span><span style={{fontWeight:800,color:"#b45309"}}>+ {coutExtra} {sym}</span></div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:13,borderTop:"1px solid #fde68a",paddingTop:8,marginTop:4}}><span style={{fontWeight:700,color:"#1f2937"}}>Nouveau total</span><span style={{fontWeight:900,color:"#1e3a8a",fontSize:16}}>{newTotal} {sym}</span></div>
+                  </div>
+                )}
+                {finNouvelle&&joursExtra<=0&&prolonDateFin&&(
+                  <div style={{background:"#fef2f2",borderRadius:10,padding:10,marginBottom:16,fontSize:12,color:"#dc2626",fontWeight:600}}>La nouvelle date doit être après le {c.dateFin}</div>
+                )}
+                <button onClick={prolongerContrat} disabled={!prolonDateFin||!finNouvelle||joursExtra<=0} style={{width:"100%",padding:12,background:(!prolonDateFin||!finNouvelle||joursExtra<=0)?"#d1d5db":"#1e3a8a",color:"white",border:"none",borderRadius:10,fontSize:13,fontWeight:800,cursor:(!prolonDateFin||!finNouvelle||joursExtra<=0)?"not-allowed":"pointer"}}>
+                  Confirmer la prolongation
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* FINANCES */}
         {page==="finances"&&(
           <div>
-            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:14}}>Finances</h1>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+              <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Finances</h1>
+              <div style={{display:"flex",gap:6}}>
+                {[["mois","Ce mois"],["6mois","6 mois"],["annee","Cette année"]].map(([k,l])=>(
+                  <button key={k} onClick={()=>setFinPeriode(k)} style={{padding:"5px 12px",borderRadius:8,fontSize:11,fontWeight:700,border:"none",cursor:"pointer",background:finPeriode===k?"#1e3a8a":"#e5e7eb",color:finPeriode===k?"white":"#374151"}}>{l}</button>
+                ))}
+              </div>
+            </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-              {KPI("CA Total",caT+" "+sym,"💶","#2563eb")}
-              {KPI("Extras",(totalRetenues+totalSurplusKm).toFixed(0)+" "+sym,"🔒","#d97706")}
-              {KPI("Dépenses",dT.toFixed(0)+" "+sym,"📤","#ef4444")}
-              {KPI("Bénéfice net",bT.toFixed(0)+" "+sym,bT>=0?"📈":"📉",bT>=0?"#16a34a":"#dc2626",null,bT<0)}
+              {KPI("CA Total",caT_f+" "+sym,"💶","#2563eb")}
+              {KPI("Extras",(totalRetenues_f+totalSurplusKm_f).toFixed(0)+" "+sym,"🔒","#d97706")}
+              {KPI("Dépenses",dT_f.toFixed(0)+" "+sym,"📤","#ef4444")}
+              {KPI("Bénéfice net",bT_f.toFixed(0)+" "+sym,bT_f>=0?"📈":"📉",bT_f>=0?"#16a34a":"#dc2626",null,bT_f<0)}
               <div style={{background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 8px rgba(0,0,0,.07)",borderLeft:"4px solid #dc2626"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div>
                     <p style={{fontSize:10,color:"#6b7280",marginBottom:3}}>Cautions en attente de retour</p>
-                    <p style={{fontSize:20,fontWeight:800,color:"#dc2626"}}>{cautionsNonRendues} {sym}</p>
-                    <p style={{fontSize:10,color:"#9ca3af",marginTop:2}}>{contrats.filter(c=>!retours[c.id]).length} contrat{contrats.filter(c=>!retours[c.id]).length>1?"s":""} sans retour</p>
+                    <p style={{fontSize:20,fontWeight:800,color:"#dc2626"}}>{cautionsNonRendues_f} {sym}</p>
+                    <p style={{fontSize:10,color:"#9ca3af",marginTop:2}}>{contrats.filter(c=>!retours[c.id]&&inPeriodFin(c.dateDebut)).length} contrat{contrats.filter(c=>!retours[c.id]&&inPeriodFin(c.dateDebut)).length>1?"s":""} sans retour</p>
                   </div>
                   <span style={{fontSize:22}}>⏳</span>
                 </div>
@@ -2064,7 +2450,7 @@ function AppContent(){
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div>
                     <p style={{fontSize:10,color:"#6b7280",marginBottom:3}}>Cautions retenues (retours)</p>
-                    <p style={{fontSize:20,fontWeight:800,color:"#16a34a"}}>{totalRetenues.toFixed(0)} {sym}</p>
+                    <p style={{fontSize:20,fontWeight:800,color:"#16a34a"}}>{totalRetenues_f.toFixed(0)} {sym}</p>
                     <p style={{fontSize:10,color:"#9ca3af",marginTop:2}}>Encaissées sur retours effectués</p>
                   </div>
                   <span style={{fontSize:22}}>✅</span>
@@ -2083,8 +2469,8 @@ function AppContent(){
                     {caP.map((m,i)=>(
                       <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
                         <div style={{width:"100%",display:"flex",gap:2,alignItems:"flex-end",height:100}}>
-                          <div style={{flex:1,borderRadius:"4px 4px 0 0",background:"#3b82f6",height:(m.ca/maxCA*100)+"px",minHeight:m.ca>0?3:0}}/>
-                          <div style={{flex:1,borderRadius:"4px 4px 0 0",background:"#f87171",height:(m.dep/maxCA*100)+"px",minHeight:m.dep>0?3:0}}/>
+                          <div title={"CA : "+m.ca+" "+sym} style={{flex:1,borderRadius:"4px 4px 0 0",background:"#3b82f6",height:(m.ca/maxCA*100)+"px",minHeight:m.ca>0?3:0,cursor:"pointer",position:"relative"}} onMouseEnter={e=>{const t=document.createElement("div");t.id="chart-tip";t.style.cssText="position:fixed;background:#1e293b;color:white;padding:4px 8px;borderRadius:6px;fontSize:11px;fontWeight:700;pointerEvents:none;zIndex:9999;whiteSpace:nowrap";t.textContent="CA : "+m.ca+" "+sym;document.body.appendChild(t);const rect=e.currentTarget.getBoundingClientRect();t.style.left=(rect.left+rect.width/2-t.offsetWidth/2)+"px";t.style.top=(rect.top-28)+"px";}} onMouseLeave={()=>{const t=document.getElementById("chart-tip");if(t)t.remove();}}/>
+                          <div title={"Dépenses : "+m.dep+" "+sym} style={{flex:1,borderRadius:"4px 4px 0 0",background:"#f87171",height:(m.dep/maxCA*100)+"px",minHeight:m.dep>0?3:0,cursor:"pointer"}} onMouseEnter={e=>{const t=document.createElement("div");t.id="chart-tip";t.style.cssText="position:fixed;background:#1e293b;color:white;padding:4px 8px;borderRadius:6px;fontSize:11px;fontWeight:700;pointerEvents:none;zIndex:9999;whiteSpace:nowrap";t.textContent="Dép. : "+m.dep.toFixed(0)+" "+sym;document.body.appendChild(t);const rect=e.currentTarget.getBoundingClientRect();t.style.left=(rect.left+rect.width/2-t.offsetWidth/2)+"px";t.style.top=(rect.top-28)+"px";}} onMouseLeave={()=>{const t=document.getElementById("chart-tip");if(t)t.remove();}}/>
                         </div>
                         <span style={{fontSize:9,color:"#6b7280",textTransform:"capitalize"}}>{m.label}</span>
                       </div>
@@ -2130,6 +2516,69 @@ function AppContent(){
                   );
                 })()}
             </div>
+            {(()=>{
+              const now=new Date();
+              function inPeriod(dateStr){
+                if(!dateStr)return false;
+                const d=new Date(dateStr);
+                if(finPeriode==="mois")return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+                if(finPeriode==="6mois"){const cutoff=new Date(now);cutoff.setMonth(cutoff.getMonth()-5);cutoff.setDate(1);return d>=cutoff;}
+                if(finPeriode==="annee")return d.getFullYear()===now.getFullYear();
+                return true;
+              }
+              const vColors=["#2563eb","#7c3aed","#16a34a","#d97706","#dc2626","#0891b2","#be185d","#059669"];
+              const rows=vehicles.map((v,i)=>{
+                const vContrats=contrats.filter(c=>c.vehicleId===v.id&&inPeriod(c.dateDebut));
+                const ca=vContrats.reduce((s,c)=>s+(c.totalCalc||0),0);
+                const dep=depenses.filter(d=>d.vehicleId===v.id&&inPeriod(d.date)).reduce((s,d)=>s+parseFloat(d.montant||0),0);
+                const caution=vContrats.reduce((s,c)=>s+(retours[c.id]?.montantRetenu||0),0);
+                return{label:v.marque+" "+v.modele,immat:v.immat,ca,dep,caution,net:ca-dep+caution,color:vColors[i%vColors.length]};
+              });
+              const totalCA=rows.reduce((s,r)=>s+r.ca,0);
+              const totalDep=rows.reduce((s,r)=>s+r.dep,0);
+              const totalCaution=rows.reduce((s,r)=>s+r.caution,0);
+              const totalNet=totalCA-totalDep+totalCaution;
+              return(
+                <div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)",marginBottom:16}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+                    <div style={{width:36,height:36,borderRadius:10,background:"#f0fdf4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🚗</div>
+                    <div style={{fontWeight:700,fontSize:14}}>Bilan par véhicule</div>
+                  </div>
+                  {rows.length===0
+                    ?<div style={{textAlign:"center",color:"#9ca3af",padding:20,fontSize:12}}>Aucun véhicule</div>
+                    :<div style={{overflowX:"auto"}}>
+                      <div style={{minWidth:360}}>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr auto auto auto auto",gap:"4px 10px",alignItems:"center",marginBottom:10,paddingBottom:8,borderBottom:"2px solid #f3f4f6"}}>
+                        <span style={{fontSize:10,color:"#9ca3af",fontWeight:700}}>VÉHICULE</span>
+                        <span style={{fontSize:10,color:"#2563eb",fontWeight:700,textAlign:"right"}}>CA</span>
+                        <span style={{fontSize:10,color:"#ef4444",fontWeight:700,textAlign:"right"}}>DÉPENSES</span>
+                        <span style={{fontSize:10,color:"#d97706",fontWeight:700,textAlign:"right"}}>CAUTION</span>
+                        <span style={{fontSize:10,color:"#16a34a",fontWeight:700,textAlign:"right"}}>NET</span>
+                      </div>
+                      {rows.map((r,i)=>(
+                        <div key={i} style={{display:"grid",gridTemplateColumns:"1fr auto auto auto auto",gap:"4px 10px",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>
+                          <div>
+                            <div style={{fontWeight:700,fontSize:12,color:r.color}}>{r.label}</div>
+                            <div style={{fontSize:10,color:"#9ca3af"}}>{r.immat}</div>
+                          </div>
+                          <span style={{fontWeight:700,fontSize:12,color:"#2563eb",textAlign:"right"}}>{r.ca} {sym}</span>
+                          <span style={{fontWeight:700,fontSize:12,color:"#ef4444",textAlign:"right"}}>{r.dep.toFixed(0)} {sym}</span>
+                          <span style={{fontWeight:700,fontSize:12,color:"#d97706",textAlign:"right"}}>{r.caution>0?r.caution.toFixed(0)+" "+sym:"—"}</span>
+                          <span style={{fontWeight:700,fontSize:12,color:r.net>=0?"#16a34a":"#dc2626",textAlign:"right"}}>{r.net.toFixed(0)} {sym}</span>
+                        </div>
+                      ))}
+                      <div style={{display:"grid",gridTemplateColumns:"1fr auto auto auto auto",gap:"4px 10px",alignItems:"center",paddingTop:10,marginTop:4,borderTop:"2px solid #1e3a8a"}}>
+                        <span style={{fontWeight:800,fontSize:12,color:"#1f2937"}}>TOTAL</span>
+                        <span style={{fontWeight:800,fontSize:12,color:"#2563eb",textAlign:"right"}}>{totalCA} {sym}</span>
+                        <span style={{fontWeight:800,fontSize:12,color:"#ef4444",textAlign:"right"}}>{totalDep.toFixed(0)} {sym}</span>
+                        <span style={{fontWeight:800,fontSize:12,color:"#d97706",textAlign:"right"}}>{totalCaution>0?totalCaution.toFixed(0)+" "+sym:"—"}</span>
+                        <span style={{fontWeight:800,fontSize:12,color:totalNet>=0?"#16a34a":"#dc2626",textAlign:"right"}}>{totalNet.toFixed(0)} {sym}</span>
+                      </div>
+                      </div>
+                    </div>}
+                </div>
+              );
+            })()}
             <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                 <h2 style={{fontWeight:700,fontSize:14}}>Dépenses</h2>
@@ -2190,8 +2639,7 @@ function AppContent(){
                 ))}
                 <div style={{marginBottom:10}}><label style={LBL_STYLE}>Snapchat</label><input style={INP_STYLE()} value={profilForm.snap||""} onChange={e=>setProfilForm(p=>({...p,snap:e.target.value}))}/></div>
                 <div style={{marginBottom:14}}><label style={LBL_STYLE}>💱 Devise</label><select style={INP_STYLE()} value={profilForm.devise||"EUR"} onChange={e=>setProfilForm(p=>({...p,devise:e.target.value}))}>{DEVISES.map(d=><option key={d.code} value={d.code}>{d.label}</option>)}</select></div>
-                <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user)await supabase.from('profils').upsert({user_id:user.id,...profilForm},{onConflict:'user_id'});}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
-                <button onClick={()=>supabase.auth.signOut()} style={{marginTop:10,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
+                <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user)await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...profilForm},{onConflict:'user_id'});}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
               </div>
               :<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <div style={{textAlign:"center",marginBottom:16}}>
@@ -2202,8 +2650,36 @@ function AppContent(){
                 {[["SIREN",profil.siren],["SIRET",profil.siret],["KBIS",profil.kbis],["Téléphone",profil.tel],["WhatsApp",profil.whatsapp],["Snapchat",profil.snap],["Email",profil.email],["Adresse",profil.adresse],["Ville",profil.ville],["IBAN",profil.iban],["Devise",profil.devise]].filter(([,v])=>v).map(([l,v])=>(
                   <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f0f0"}}><span style={{fontSize:11,color:"#6b7280"}}>{l}</span><span style={{fontSize:12,fontWeight:600}}>{v}</span></div>
                 ))}
-                <button onClick={()=>supabase.auth.signOut()} style={{marginTop:14,background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,padding:"10px 0",width:"100%",fontSize:12,fontWeight:600,cursor:"pointer"}}>Déconnexion</button>
               </div>}
+            {/* SECURITE */}
+            <div style={{marginTop:16,background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:secuEdit?14:0}}>
+                <span style={{fontSize:13,fontWeight:700,color:"#1f2937"}}>Securite</span>
+                <button onClick={()=>{setSecuEdit(!secuEdit);setSecuForm({newEmail:"",newPassword:"",confirmPassword:""});}} style={{background:secuEdit?"#6b7280":"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"5px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}}>{secuEdit?"Annuler":"Modifier"}</button>
+              </div>
+              {secuEdit&&<div>
+                <div style={{marginBottom:10}}><label style={LBL_STYLE}>Nouvel email</label><input style={INP_STYLE()} type="email" placeholder={user?.email||""} value={secuForm.newEmail} onChange={e=>setSecuForm(p=>({...p,newEmail:e.target.value}))}/></div>
+                <div style={{marginBottom:10}}><label style={LBL_STYLE}>Nouveau mot de passe</label><input style={INP_STYLE()} type="password" placeholder="Laisser vide pour ne pas changer" value={secuForm.newPassword} onChange={e=>setSecuForm(p=>({...p,newPassword:e.target.value}))}/></div>
+                <div style={{marginBottom:14}}><label style={LBL_STYLE}>Confirmer mot de passe</label><input style={INP_STYLE()} type="password" placeholder="Confirmer le nouveau mot de passe" value={secuForm.confirmPassword} onChange={e=>setSecuForm(p=>({...p,confirmPassword:e.target.value}))}/></div>
+                <button onClick={async()=>{
+                  if(secuForm.newPassword&&secuForm.newPassword!==secuForm.confirmPassword){toast_("Les mots de passe ne correspondent pas");return;}
+                  if(!secuForm.newEmail&&!secuForm.newPassword){toast_("Remplis au moins un champ");return;}
+                  setSecuLoading(true);
+                  const updates={};
+                  if(secuForm.newEmail)updates.email=secuForm.newEmail;
+                  if(secuForm.newPassword)updates.password=secuForm.newPassword;
+                  const{error}=await supabase.auth.updateUser(updates);
+                  setSecuLoading(false);
+                  if(error){toast_(error.message);}else{
+                    toast_(secuForm.newEmail?"Email mis a jour - verifie ta boite mail":"Mot de passe mis a jour");
+                    setSecuEdit(false);
+                    setSecuForm({newEmail:"",newPassword:"",confirmPassword:""});
+                  }
+                }} disabled={secuLoading} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>{secuLoading?"...":"Enregistrer"}</button>
+              </div>}
+              {!secuEdit&&<div style={{marginTop:8,fontSize:12,color:"#6b7280"}}>Email : {user?.email}</div>}
+              {!secuEdit&&<button onClick={()=>supabase.auth.signOut()} style={{marginTop:14,background:"#ef4444",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Se deconnecter</button>}
+            </div>
           </div>
         )}
 
@@ -2211,6 +2687,9 @@ function AppContent(){
     </div>
   );
 }
+
+const MAX_LOGIN_ATTEMPTS=5;
+const LOCKOUT_DURATION_MS=15*60*1000; // 15 minutes
 
 function AuthPage(){
   const[mode,setMode]=useState("login");
@@ -2220,16 +2699,67 @@ function AuthPage(){
   const[loading,setLoading]=useState(false);
   const[error,setError]=useState("");
   const[success,setSuccess]=useState("");
+  const[attempts,setAttempts]=useState(0);
+  const[lockedUntil,setLockedUntil]=useState(null);
+  const[remaining,setRemaining]=useState(0);
+  const[needsConfirm,setNeedsConfirm]=useState(false);
+  const[resendLoading,setResendLoading]=useState(false);
+  const[resendDone,setResendDone]=useState(false);
+
+  // Décompte si verrouillé
+  useEffect(()=>{
+    if(!lockedUntil)return;
+    const tick=()=>{
+      const left=lockedUntil-Date.now();
+      if(left<=0){setLockedUntil(null);setAttempts(0);setRemaining(0);}
+      else setRemaining(Math.ceil(left/1000));
+    };
+    tick();
+    const t=setInterval(tick,1000);
+    return()=>clearInterval(t);
+  },[lockedUntil]);
+
+  const isLocked=lockedUntil&&Date.now()<lockedUntil;
+
   async function handleSubmit(){
+    if(isLocked)return;
+    // Validation basique côté client
+    if(!email.trim()||!email.includes("@")){setError("Adresse email invalide.");return;}
+    if(mode!=="forgot"&&password.length<6){setError("Le mot de passe doit contenir au moins 6 caractères.");return;}
+
     setLoading(true);setError("");setSuccess("");
-    if(mode==="forgot"){const{error:err}=await supabase.auth.resetPasswordForEmail(email);if(err)setError(err.message);else setSuccess("Email envoyé.");setLoading(false);return;}
+    if(mode==="forgot"){
+      const{error:fErr}=await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(),{redirectTo:window.location.origin});
+      if(fErr){setError("Erreur : "+fErr.message);setLoading(false);return;}
+      setSuccess("Email de réinitialisation envoyé ! Vérifiez votre boîte mail (et spam).");
+      setLoading(false);return;
+    }
     let result;
-    if(mode==="login")result=await supabase.auth.signInWithPassword({email,password});
-    else result=await supabase.auth.signUp({email,password,options:{emailRedirectTo:window.location.origin}});
-    if(result.error)setError(result.error.message);
-    else if(mode==="signup")setSuccess("Compte créé ! Vérifiez votre email.");
+    if(mode==="login")result=await supabase.auth.signInWithPassword({email:email.trim().toLowerCase(),password});
+    else result=await supabase.auth.signUp({email:email.trim().toLowerCase(),password,options:{emailRedirectTo:window.location.origin}});
+
+    if(result.error){
+      const msg=result.error.message||"";
+      if(msg.toLowerCase().includes("email not confirmed")||msg.toLowerCase().includes("not confirmed")){
+        setNeedsConfirm(true);
+        setError("");
+      } else {
+        const newAttempts=attempts+1;
+        setAttempts(newAttempts);
+        if(newAttempts>=MAX_LOGIN_ATTEMPTS){
+          setLockedUntil(Date.now()+LOCKOUT_DURATION_MS);
+          setError("Trop de tentatives. Accès bloqué pendant 15 minutes.");
+        } else {
+          setError("Email ou mot de passe incorrect. ("+(MAX_LOGIN_ATTEMPTS-newAttempts)+" tentative(s) restante(s))");
+        }
+      }
+    } else if(mode==="signup"){
+      setNeedsConfirm(true);
+      setSuccess("Compte créé ! Un email de confirmation a été envoyé à "+email.trim().toLowerCase());
+    }
     setLoading(false);
   }
+
   return(
     <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"#f1f5f9"}}>
       <div style={{background:"white",borderRadius:16,padding:"40px 32px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
@@ -2240,16 +2770,32 @@ function AuthPage(){
             {["login","signup"].map(m=><button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600}}>{m==="login"?"Connexion":"Inscription"}</button>)}
           </div>
         )}
-        <input placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
+        {isLocked&&(
+          <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"10px 14px",marginBottom:14,textAlign:"center"}}>
+            <div style={{fontSize:13,color:"#dc2626",fontWeight:700}}>Accès temporairement bloqué</div>
+            <div style={{fontSize:12,color:"#6b7280",marginTop:4}}>Réessayez dans {Math.floor(remaining/60)}:{String(remaining%60).padStart(2,"0")}</div>
+          </div>
+        )}
+        <input placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoComplete="email" style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
         {mode!=="forgot"&&(
           <div style={{position:"relative",marginBottom:16}}>
-            <input placeholder="Mot de passe" type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} style={{width:"100%",padding:"10px 12px",paddingRight:40,border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
+            <input placeholder="Mot de passe" type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoComplete={mode==="login"?"current-password":"new-password"} style={{width:"100%",padding:"10px 12px",paddingRight:40,border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
             <span onClick={()=>setShowPassword(!showPassword)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:18,color:"#6b7280",userSelect:"none"}}>{showPassword?"🙈":"👁️"}</span>
           </div>
         )}
-        {error&&<p style={{color:"red",fontSize:13,marginBottom:12}}>{error}</p>}
-        {success&&<p style={{color:"#16a34a",fontSize:13,marginBottom:12}}>{success}</p>}
-        <button onClick={handleSubmit} disabled={loading} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:"pointer"}}>
+        {error&&<p style={{color:"#dc2626",fontSize:13,marginBottom:12,background:"#fef2f2",padding:"8px 10px",borderRadius:7,border:"1px solid #fecaca"}}>{error}</p>}
+        {success&&<p style={{color:"#16a34a",fontSize:13,marginBottom:12,background:"#f0fdf4",padding:"8px 10px",borderRadius:7,border:"1px solid #bbf7d0"}}>{success}</p>}
+        {needsConfirm&&(
+          <div style={{background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:10,padding:"14px 16px",marginBottom:14}}>
+            <div style={{fontWeight:700,fontSize:13,color:"#b45309",marginBottom:6}}>📧 Email de confirmation requis</div>
+            <div style={{fontSize:12,color:"#78350f",marginBottom:10}}>Un email de confirmation a été envoyé à <b>{email.trim().toLowerCase()}</b>.<br/>Vérifiez votre boîte de réception et vos <b>spams</b>. Cliquez sur le lien pour activer votre compte.</div>
+            {resendDone
+              ?<div style={{fontSize:12,color:"#16a34a",fontWeight:600}}>✅ Email renvoyé ! Vérifiez vos spams.</div>
+              :<button onClick={async()=>{setResendLoading(true);await supabase.auth.resend({type:"signup",email:email.trim().toLowerCase(),options:{emailRedirectTo:window.location.origin}});setResendLoading(false);setResendDone(true);}} disabled={resendLoading} style={{width:"100%",padding:"8px 0",background:"#d97706",color:"white",border:"none",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer"}}>{resendLoading?"Envoi...":"🔁 Renvoyer l'email de confirmation"}</button>
+            }
+          </div>
+        )}
+        <button onClick={handleSubmit} disabled={loading||isLocked} style={{width:"100%",padding:"12px",background:isLocked?"#9ca3af":"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:isLocked?"not-allowed":"pointer"}}>
           {loading?"...":(mode==="login"?"Se connecter":mode==="signup"?"Créer mon compte":"Envoyer le lien")}
         </button>
         {mode==="login"&&<p style={{textAlign:"center",marginTop:14,fontSize:13}}><span onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Mot de passe oublié ?</span></p>}

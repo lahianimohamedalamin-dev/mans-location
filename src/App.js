@@ -391,7 +391,7 @@ function TelInput({value,onChange,placeholder,style}){
   const parts=(value||"").match(/^(\+\d+)\s(.*)$/);
   const code=parts?parts[1]:"+33";
   const num=parts?parts[2]:(value||"");
-  function update(c,n){onChange(n?c+" "+n:c+" ");}
+  function update(c,n){onChange(n?c+" "+n:"");}
   const IS={border:"1px solid #d1d5db",borderRadius:8,padding:"7px 8px",fontSize:12,boxSizing:"border-box",...(style||{})};
   return (
     <div style={{display:"flex",gap:4,width:"100%"}}>

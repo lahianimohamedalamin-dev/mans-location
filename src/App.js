@@ -1042,7 +1042,7 @@ function AppContent(){
   }
 
   const resetUserData=useCallback(()=>{
-    setVehicles([]);setContrats([]);setDepenses([]);setRetours({});setQuestions([]);setClients([]);
+    setVehicles([]);setContrats([]);setDepenses([]);setRetours({});setQuestions([]);setClients([]);setAmendes([]);
     setProfil(INIT_PROFIL);setProfilForm(INIT_PROFIL);
     setSelId(null);setDocsId(null);setContratModalId(null);
     setLastContrat(null);setRetourContratId(null);setTarifsVehicleId(null);
@@ -1071,13 +1071,14 @@ function AppContent(){
   const loadAllData=useCallback(async(uid)=>{
     setDataLoaded(false);
     try{
-      const[profRes,vehRes,conRes,depRes,retRes,qRes]=await Promise.all([
+      const[profRes,vehRes,conRes,depRes,retRes,qRes,amenRes]=await Promise.all([
         supabase.from('profils').select('*').eq('user_id',uid).maybeSingle(),
         supabase.from('vehicules').select('*').eq('user_id',uid),
         supabase.from('contrats').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('depenses').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('retours').select('*').eq('user_id',uid),
         supabase.from('questions').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
+        supabase.from('amendes').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
       ]);
       if(activeUserIdRef.current!==uid)return;
       const p=profRes.data||{};
@@ -1105,6 +1106,7 @@ function AppContent(){
         setRetours(rMap);
       }
       if(qRes.data){setQuestions(qRes.data.map(q=>({id:q.id,vehicleLabel:q.vehicle_label||'',clientNom:q.client_nom||'',question:q.question||'',reponse:q.reponse||'',lu:q.lu||false,createdAt:q.created_at||''})));}
+      if(amenRes.data){setAmendes(amenRes.data.map(a=>({id:a.id,vehicleId:a.vehicle_id||'',vehicleLabel:a.vehicle_label||'',contratId:a.contrat_id||null,locNom:a.loc_nom||'',locTel:a.loc_tel||'',date:a.date||'',heure:a.heure||'',montant:a.montant||'',type:a.type||'',statut:a.statut||'A traiter',notes:a.notes||'',photoData:a.photo_data||null})));}
     }catch(e){console.error('Error loading data:',e);}
     finally{if(activeUserIdRef.current===uid)setDataLoaded(true);}
   },[]);
@@ -1289,8 +1291,9 @@ function AppContent(){
   }
 
   async function repondreQuestion(q){
-    if(!reponseText.trim())return;
-    await supabase.from('questions').update({reponse:reponseText,lu:true}).eq('id',q.id).eq('user_id',user.id);
+    if(!reponseText.trim()||!user)return;
+    const{error}=await supabase.from('questions').update({reponse:reponseText,lu:true}).eq('id',q.id).eq('user_id',user.id);
+    if(error){toast_("Erreur: "+error.message,"error");return;}
     setQuestions(qs=>qs.map(x=>x.id===q.id?{...x,reponse:reponseText,lu:true}:x));
     setReponseModal(null);setReponseText("");toast_("Réponse envoyée !");
   }
@@ -2297,7 +2300,7 @@ function AppContent(){
                     </div>
                   )}
                   <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>{if(!amendeForm.vehicleId||!amendeForm.date){toast_("Choisissez un véhicule et une date","error");return;}const v=vehicles.find(x=>x.id===amendeForm.vehicleId);                    const newA={id:Date.now(),...amendeForm,vehicleLabel:v?v.marque+" "+v.modele+" - "+v.immat:"",contratId:contratRef?.id||null,locNom:contratRef?.locNom||"",locTel:contratRef?.locTel||""};setAmendes(a=>[newA,...a]);setAmendeForm({vehicleId:"",contratRef:"",date:"",heure:"",montant:"",type:"Excès de vitesse",statut:"A traiter",notes:"",photoData:null});setShowAddAmende(false);toast_("Amende ajoutée !");}} style={{background:"#dc2626",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>Enregistrer</button>
+                    <button onClick={async()=>{if(!amendeForm.vehicleId||!amendeForm.date){toast_("Choisissez un véhicule et une date","error");return;}const v=vehicles.find(x=>x.id===amendeForm.vehicleId);const localId=Date.now();const newA={id:localId,...amendeForm,vehicleLabel:v?v.marque+" "+v.modele+" - "+v.immat:"",contratId:contratRef?.id||null,locNom:contratRef?.locNom||"",locTel:contratRef?.locTel||""};setAmendes(a=>[newA,...a]);setAmendeForm({vehicleId:"",contratRef:"",date:"",heure:"",montant:"",type:"Excès de vitesse",statut:"A traiter",notes:"",photoData:null});setShowAddAmende(false);toast_("Amende ajoutée !");if(user){const{data:ins,error:err}=await supabase.from('amendes').insert([{user_id:user.id,vehicle_id:newA.vehicleId,vehicle_label:newA.vehicleLabel,contrat_id:newA.contratId,loc_nom:newA.locNom,loc_tel:newA.locTel,date:newA.date,heure:newA.heure,montant:newA.montant,type:newA.type,statut:newA.statut,notes:newA.notes,photo_data:newA.photoData}]).select().single();if(err){toast_("Erreur sauvegarde amende: "+err.message,"error");}else if(ins){setAmendes(as=>as.map(x=>x.id===localId?{...x,id:ins.id}:x));}}}} style={{background:"#dc2626",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>Enregistrer</button>
                     <button onClick={()=>setShowAddAmende(false)} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:12}}>Annuler</button>
                   </div>
                 </div>
@@ -2330,8 +2333,8 @@ function AppContent(){
                     {contratLie&&<div style={{background:"#eff6ff",borderRadius:8,padding:"6px 10px",marginBottom:8,fontSize:11,border:"1px solid #bfdbfe"}}>Contrat : <b>{contratLie.locNom}</b> — {contratLie.dateDebut} → {contratLie.dateFin}<button onClick={()=>rePrint(contratLie)} style={{marginLeft:8,padding:"2px 8px",background:"#1e3a8a",color:"white",border:"none",borderRadius:5,fontSize:10,cursor:"pointer",fontWeight:700}}>PDF</button></div>}
                     {a.photoData&&<div style={{marginBottom:8}}><img src={a.photoData} alt="amende" style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:10,border:"2px solid #fecaca"}}/></div>}
                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                      {STATUTS_AMENDE.filter(s=>s!==a.statut).map(s=><button key={s} onClick={()=>setAmendes(as=>as.map(x=>x.id===a.id?{...x,statut:s}:x))} style={{padding:"4px 10px",background:"#f1f5f9",color:"#374151",border:"1px solid #e5e7eb",borderRadius:7,fontSize:10,cursor:"pointer",fontWeight:600}}>{s}</button>)}
-                      <button onClick={()=>setAmendes(as=>as.filter(x=>x.id!==a.id))} style={{padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:10,cursor:"pointer"}}>Supprimer</button>
+                      {STATUTS_AMENDE.filter(s=>s!==a.statut).map(s=><button key={s} onClick={async()=>{setAmendes(as=>as.map(x=>x.id===a.id?{...x,statut:s}:x));if(user)await supabase.from('amendes').update({statut:s}).eq('id',a.id).eq('user_id',user.id);}} style={{padding:"4px 10px",background:"#f1f5f9",color:"#374151",border:"1px solid #e5e7eb",borderRadius:7,fontSize:10,cursor:"pointer",fontWeight:600}}>{s}</button>)}
+                      <button onClick={async()=>{setAmendes(as=>as.filter(x=>x.id!==a.id));if(user)await supabase.from('amendes').delete().eq('id',a.id).eq('user_id',user.id);}} style={{padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:10,cursor:"pointer"}}>Supprimer</button>
                     </div>
                   </div>
                 );

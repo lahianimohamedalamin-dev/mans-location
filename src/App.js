@@ -919,6 +919,7 @@ function calcTarifAuto(vehicle,nbJours,heuresLoc,prixJourModifie){
 function ResetPasswordModal({onDone}){
   const[pwd,setPwd]=useState("");
   const[pwd2,setPwd2]=useState("");
+  const[show,setShow]=useState(false);
   const[loading,setLoading]=useState(false);
   const[error,setError]=useState("");
   const[success,setSuccess]=useState("");
@@ -932,14 +933,21 @@ function ResetPasswordModal({onDone}){
     setSuccess("Mot de passe modifié !");
     setTimeout(()=>onDone(),2000);
   }
+  const eyeBtn={background:"none",border:"none",cursor:"pointer",position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:16,padding:0};
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}>
       <div style={{background:"white",borderRadius:16,padding:32,width:"100%",maxWidth:380,margin:"0 16px"}}>
         <h2 style={{fontSize:18,fontWeight:700,marginBottom:20,textAlign:"center"}}>Nouveau mot de passe</h2>
         {error&&<div style={{background:"#fef2f2",color:"#dc2626",padding:"10px 14px",borderRadius:8,marginBottom:12,fontSize:13}}>{error}</div>}
         {success&&<div style={{background:"#f0fdf4",color:"#16a34a",padding:"10px 14px",borderRadius:8,marginBottom:12,fontSize:13}}>{success}</div>}
-        <input type="password" placeholder="Nouveau mot de passe" value={pwd} onChange={e=>setPwd(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,marginBottom:10,boxSizing:"border-box"}}/>
-        <input type="password" placeholder="Confirmer le mot de passe" value={pwd2} onChange={e=>setPwd2(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,marginBottom:16,boxSizing:"border-box"}}/>
+        <div style={{position:"relative",marginBottom:10}}>
+          <input type={show?"text":"password"} placeholder="Nouveau mot de passe" value={pwd} onChange={e=>setPwd(e.target.value)} style={{width:"100%",padding:"10px 36px 10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
+          <button style={eyeBtn} onClick={()=>setShow(s=>!s)}>{show?"🙈":"👁️"}</button>
+        </div>
+        <div style={{position:"relative",marginBottom:16}}>
+          <input type={show?"text":"password"} placeholder="Confirmer le mot de passe" value={pwd2} onChange={e=>setPwd2(e.target.value)} style={{width:"100%",padding:"10px 36px 10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
+          <button style={eyeBtn} onClick={()=>setShow(s=>!s)}>{show?"🙈":"👁️"}</button>
+        </div>
         <button onClick={handleReset} disabled={loading} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer"}}>{loading?"...":"Enregistrer"}</button>
       </div>
     </div>

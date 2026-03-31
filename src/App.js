@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 
 const DEF_FRAIS=[
   {id:1,label:"Rayure",montant:300},{id:2,label:"Jantes rayées",montant:300},
@@ -919,6 +919,7 @@ function calcTarifAuto(vehicle,nbJours,heuresLoc,prixJourModifie){
 function ResetPasswordModal({onDone}){
   const[pwd,setPwd]=useState("");
   const[pwd2,setPwd2]=useState("");
+  const[show,setShow]=useState(false);
   const[loading,setLoading]=useState(false);
   const[error,setError]=useState("");
   const[success,setSuccess]=useState("");
@@ -932,14 +933,21 @@ function ResetPasswordModal({onDone}){
     setSuccess("Mot de passe modifié !");
     setTimeout(()=>onDone(),2000);
   }
+  const eyeBtn={background:"none",border:"none",cursor:"pointer",position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",fontSize:16,padding:0};
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}>
       <div style={{background:"white",borderRadius:16,padding:32,width:"100%",maxWidth:380,margin:"0 16px"}}>
         <h2 style={{fontSize:18,fontWeight:700,marginBottom:20,textAlign:"center"}}>Nouveau mot de passe</h2>
         {error&&<div style={{background:"#fef2f2",color:"#dc2626",padding:"10px 14px",borderRadius:8,marginBottom:12,fontSize:13}}>{error}</div>}
         {success&&<div style={{background:"#f0fdf4",color:"#16a34a",padding:"10px 14px",borderRadius:8,marginBottom:12,fontSize:13}}>{success}</div>}
-        <input type="password" placeholder="Nouveau mot de passe" value={pwd} onChange={e=>setPwd(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,marginBottom:10,boxSizing:"border-box"}}/>
-        <input type="password" placeholder="Confirmer le mot de passe" value={pwd2} onChange={e=>setPwd2(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,marginBottom:16,boxSizing:"border-box"}}/>
+        <div style={{position:"relative",marginBottom:10}}>
+          <input type={show?"text":"password"} placeholder="Nouveau mot de passe" value={pwd} onChange={e=>setPwd(e.target.value)} style={{width:"100%",padding:"10px 36px 10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
+          <button style={eyeBtn} onClick={()=>setShow(s=>!s)}>{show?"🙈":"👁️"}</button>
+        </div>
+        <div style={{position:"relative",marginBottom:16}}>
+          <input type={show?"text":"password"} placeholder="Confirmer le mot de passe" value={pwd2} onChange={e=>setPwd2(e.target.value)} style={{width:"100%",padding:"10px 36px 10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
+          <button style={eyeBtn} onClick={()=>setShow(s=>!s)}>{show?"🙈":"👁️"}</button>
+        </div>
         <button onClick={handleReset} disabled={loading} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer"}}>{loading?"...":"Enregistrer"}</button>
       </div>
     </div>
@@ -1042,18 +1050,21 @@ function AppContent(){
   },[]);
 
   useEffect(()=>{
+    // Listener d'abord, AVANT l'échange de code
+    const{data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
+      if(event==="PASSWORD_RECOVERY"){setShowResetPassword(true);}
+      setUser(session?.user||null);
+    });
+    // Puis échange du code
     const handleAuthRedirect=async()=>{
       try{
         const url=new URL(window.location.href);
         const code=url.searchParams.get("code");
         if(code){await supabase.auth.exchangeCodeForSession(code);window.history.replaceState({},document.title,url.pathname);}
       }catch(err){console.error("Auth redirect error:",err);}
+      supabase.auth.getSession().then(({data:{session}})=>setUser(session?.user||null));
     };
-    handleAuthRedirect().then(()=>{supabase.auth.getSession().then(({data:{session}})=>setUser(session?.user||null));});
-    const{data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
-      if(event==="PASSWORD_RECOVERY"){setShowResetPassword(true);}
-      setUser(session?.user||null);
-    });
+    handleAuthRedirect();
     return()=>subscription.unsubscribe();
   },[]);
 
@@ -1317,7 +1328,8 @@ function AppContent(){
       });
     }
     return Array.from({length:6},(_,i)=>{
-      const d=new Date();d.setMonth(d.getMonth()-5+i);
+      const now=new Date();
+      const d=new Date(now.getFullYear(),now.getMonth()-5+i,1);
       const m=d.getMonth(),a=d.getFullYear();
       const ca=contrats.filter(c=>{const cd=new Date(c.dateDebut);return cd.getMonth()===m&&cd.getFullYear()===a;}).reduce((s,c)=>s+(c.totalCalc||0),0);
       const dep=depenses.filter(dd=>{const dt=new Date(dd.date);return dt.getMonth()===m&&dt.getFullYear()===a;}).reduce((s,d2)=>s+parseFloat(d2.montant||0),0);
@@ -1407,9 +1419,8 @@ function AppContent(){
     <div style={{minHeight:"100vh",background:"#f0f4f8"}}>
       <nav style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",boxShadow:"0 2px 12px rgba(0,0,0,.3)",position:"sticky",top:0,zIndex:100}}>
         <div style={{maxWidth:1100,margin:"0 auto",padding:"0 8px",height:54,display:"flex",alignItems:"center",gap:4}}>
-          <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
-            <div style={{background:"white",borderRadius:6,padding:"2px 6px"}}><span style={{color:"#0a1940",fontWeight:900,fontSize:10,letterSpacing:1}}>MAN'S</span></div>
-            <span style={{color:"white",fontWeight:700,fontSize:10,whiteSpace:"nowrap"}}>LOCATION</span>
+          <div style={{display:"flex",alignItems:"center",flexShrink:0}}>
+            <img src="/logo.png" alt="Man's Loc" style={{height:42,width:"auto"}}/>
           </div>
           <div style={{display:"flex",overflowX:"auto",gap:0,WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none",flex:1}}>
             {PAGES.map(p=>(
@@ -2547,33 +2558,29 @@ function AppContent(){
                   {rows.length===0
                     ?<div style={{textAlign:"center",color:"#9ca3af",padding:20,fontSize:12}}>Aucun véhicule</div>
                     :<div style={{overflowX:"auto"}}>
-                      <div style={{minWidth:360}}>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr auto auto auto auto",gap:"4px 10px",alignItems:"center",marginBottom:10,paddingBottom:8,borderBottom:"2px solid #f3f4f6"}}>
-                        <span style={{fontSize:10,color:"#9ca3af",fontWeight:700}}>VÉHICULE</span>
-                        <span style={{fontSize:10,color:"#2563eb",fontWeight:700,textAlign:"right"}}>CA</span>
-                        <span style={{fontSize:10,color:"#ef4444",fontWeight:700,textAlign:"right"}}>DÉPENSES</span>
-                        <span style={{fontSize:10,color:"#d97706",fontWeight:700,textAlign:"right"}}>CAUTION</span>
-                        <span style={{fontSize:10,color:"#16a34a",fontWeight:700,textAlign:"right"}}>NET</span>
-                      </div>
-                      {rows.map((r,i)=>(
-                        <div key={i} style={{display:"grid",gridTemplateColumns:"1fr auto auto auto auto",gap:"4px 10px",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>
-                          <div>
-                            <div style={{fontWeight:700,fontSize:12,color:r.color}}>{r.label}</div>
-                            <div style={{fontSize:10,color:"#9ca3af"}}>{r.immat}</div>
-                          </div>
-                          <span style={{fontWeight:700,fontSize:12,color:"#2563eb",textAlign:"right"}}>{r.ca} {sym}</span>
-                          <span style={{fontWeight:700,fontSize:12,color:"#ef4444",textAlign:"right"}}>{r.dep.toFixed(0)} {sym}</span>
-                          <span style={{fontWeight:700,fontSize:12,color:"#d97706",textAlign:"right"}}>{r.caution>0?r.caution.toFixed(0)+" "+sym:"—"}</span>
-                          <span style={{fontWeight:700,fontSize:12,color:r.net>=0?"#16a34a":"#dc2626",textAlign:"right"}}>{r.net.toFixed(0)} {sym}</span>
-                        </div>
-                      ))}
-                      <div style={{display:"grid",gridTemplateColumns:"1fr auto auto auto auto",gap:"4px 10px",alignItems:"center",paddingTop:10,marginTop:4,borderTop:"2px solid #1e3a8a"}}>
-                        <span style={{fontWeight:800,fontSize:12,color:"#1f2937"}}>TOTAL</span>
-                        <span style={{fontWeight:800,fontSize:12,color:"#2563eb",textAlign:"right"}}>{totalCA} {sym}</span>
-                        <span style={{fontWeight:800,fontSize:12,color:"#ef4444",textAlign:"right"}}>{totalDep.toFixed(0)} {sym}</span>
-                        <span style={{fontWeight:800,fontSize:12,color:"#d97706",textAlign:"right"}}>{totalCaution>0?totalCaution.toFixed(0)+" "+sym:"—"}</span>
-                        <span style={{fontWeight:800,fontSize:12,color:totalNet>=0?"#16a34a":"#dc2626",textAlign:"right"}}>{totalNet.toFixed(0)} {sym}</span>
-                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 80px 80px",gap:"0 8px",minWidth:360}}>
+                        <span style={{fontSize:10,color:"#9ca3af",fontWeight:700,padding:"0 0 8px 0",borderBottom:"2px solid #f3f4f6"}}>VÉHICULE</span>
+                        <span style={{fontSize:10,color:"#2563eb",fontWeight:700,textAlign:"right",padding:"0 0 8px 0",borderBottom:"2px solid #f3f4f6"}}>CA</span>
+                        <span style={{fontSize:10,color:"#ef4444",fontWeight:700,textAlign:"right",padding:"0 0 8px 0",borderBottom:"2px solid #f3f4f6"}}>DÉPENSES</span>
+                        <span style={{fontSize:10,color:"#d97706",fontWeight:700,textAlign:"right",padding:"0 0 8px 0",borderBottom:"2px solid #f3f4f6"}}>CAUTION</span>
+                        <span style={{fontSize:10,color:"#16a34a",fontWeight:700,textAlign:"right",padding:"0 0 8px 0",borderBottom:"2px solid #f3f4f6"}}>NET</span>
+                        {rows.map((r,i)=>(
+                          <Fragment key={i}>
+                            <div style={{padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>
+                              <div style={{fontWeight:700,fontSize:12,color:r.color}}>{r.label}</div>
+                              <div style={{fontSize:10,color:"#9ca3af"}}>{r.immat}</div>
+                            </div>
+                            <span style={{fontWeight:700,fontSize:12,color:"#2563eb",textAlign:"right",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>{r.ca} {sym}</span>
+                            <span style={{fontWeight:700,fontSize:12,color:"#ef4444",textAlign:"right",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>{r.dep.toFixed(0)} {sym}</span>
+                            <span style={{fontWeight:700,fontSize:12,color:"#d97706",textAlign:"right",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>{r.caution>0?r.caution.toFixed(0)+" "+sym:"—"}</span>
+                            <span style={{fontWeight:700,fontSize:12,color:r.net>=0?"#16a34a":"#dc2626",textAlign:"right",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>{r.net.toFixed(0)} {sym}</span>
+                          </Fragment>
+                        ))}
+                        <span style={{fontWeight:800,fontSize:12,color:"#1f2937",padding:"10px 0 0 0",borderTop:"2px solid #1e3a8a"}}>TOTAL</span>
+                        <span style={{fontWeight:800,fontSize:12,color:"#2563eb",textAlign:"right",padding:"10px 0 0 0",borderTop:"2px solid #1e3a8a"}}>{totalCA} {sym}</span>
+                        <span style={{fontWeight:800,fontSize:12,color:"#ef4444",textAlign:"right",padding:"10px 0 0 0",borderTop:"2px solid #1e3a8a"}}>{totalDep.toFixed(0)} {sym}</span>
+                        <span style={{fontWeight:800,fontSize:12,color:"#d97706",textAlign:"right",padding:"10px 0 0 0",borderTop:"2px solid #1e3a8a"}}>{totalCaution>0?totalCaution.toFixed(0)+" "+sym:"—"}</span>
+                        <span style={{fontWeight:800,fontSize:12,color:totalNet>=0?"#16a34a":"#dc2626",textAlign:"right",padding:"10px 0 0 0",borderTop:"2px solid #1e3a8a"}}>{totalNet.toFixed(0)} {sym}</span>
                       </div>
                     </div>}
                 </div>
@@ -2763,8 +2770,9 @@ function AuthPage(){
   return(
     <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"#f1f5f9"}}>
       <div style={{background:"white",borderRadius:16,padding:"40px 32px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
-        <h1 style={{textAlign:"center",marginBottom:8,fontSize:22,fontWeight:700}}>MAN'S LOCATION</h1>
-        <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:14}}>Accès réservé aux professionnels</p>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <img src="/logo.png" alt="Man's Loc" style={{height:120,width:"auto"}}/>
+        </div>
         {mode!=="forgot"&&(
           <div style={{display:"flex",marginBottom:24,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
             {["login","signup"].map(m=><button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600}}>{m==="login"?"Connexion":"Inscription"}</button>)}

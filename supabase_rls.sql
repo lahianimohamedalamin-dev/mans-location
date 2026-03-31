@@ -1,0 +1,77 @@
+-- ============================================================
+-- SCRIPT RLS (Row Level Security) — Man's Location
+-- À exécuter dans Supabase > SQL Editor
+-- ============================================================
+
+-- PROFILS
+ALTER TABLE profils ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "profils_owner" ON profils;
+CREATE POLICY "profils_owner" ON profils
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- VEHICULES
+ALTER TABLE vehicules ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "vehicules_owner" ON vehicules;
+CREATE POLICY "vehicules_owner" ON vehicules
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- CONTRATS
+ALTER TABLE contrats ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "contrats_owner" ON contrats;
+CREATE POLICY "contrats_owner" ON contrats
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- RETOURS
+ALTER TABLE retours ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "retours_owner" ON retours;
+CREATE POLICY "retours_owner" ON retours
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- DEPENSES
+ALTER TABLE depenses ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "depenses_owner" ON depenses;
+CREATE POLICY "depenses_owner" ON depenses
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- QUESTIONS (lecture publique pour la vitrine, écriture publique pour les clients)
+ALTER TABLE questions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "questions_owner" ON questions;
+DROP POLICY IF EXISTS "questions_public_insert" ON questions;
+DROP POLICY IF EXISTS "questions_public_read" ON questions;
+-- Le loueur voit et gère ses questions
+CREATE POLICY "questions_owner" ON questions
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+-- Les visiteurs (non connectés) peuvent soumettre une demande de location
+CREATE POLICY "questions_public_insert" ON questions
+  FOR INSERT WITH CHECK (true);
+-- Les visiteurs peuvent lire les questions d'un loueur (vitrine)
+CREATE POLICY "questions_public_read" ON questions
+  FOR SELECT USING (true);
+
+-- AMENDES
+ALTER TABLE amendes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "amendes_owner" ON amendes;
+CREATE POLICY "amendes_owner" ON amendes
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- CLIENTS (si table existe)
+DO $$ BEGIN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'clients') THEN
+    EXECUTE 'ALTER TABLE clients ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'DROP POLICY IF EXISTS "clients_owner" ON clients';
+    EXECUTE 'CREATE POLICY "clients_owner" ON clients USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id)';
+  END IF;
+END $$;
+
+-- Colonnes manquantes éventuelles
+ALTER TABLE retours ADD COLUMN IF NOT EXISTS remise_retour numeric DEFAULT 0;
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS whatsapp text;
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS reseaux text;
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS docs jsonb DEFAULT '[]';

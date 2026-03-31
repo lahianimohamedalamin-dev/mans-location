@@ -2559,33 +2559,29 @@ function AppContent(){
                   {rows.length===0
                     ?<div style={{textAlign:"center",color:"#9ca3af",padding:20,fontSize:12}}>Aucun véhicule</div>
                     :<div style={{overflowX:"auto"}}>
-                      <div style={{minWidth:360}}>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 80px 80px",gap:"4px 8px",alignItems:"center",marginBottom:10,paddingBottom:8,borderBottom:"2px solid #f3f4f6"}}>
-                        <span style={{fontSize:10,color:"#9ca3af",fontWeight:700}}>VÉHICULE</span>
-                        <span style={{fontSize:10,color:"#2563eb",fontWeight:700,textAlign:"right"}}>CA</span>
-                        <span style={{fontSize:10,color:"#ef4444",fontWeight:700,textAlign:"right"}}>DÉPENSES</span>
-                        <span style={{fontSize:10,color:"#d97706",fontWeight:700,textAlign:"right"}}>CAUTION</span>
-                        <span style={{fontSize:10,color:"#16a34a",fontWeight:700,textAlign:"right"}}>NET</span>
-                      </div>
-                      {rows.map((r,i)=>(
-                        <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 80px 80px",gap:"4px 8px",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>
-                          <div>
-                            <div style={{fontWeight:700,fontSize:12,color:r.color}}>{r.label}</div>
-                            <div style={{fontSize:10,color:"#9ca3af"}}>{r.immat}</div>
-                          </div>
-                          <span style={{fontWeight:700,fontSize:12,color:"#2563eb",textAlign:"right"}}>{r.ca} {sym}</span>
-                          <span style={{fontWeight:700,fontSize:12,color:"#ef4444",textAlign:"right"}}>{r.dep.toFixed(0)} {sym}</span>
-                          <span style={{fontWeight:700,fontSize:12,color:"#d97706",textAlign:"right"}}>{r.caution>0?r.caution.toFixed(0)+" "+sym:"—"}</span>
-                          <span style={{fontWeight:700,fontSize:12,color:r.net>=0?"#16a34a":"#dc2626",textAlign:"right"}}>{r.net.toFixed(0)} {sym}</span>
-                        </div>
-                      ))}
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 80px 80px",gap:"4px 8px",alignItems:"center",paddingTop:10,marginTop:4,borderTop:"2px solid #1e3a8a"}}>
-                        <span style={{fontWeight:800,fontSize:12,color:"#1f2937"}}>TOTAL</span>
-                        <span style={{fontWeight:800,fontSize:12,color:"#2563eb",textAlign:"right"}}>{totalCA} {sym}</span>
-                        <span style={{fontWeight:800,fontSize:12,color:"#ef4444",textAlign:"right"}}>{totalDep.toFixed(0)} {sym}</span>
-                        <span style={{fontWeight:800,fontSize:12,color:"#d97706",textAlign:"right"}}>{totalCaution>0?totalCaution.toFixed(0)+" "+sym:"—"}</span>
-                        <span style={{fontWeight:800,fontSize:12,color:totalNet>=0?"#16a34a":"#dc2626",textAlign:"right"}}>{totalNet.toFixed(0)} {sym}</span>
-                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 80px 80px",gap:"0 8px",minWidth:360}}>
+                        <span style={{fontSize:10,color:"#9ca3af",fontWeight:700,padding:"0 0 8px 0",borderBottom:"2px solid #f3f4f6"}}>VÉHICULE</span>
+                        <span style={{fontSize:10,color:"#2563eb",fontWeight:700,textAlign:"right",padding:"0 0 8px 0",borderBottom:"2px solid #f3f4f6"}}>CA</span>
+                        <span style={{fontSize:10,color:"#ef4444",fontWeight:700,textAlign:"right",padding:"0 0 8px 0",borderBottom:"2px solid #f3f4f6"}}>DÉPENSES</span>
+                        <span style={{fontSize:10,color:"#d97706",fontWeight:700,textAlign:"right",padding:"0 0 8px 0",borderBottom:"2px solid #f3f4f6"}}>CAUTION</span>
+                        <span style={{fontSize:10,color:"#16a34a",fontWeight:700,textAlign:"right",padding:"0 0 8px 0",borderBottom:"2px solid #f3f4f6"}}>NET</span>
+                        {rows.map((r,i)=>(
+                          <React.Fragment key={i}>
+                            <div style={{padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>
+                              <div style={{fontWeight:700,fontSize:12,color:r.color}}>{r.label}</div>
+                              <div style={{fontSize:10,color:"#9ca3af"}}>{r.immat}</div>
+                            </div>
+                            <span style={{fontWeight:700,fontSize:12,color:"#2563eb",textAlign:"right",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>{r.ca} {sym}</span>
+                            <span style={{fontWeight:700,fontSize:12,color:"#ef4444",textAlign:"right",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>{r.dep.toFixed(0)} {sym}</span>
+                            <span style={{fontWeight:700,fontSize:12,color:"#d97706",textAlign:"right",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>{r.caution>0?r.caution.toFixed(0)+" "+sym:"—"}</span>
+                            <span style={{fontWeight:700,fontSize:12,color:r.net>=0?"#16a34a":"#dc2626",textAlign:"right",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>{r.net.toFixed(0)} {sym}</span>
+                          </React.Fragment>
+                        ))}
+                        <span style={{fontWeight:800,fontSize:12,color:"#1f2937",padding:"10px 0 0 0",borderTop:"2px solid #1e3a8a"}}>TOTAL</span>
+                        <span style={{fontWeight:800,fontSize:12,color:"#2563eb",textAlign:"right",padding:"10px 0 0 0",borderTop:"2px solid #1e3a8a"}}>{totalCA} {sym}</span>
+                        <span style={{fontWeight:800,fontSize:12,color:"#ef4444",textAlign:"right",padding:"10px 0 0 0",borderTop:"2px solid #1e3a8a"}}>{totalDep.toFixed(0)} {sym}</span>
+                        <span style={{fontWeight:800,fontSize:12,color:"#d97706",textAlign:"right",padding:"10px 0 0 0",borderTop:"2px solid #1e3a8a"}}>{totalCaution>0?totalCaution.toFixed(0)+" "+sym:"—"}</span>
+                        <span style={{fontWeight:800,fontSize:12,color:totalNet>=0?"#16a34a":"#dc2626",textAlign:"right",padding:"10px 0 0 0",borderTop:"2px solid #1e3a8a"}}>{totalNet.toFixed(0)} {sym}</span>
                       </div>
                     </div>}
                 </div>

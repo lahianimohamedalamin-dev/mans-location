@@ -2694,9 +2694,9 @@ function AuthPage(){
 
     setLoading(true);setError("");setSuccess("");
     if(mode==="forgot"){
-      await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(),{redirectTo:window.location.origin});
-      // Message générique : on ne révèle pas si l'email existe
-      setSuccess("Si cet email est enregistré, un lien de réinitialisation a été envoyé.");
+      const{error:fErr}=await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(),{redirectTo:window.location.origin+"/reset-password"});
+      if(fErr){setError("Erreur : "+fErr.message);setLoading(false);return;}
+      setSuccess("Email de réinitialisation envoyé ! Vérifiez votre boîte mail (et spam).");
       setLoading(false);return;
     }
     let result;

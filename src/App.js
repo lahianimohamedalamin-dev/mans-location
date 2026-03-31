@@ -1321,7 +1321,6 @@ function AppContent(){
   const isSoon=exp=>{if(!exp)return false;const d=new Date(exp),n=new Date();return(d-n)/86400000<30&&(d-n)>0;};
   const getDays=date=>{const y=date.getFullYear(),m=date.getMonth();return Array.from({length:new Date(y,m+1,0).getDate()},(_,i)=>new Date(y,m,i+1));};
   const isBooked=(vid,date)=>contrats.some(c=>c.vehicleId===vid&&date>=new Date(c.dateDebut)&&date<=new Date(c.dateFin));
-  const days=getDays(planMonth);
 
   const caP=(()=>{
     const now=new Date();
@@ -1361,7 +1360,6 @@ function AppContent(){
 
   const ganttDays=90;
   const ganttDates=Array.from({length:ganttDays},(_,i)=>{const d=new Date(ganttStartDate);d.setDate(d.getDate()+i);return d;});
-  const DW=32;
   const today=new Date();
   const todayOffset=Math.floor((today-ganttStartDate)/86400000);
   const ganttColors=["#2563eb","#7c3aed","#16a34a","#d97706","#dc2626","#0891b2","#be185d"];
@@ -2108,14 +2106,13 @@ function AppContent(){
                     {week.map((d,di)=>{
                       const isToday=d&&d.toDateString()===todayStr;
                       const isWE=di>=5;
-                      const bookedVehicles=d?vehicles.filter((_,vi)=>isBooked(vehicles[vi].id,d)):[];
                       const reservations=d?contrats.filter(c=>{
                         const s=new Date(c.dateDebut),e=new Date(c.dateFin);
                         return d>=s&&d<=e;
                       }):[];
                       return(
                         <div key={di} style={{minHeight:72,padding:"4px",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:di>0?"1px solid #f0f0f0":"none",position:"relative"}}>
-                          {d&&<div style={{fontSize:12,fontWeight:isToday?800:400,color:isToday?"#2563eb":isWE?"#9ca3af":"#374151",marginBottom:3,width:22,height:22,borderRadius:"50%",background:isToday?"#2563eb":"transparent",color:isToday?"white":isWE?"#9ca3af":"#374151",display:"flex",alignItems:"center",justifyContent:"center"}}>{d.getDate()}</div>}
+                          {d&&<div style={{fontSize:12,fontWeight:isToday?800:400,marginBottom:3,width:22,height:22,borderRadius:"50%",background:isToday?"#2563eb":"transparent",color:isToday?"white":isWE?"#9ca3af":"#374151",display:"flex",alignItems:"center",justifyContent:"center"}}>{d.getDate()}</div>}
                           <div style={{display:"flex",flexDirection:"column",gap:2}}>
                             {reservations.slice(0,3).map((c,ci)=>{
                               const vi=vehicles.findIndex(v=>v.id===c.vehicleId);

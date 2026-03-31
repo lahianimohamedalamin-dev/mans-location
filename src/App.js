@@ -1042,18 +1042,21 @@ function AppContent(){
   },[]);
 
   useEffect(()=>{
+    // Listener d'abord, AVANT l'échange de code
+    const{data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
+      if(event==="PASSWORD_RECOVERY"){setShowResetPassword(true);}
+      setUser(session?.user||null);
+    });
+    // Puis échange du code
     const handleAuthRedirect=async()=>{
       try{
         const url=new URL(window.location.href);
         const code=url.searchParams.get("code");
         if(code){await supabase.auth.exchangeCodeForSession(code);window.history.replaceState({},document.title,url.pathname);}
       }catch(err){console.error("Auth redirect error:",err);}
+      supabase.auth.getSession().then(({data:{session}})=>setUser(session?.user||null));
     };
-    handleAuthRedirect().then(()=>{supabase.auth.getSession().then(({data:{session}})=>setUser(session?.user||null));});
-    const{data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
-      if(event==="PASSWORD_RECOVERY"){setShowResetPassword(true);}
-      setUser(session?.user||null);
-    });
+    handleAuthRedirect();
     return()=>subscription.unsubscribe();
   },[]);
 

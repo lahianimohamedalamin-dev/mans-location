@@ -916,8 +916,39 @@ function calcTarifAuto(vehicle,nbJours,heuresLoc,prixJourModifie){
 // ─────────────────────────────────────────────
 // APP CONTENT
 // ─────────────────────────────────────────────
+function ResetPasswordModal({onDone}){
+  const[pwd,setPwd]=useState("");
+  const[pwd2,setPwd2]=useState("");
+  const[loading,setLoading]=useState(false);
+  const[error,setError]=useState("");
+  const[success,setSuccess]=useState("");
+  async function handleReset(){
+    if(pwd.length<6){setError("Minimum 6 caractères");return;}
+    if(pwd!==pwd2){setError("Les mots de passe ne correspondent pas");return;}
+    setLoading(true);setError("");
+    const{error:e}=await supabase.auth.updateUser({password:pwd});
+    setLoading(false);
+    if(e){setError(e.message);return;}
+    setSuccess("Mot de passe modifié !");
+    setTimeout(()=>onDone(),2000);
+  }
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{background:"white",borderRadius:16,padding:32,width:"100%",maxWidth:380,margin:"0 16px"}}>
+        <h2 style={{fontSize:18,fontWeight:700,marginBottom:20,textAlign:"center"}}>Nouveau mot de passe</h2>
+        {error&&<div style={{background:"#fef2f2",color:"#dc2626",padding:"10px 14px",borderRadius:8,marginBottom:12,fontSize:13}}>{error}</div>}
+        {success&&<div style={{background:"#f0fdf4",color:"#16a34a",padding:"10px 14px",borderRadius:8,marginBottom:12,fontSize:13}}>{success}</div>}
+        <input type="password" placeholder="Nouveau mot de passe" value={pwd} onChange={e=>setPwd(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,marginBottom:10,boxSizing:"border-box"}}/>
+        <input type="password" placeholder="Confirmer le mot de passe" value={pwd2} onChange={e=>setPwd2(e.target.value)} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,marginBottom:16,boxSizing:"border-box"}}/>
+        <button onClick={handleReset} disabled={loading} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer"}}>{loading?"...":"Enregistrer"}</button>
+      </div>
+    </div>
+  );
+}
+
 function AppContent(){
   const[user,setUser]=useState(null);
+  const[showResetPassword,setShowResetPassword]=useState(false);
   const[vehicles,setVehicles]=useState([]);
   const[contrats,setContrats]=useState([]);
   const[depenses,setDepenses]=useState([]);
@@ -1019,7 +1050,10 @@ function AppContent(){
       }catch(err){console.error("Auth redirect error:",err);}
     };
     handleAuthRedirect().then(()=>{supabase.auth.getSession().then(({data:{session}})=>setUser(session?.user||null));});
-    const{data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>setUser(session?.user||null));
+    const{data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
+      if(event==="PASSWORD_RECOVERY"){setShowResetPassword(true);}
+      setUser(session?.user||null);
+    });
     return()=>subscription.unsubscribe();
   },[]);
 
@@ -1338,6 +1372,7 @@ function AppContent(){
   function pickDocFile(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setNewDoc(d=>({...d,file:f.name,fileData:ev.target.result}));r.readAsDataURL(f);}
 
   if(!user)return <AuthPage/>;
+  if(showResetPassword)return <ResetPasswordModal onDone={()=>setShowResetPassword(false)}/>;
   if(!dataLoaded)return(
     <div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"#f1f5f9"}}>
       <div style={{textAlign:"center"}}><div style={{fontSize:36,marginBottom:12}}>⏳</div><p style={{color:"#6b7280",fontSize:14}}>Chargement...</p></div>

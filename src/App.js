@@ -1419,9 +1419,8 @@ function AppContent(){
     <div style={{minHeight:"100vh",background:"#f0f4f8"}}>
       <nav style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",boxShadow:"0 2px 12px rgba(0,0,0,.3)",position:"sticky",top:0,zIndex:100}}>
         <div style={{maxWidth:1100,margin:"0 auto",padding:"0 8px",height:54,display:"flex",alignItems:"center",gap:4}}>
-          <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
-            <div style={{background:"white",borderRadius:6,padding:"2px 6px"}}><span style={{color:"#0a1940",fontWeight:900,fontSize:10,letterSpacing:1}}>MAN'S</span></div>
-            <span style={{color:"white",fontWeight:700,fontSize:10,whiteSpace:"nowrap"}}>LOCATION</span>
+          <div style={{display:"flex",alignItems:"center",flexShrink:0}}>
+            <img src="/logo.svg" alt="Man's Loc" style={{height:42,width:"auto"}}/>
           </div>
           <div style={{display:"flex",overflowX:"auto",gap:0,WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none",flex:1}}>
             {PAGES.map(p=>(
@@ -2771,8 +2770,9 @@ function AuthPage(){
   return(
     <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"#f1f5f9"}}>
       <div style={{background:"white",borderRadius:16,padding:"40px 32px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
-        <h1 style={{textAlign:"center",marginBottom:8,fontSize:22,fontWeight:700}}>MAN'S LOCATION</h1>
-        <p style={{textAlign:"center",color:"#6b7280",marginBottom:24,fontSize:14}}>Accès réservé aux professionnels</p>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <img src="/logo.svg" alt="Man's Loc" style={{height:120,width:"auto"}}/>
+        </div>
         {mode!=="forgot"&&(
           <div style={{display:"flex",marginBottom:24,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
             {["login","signup"].map(m=><button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600}}>{m==="login"?"Connexion":"Inscription"}</button>)}

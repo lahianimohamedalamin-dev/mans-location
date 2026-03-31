@@ -2105,8 +2105,8 @@ function AppContent(){
                       const isToday=d&&d.toDateString()===todayStr;
                       const isWE=di>=5;
                       const reservations=d?contrats.filter(c=>{
-                        const s=new Date(c.dateDebut),e=new Date(c.dateFin);
-                        return d>=s&&d<=e;
+                        const dStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+                        return dStr>=c.dateDebut&&dStr<=c.dateFin;
                       }):[];
                       return(
                         <div key={di} style={{minHeight:72,padding:"4px",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:di>0?"1px solid #f0f0f0":"none",position:"relative"}}>

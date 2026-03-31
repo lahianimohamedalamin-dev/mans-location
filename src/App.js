@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 
 const DEF_FRAIS=[
   {id:1,label:"Rayure",montant:300},{id:2,label:"Jantes rayées",montant:300},
@@ -2566,7 +2566,7 @@ function AppContent(){
                         <span style={{fontSize:10,color:"#d97706",fontWeight:700,textAlign:"right",padding:"0 0 8px 0",borderBottom:"2px solid #f3f4f6"}}>CAUTION</span>
                         <span style={{fontSize:10,color:"#16a34a",fontWeight:700,textAlign:"right",padding:"0 0 8px 0",borderBottom:"2px solid #f3f4f6"}}>NET</span>
                         {rows.map((r,i)=>(
-                          <React.Fragment key={i}>
+                          <Fragment key={i}>
                             <div style={{padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>
                               <div style={{fontWeight:700,fontSize:12,color:r.color}}>{r.label}</div>
                               <div style={{fontSize:10,color:"#9ca3af"}}>{r.immat}</div>
@@ -2575,7 +2575,7 @@ function AppContent(){
                             <span style={{fontWeight:700,fontSize:12,color:"#ef4444",textAlign:"right",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>{r.dep.toFixed(0)} {sym}</span>
                             <span style={{fontWeight:700,fontSize:12,color:"#d97706",textAlign:"right",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>{r.caution>0?r.caution.toFixed(0)+" "+sym:"—"}</span>
                             <span style={{fontWeight:700,fontSize:12,color:r.net>=0?"#16a34a":"#dc2626",textAlign:"right",padding:"8px 0",borderBottom:"1px solid #f9fafb"}}>{r.net.toFixed(0)} {sym}</span>
-                          </React.Fragment>
+                          </Fragment>
                         ))}
                         <span style={{fontWeight:800,fontSize:12,color:"#1f2937",padding:"10px 0 0 0",borderTop:"2px solid #1e3a8a"}}>TOTAL</span>
                         <span style={{fontWeight:800,fontSize:12,color:"#2563eb",textAlign:"right",padding:"10px 0 0 0",borderTop:"2px solid #1e3a8a"}}>{totalCA} {sym}</span>

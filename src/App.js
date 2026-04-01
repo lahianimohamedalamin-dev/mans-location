@@ -1740,11 +1740,11 @@ function AppContent(){
             {vehicles.some(v=>v.publie)&&(
               <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",borderRadius:14,padding:16,marginBottom:16,color:"white"}}>
                 <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>Lien vitrine public</div>
-                <div style={{background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px",fontSize:11,wordBreak:"break-all",marginBottom:8}}>{window.location.origin}/vitrine/{user?.id?.slice(0,8)}</div>
+                <div style={{background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px",fontSize:11,wordBreak:"break-all",marginBottom:8}}>{window.location.origin}/vitrine/{user?.id}</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  <button onClick={()=>{navigator.clipboard.writeText(window.location.origin+"/vitrine/"+user?.id?.slice(0,8));toast_("Lien copié !");}} style={{padding:"7px 14px",background:"white",color:"#1e3a8a",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Copier le lien</button>
-                  <button onClick={()=>window.open(window.location.origin+"/vitrine/"+user?.id?.slice(0,8),"_blank")} style={{padding:"7px 14px",background:"rgba(255,255,255,.15)",color:"white",border:"1px solid rgba(255,255,255,.4)",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Ouvrir</button>
-                  <button onClick={()=>{const msg="Bonjour, voici notre catalogue : "+window.location.origin+"/vitrine/"+user?.id?.slice(0,8);window.open("https://wa.me/"+(profil.whatsapp||profil.tel||"").replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");}} style={{padding:"7px 14px",background:"#25D366",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>WhatsApp</button>
+                  <button onClick={()=>{navigator.clipboard.writeText(window.location.origin+"/vitrine/"+user?.id);toast_("Lien copié !");}} style={{padding:"7px 14px",background:"white",color:"#1e3a8a",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Copier le lien</button>
+                  <button onClick={()=>window.open(window.location.origin+"/vitrine/"+user?.id,"_blank")} style={{padding:"7px 14px",background:"rgba(255,255,255,.15)",color:"white",border:"1px solid rgba(255,255,255,.4)",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Ouvrir</button>
+                  <button onClick={()=>{const msg="Bonjour, voici notre catalogue : "+window.location.origin+"/vitrine/"+user?.id;window.open("https://wa.me/"+(profil.whatsapp||profil.tel||"").replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");}} style={{padding:"7px 14px",background:"#25D366",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>WhatsApp</button>
                 </div>
               </div>
             )}

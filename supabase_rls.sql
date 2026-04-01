@@ -75,3 +75,22 @@ ALTER TABLE retours ADD COLUMN IF NOT EXISTS remise_retour numeric DEFAULT 0;
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS whatsapp text;
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS reseaux text;
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS docs jsonb DEFAULT '[]';
+
+-- ============================================================
+-- LECTURE PUBLIQUE POUR LA VITRINE (clients sans compte)
+-- ============================================================
+
+-- Profils : lecture publique (pour afficher le nom, tel de la vitrine)
+DROP POLICY IF EXISTS "profils_public_read" ON profils;
+CREATE POLICY "profils_public_read" ON profils
+  FOR SELECT USING (true);
+
+-- Véhicules : lecture publique des véhicules publiés uniquement
+DROP POLICY IF EXISTS "vehicules_public_read" ON vehicules;
+CREATE POLICY "vehicules_public_read" ON vehicules
+  FOR SELECT USING (publie = true);
+
+-- Questions : insertion publique (clients vitrine peuvent envoyer une demande)
+DROP POLICY IF EXISTS "questions_public_insert" ON questions;
+CREATE POLICY "questions_public_insert" ON questions
+  FOR INSERT WITH CHECK (true);

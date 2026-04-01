@@ -14,17 +14,18 @@ export default function Vitrine() {
   useEffect(() => {
     if (!slug) return;
     async function load() {
-      // Try by slug first (normal case)
       let profils = null;
-      const { data: bySlug } = await supabase
-        .from('profils').select('*').eq('slug', slug).maybeSingle();
-      profils = bySlug;
 
-      // Fallback: slug = first 8 chars of user_id (if slug column missing/null in DB)
+      // 1. Essayer par user_id exact (UUID complet — méthode principale)
+      const { data: byUserId } = await supabase
+        .from('profils').select('*').eq('user_id', slug).maybeSingle();
+      profils = byUserId;
+
+      // 2. Fallback : chercher par slug personnalisé
       if (!profils) {
-        const { data: byUserId } = await supabase
-          .from('profils').select('*').ilike('user_id::text', slug + '%').maybeSingle();
-        profils = byUserId || null;
+        const { data: bySlug } = await supabase
+          .from('profils').select('*').eq('slug', slug).maybeSingle();
+        profils = bySlug || null;
       }
 
       setProfil(profils);

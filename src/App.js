@@ -1107,6 +1107,7 @@ function AppContent(){
 
   const loadAllData=useCallback(async(uid)=>{
     // Restaurer le cache local immédiatement (affichage instantané au retour sur l'onglet)
+    let hasCachedData=false;
     try{
       const cached=localStorage.getItem('ml_data_'+uid);
       if(cached){
@@ -1119,10 +1120,12 @@ function AppContent(){
         if(d.amendes)setAmendes(d.amendes);
         if(d.profil){setProfil(d.profil);setProfilForm(d.profil);}
         if(d.clients)setClients(d.clients);
-        setDataLoaded(true); // afficher l'app immédiatement avec les données cachées
+        setDataLoaded(true); // afficher l'app immédiatement avec le cache
+        hasCachedData=true;
       }
     }catch{}
-    setDataLoaded(false);
+    // Afficher le loading seulement s'il n'y a pas de cache
+    if(!hasCachedData)setDataLoaded(false);
     try{
       const[profRes,vehRes,conRes,depRes,retRes,qRes,amenRes]=await Promise.all([
         supabase.from('profils').select('*').eq('user_id',uid).maybeSingle(),
@@ -1162,11 +1165,23 @@ function AppContent(){
       setQuestions(mappedQ);
       const mappedA=amenRes.data?amenRes.data.map(a=>({id:a.id,vehicleId:a.vehicle_id||'',vehicleLabel:a.vehicle_label||'',contratId:a.contrat_id||null,locNom:a.loc_nom||'',locTel:a.loc_tel||'',date:a.date||'',heure:a.heure||'',montant:a.montant||'',type:a.type||'',statut:a.statut||'A traiter',notes:a.notes||'',photoData:a.photo_data||null})):[];
       setAmendes(mappedA);
-      // Sauvegarder en cache pour affichage instantané au prochain chargement
+      // Sauvegarder en cache (sans les photos base64 pour éviter le quota)
       try{
-        const cache={profil:profData,vehicles:vehRes.data?vehRes.data.map(v=>({id:v.id,typeVehicule:v.type_vehicule||'voiture',marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,vin:v.vin||'',nbPortes:v.nb_portes||'',nbPlaces:v.nb_places||'',numParc:v.num_parc||'',docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],photosVehicule:v.photos_vehicule||[],publie:v.publie||false})):[],contrats:loadedContrats,retours:retRes.data?Object.fromEntries(retRes.data.map(r=>[r.contrat_id,{id:r.id,kmRetour:r.km_retour||'',carburantRetour:r.carburant_retour??100,montantRetenu:r.montant_retenu||0,raisonRetenue:r.raison_retenue||'',rembourse:r.rembourse||0,kmSup:r.km_sup||0,surplusKm:r.surplus_km||0,cautionRestituee:r.caution_restituee,checks:r.checks||{},carro:r.carro||{},carroPhotos:r.carro_photos||{},carroNotes:r.carro_notes||{},photos:r.photos||{},notes:r.notes||{},remiseRetour:r.remise_retour||0,date:r.date||''}])):{},depenses:depRes.data?depRes.data.map(d=>({id:d.id,label:d.label||'',montant:d.montant||0,categorie:d.categorie||'Carburant',date:d.date||'',vehicleId:d.vehicle_id||''})):[],questions:mappedQ,amendes:mappedA,clients:Object.values(clientMap)};
+        const stripPhotos=v=>({...v,photosVehicule:[],docs:[]});
+        const stripContrPhotos=c=>({...c,photosDepart:[],docsLocataire:{}});
+        const stripRetourPhotos=r=>({...r,carroPhotos:{},photos:{}});
+        const cache={
+          profil:profData,
+          vehicles:vehRes.data?vehRes.data.map(v=>stripPhotos({id:v.id,typeVehicule:v.type_vehicule||'voiture',marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,vin:v.vin||'',frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],publie:v.publie||false})):[],
+          contrats:loadedContrats.map(stripContrPhotos),
+          retours:retRes.data?Object.fromEntries(retRes.data.map(r=>[r.contrat_id,stripRetourPhotos({id:r.id,kmRetour:r.km_retour||'',carburantRetour:r.carburant_retour??100,montantRetenu:r.montant_retenu||0,raisonRetenue:r.raison_retenue||'',rembourse:r.rembourse||0,kmSup:r.km_sup||0,surplusKm:r.surplus_km||0,cautionRestituee:r.caution_restituee,checks:r.checks||{},carro:r.carro||{},carroNotes:r.carro_notes||{},notes:r.notes||{},remiseRetour:r.remise_retour||0,date:r.date||''})])):{ },
+          depenses:depRes.data?depRes.data.map(d=>({id:d.id,label:d.label||'',montant:d.montant||0,categorie:d.categorie||'Carburant',date:d.date||'',vehicleId:d.vehicle_id||''})):[],
+          questions:mappedQ,
+          amendes:mappedA.map(a=>({...a,photoData:null})),
+          clients:Object.values(clientMap).map(c=>({...c,docs:{}})),
+        };
         localStorage.setItem('ml_data_'+uid,JSON.stringify(cache));
-      }catch(cacheErr){/* quota dépassé, ignorer */}
+      }catch{/* quota dépassé, ignorer */}
     }catch(e){console.error('Error loading data:',e);}
     finally{if(activeUserIdRef.current===uid)setDataLoaded(true);}
   },[]);

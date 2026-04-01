@@ -1,6 +1,24 @@
 import { supabase } from './supabase';
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 
+// Sécurité : validation des fichiers uploadés
+const ALLOWED_IMAGE_TYPES = ["image/jpeg","image/jpg","image/png","image/webp","image/gif"];
+const ALLOWED_DOC_TYPES = [...ALLOWED_IMAGE_TYPES,"application/pdf"];
+const MAX_FILE_SIZE_MB = 10;
+function validateFile(file, allowPdf = false) {
+  if (!file) return null;
+  const allowed = allowPdf ? ALLOWED_DOC_TYPES : ALLOWED_IMAGE_TYPES;
+  if (!allowed.includes(file.type)) {
+    alert(`Fichier non autorisé : ${file.type || "inconnu"}. Formats acceptés : ${allowPdf ? "JPG, PNG, WebP, PDF" : "JPG, PNG, WebP"}`);
+    return false;
+  }
+  if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+    alert(`Fichier trop volumineux (${(file.size/1024/1024).toFixed(1)} Mo). Maximum : ${MAX_FILE_SIZE_MB} Mo.`);
+    return false;
+  }
+  return true;
+}
+
 const DEF_FRAIS=[
   {id:1,label:"Rayure",montant:300},{id:2,label:"Jantes rayées",montant:300},
   {id:3,label:"Élément touché",montant:300},{id:4,label:"Siège abîmé",montant:350},
@@ -391,7 +409,7 @@ function TelInput({value,onChange,placeholder,style}){
   const parts=(value||"").match(/^(\+\d+)\s(.*)$/);
   const code=parts?parts[1]:"+33";
   const num=parts?parts[2]:(value||"");
-  function update(c,n){onChange(n?c+" "+n:c+" ");}
+  function update(c,n){onChange(n?c+" "+n:"");}
   const IS={border:"1px solid #d1d5db",borderRadius:8,padding:"7px 8px",fontSize:12,boxSizing:"border-box",...(style||{})};
   return (
     <div style={{display:"flex",gap:4,width:"100%"}}>
@@ -444,7 +462,7 @@ function SigPad({label,onSave}){
 
 function PhotosDepart({photos,setPhotos}){
   const labels=["Avant","Arrière","Côté gauche","Côté droit","Intérieur","Jante AVG","Jante AVD","Jante ARG","Jante ARD","Autre"];
-  function addPhoto(label,file){if(!file)return;const r=new FileReader();r.onload=ev=>setPhotos(p=>[...p,{id:Date.now(),label,data:ev.target.result,name:file.name}]);r.readAsDataURL(file);}
+  function addPhoto(label,file){if(!file||!validateFile(file))return;const r=new FileReader();r.onload=ev=>setPhotos(p=>[...p,{id:Date.now(),label,data:ev.target.result,name:file.name}]);r.readAsDataURL(file);}
   function pickFile(label){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>addPhoto(label,e.target.files[0]);i.click();}
   function pickCamera(label){const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>addPhoto(label,e.target.files[0]);i.click();}
   function removePhoto(id){setPhotos(p=>p.filter(x=>x.id!==id));}
@@ -475,7 +493,7 @@ function PhotosDepart({photos,setPhotos}){
 }
 
 function PhotosVehicule({photos,setPhotos,max=5}){
-  function addPhoto(file){if(!file)return;if(photos.length>=max){alert("Maximum "+max+" photos");return;}const r=new FileReader();r.onload=ev=>setPhotos(p=>[...p,{id:Date.now(),data:ev.target.result,name:file.name}]);r.readAsDataURL(file);}
+  function addPhoto(file){if(!file||!validateFile(file))return;if(photos.length>=max){alert("Maximum "+max+" photos");return;}const r=new FileReader();r.onload=ev=>setPhotos(p=>[...p,{id:Date.now(),data:ev.target.result,name:file.name}]);r.readAsDataURL(file);}
   function pickFile(){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>addPhoto(e.target.files[0]);i.click();}
   function pickCamera(){const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>addPhoto(e.target.files[0]);i.click();}
   function remove(id){setPhotos(p=>p.filter(x=>x.id!==id));}
@@ -521,7 +539,7 @@ function PhotosVehiculeModal({vehicle,onClose,onSave}){
 }
 
 function DocsLocataire({docs,setDocs}){
-  function pickImg(key,capture=false){const i=document.createElement("input");i.type="file";i.accept="image/*";if(capture)i.capture="environment";i.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setDocs(d=>({...d,[key]:ev.target.result}));r.readAsDataURL(f);};i.click();}
+  function pickImg(key,capture=false){const i=document.createElement("input");i.type="file";i.accept="image/*";if(capture)i.capture="environment";i.onchange=e=>{const f=e.target.files[0];if(!validateFile(f))return;const r=new FileReader();r.onload=ev=>setDocs(d=>({...d,[key]:ev.target.result}));r.readAsDataURL(f);};i.click();}
   function removeImg(key){setDocs(d=>{const n={...d};delete n[key];return n;});}
   const ITEMS=[{key:"cniRecto",label:"CNI / Passeport - Recto",color:"#2563eb",icon:"🪪"},{key:"cniVerso",label:"CNI / Passeport - Verso",color:"#2563eb",icon:"🪪"},{key:"justifDom",label:"Justificatif de domicile",color:"#7c3aed",icon:"🏠"},{key:"photoAr",label:"Photo arrière du véhicule",color:"#16a34a",icon:"🚗"}];
   return (
@@ -625,6 +643,7 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
   const[raisonRetenue,setRaisonRetenue]=useState("");
   const[kmRetour,setKmRetour]=useState("");
   const[carburantRetour,setCarburantRetour]=useState(contrat.carburantDepart||100);
+  const[remiseRetour,setRemiseRetour]=useState("");
   const[tab,setTab]=useState("km");
   const[sigRetourLoueur,setSigRetourLoueur]=useState(null);
   const[sigRetourLocataire,setSigRetourLocataire]=useState(null);
@@ -641,10 +660,11 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
   const nbNOK=CARRO_ELEMENTS.filter(e=>carro[e.id]===false).length;
   const sym=(DEVISES.find(d=>d.code===(profil?.devise||"EUR"))||DEVISES[0]).symbol;
   const IS=INP_STYLE();
-  function handlePhoto(id,file,setter){if(!file)return;const r=new FileReader();r.onload=ev=>setter(p=>({...p,[id]:ev.target.result}));r.readAsDataURL(file);}
+  function handlePhoto(id,file,setter){if(!validateFile(file))return;const r=new FileReader();r.onload=ev=>setter(p=>({...p,[id]:ev.target.result}));r.readAsDataURL(file);}
   function pickFile(id,setter){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>handlePhoto(id,e.target.files[0],setter);i.click();}
   function pickCamera(id,setter){const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>handlePhoto(id,e.target.files[0],setter);i.click();}
-  function getRetourData(){return{checks,carro,carroPhotos,carroNotes,photos,notes,cautionRestituee,montantRetenu:retenu,raisonRetenue,rembourse:cautionRestituee?caution:Math.max(0,caution-retenu),kmRetour,kmSup,surplusKm,carburantRetour,fraisSup,totalFraisSup,date:new Date().toISOString(),sigRetourLoueur,sigRetourLocataire};}
+  const remiseRet=parseFloat(remiseRetour)||0;
+  function getRetourData(){return{checks,carro,carroPhotos,carroNotes,photos,notes,cautionRestituee,montantRetenu:retenu,raisonRetenue,rembourse:cautionRestituee?caution:Math.max(0,caution-retenu),kmRetour,kmSup,surplusKm,carburantRetour,fraisSup,totalFraisSup,remiseRetour:remiseRet,date:new Date().toISOString(),sigRetourLoueur,sigRetourLocataire};}
   function downloadPV(){const data=getRetourData();dlPDF(buildPVRetourHTML(contrat,vehicle,data,sigRetourLoueur,sigRetourLocataire,profil));}
   function save(){if(cautionRestituee===null){alert("Précisez si la caution est restituée.");return;}const data=getRetourData();onSave(data);dlPDF(buildPVRetourHTML(contrat,vehicle,data,sigRetourLoueur,sigRetourLocataire,profil));}
   const TABS=[["km","Km"],["frais","Frais sup."],["carro","Carrosserie"],["checks","État"],["caution","Caution"],["sig","Signatures"]];
@@ -785,12 +805,23 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
               </div>}
               {cautionRestituee===true&&<div style={{background:"#f0fdf4",borderRadius:10,padding:12,border:"1px solid #bbf7d0",textAlign:"center"}}><div style={{fontSize:22,fontWeight:900,color:"#16a34a"}}>{caution} EUR remboursés ✓</div></div>}
             </div>
+            {/* Remise au retour */}
+            <div style={{background:"white",borderRadius:12,padding:14,border:"1px solid #e5e7eb"}}>
+              <div style={{fontWeight:700,fontSize:13,marginBottom:6}}>Remise (optionnelle)</div>
+              <div style={{fontSize:11,color:"#6b7280",marginBottom:8}}>Appliquer une réduction sur le montant final du loyer</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:8,alignItems:"center"}}>
+                <input type="number" style={IS} placeholder="ex: 20" value={remiseRetour} onChange={e=>setRemiseRetour(e.target.value)}/>
+                <span style={{fontWeight:700,color:"#374151",fontSize:13}}>EUR</span>
+              </div>
+              {remiseRet>0&&<div style={{marginTop:8,background:"#f0fdf4",borderRadius:8,padding:"6px 10px",fontSize:12,color:"#16a34a",fontWeight:700}}>Remise de {remiseRet} EUR appliquée ✓</div>}
+            </div>
             {cautionRestituee!==null&&<div style={{background:"#1e3a8a",borderRadius:12,padding:14,color:"white"}}>
               <div style={{fontWeight:700,fontSize:13,marginBottom:10}}>Bilan du retour</div>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{opacity:.7}}>Loyer</span><span style={{fontWeight:700}}>{contrat.totalCalc||0} EUR</span></div>
               {surplusKm>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{opacity:.7}}>Surplus km</span><span style={{fontWeight:700,color:"#fbbf24"}}>+{surplusKm.toFixed(2)} EUR</span></div>}
-              {retenu>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{opacity:.7}}>Retenue</span><span style={{fontWeight:700,color:"#fbbf24"}}>+{retenu} EUR</span></div>}
-              <div style={{display:"flex",justifyContent:"space-between",borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:6,marginTop:4}}><span style={{fontWeight:700}}>Total encaissé</span><span style={{fontWeight:900,fontSize:16,color:"#4ade80"}}>{(contrat.totalCalc||0)+surplusKm+retenu} EUR</span></div>
+              {retenu>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{opacity:.7}}>Retenue caution</span><span style={{fontWeight:700,color:"#fbbf24"}}>+{retenu} EUR</span></div>}
+              {remiseRet>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{opacity:.7}}>Remise</span><span style={{fontWeight:700,color:"#4ade80"}}>-{remiseRet} EUR</span></div>}
+              <div style={{display:"flex",justifyContent:"space-between",borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:6,marginTop:4}}><span style={{fontWeight:700}}>Total encaissé</span><span style={{fontWeight:900,fontSize:16,color:"#4ade80"}}>{Math.max(0,(contrat.totalCalc||0)+surplusKm+retenu-remiseRet)} EUR</span></div>
             </div>}
           </div>}
           {tab==="sig"&&<div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -962,7 +993,8 @@ function AppContent(){
   const[depenses,setDepenses]=useState([]);
   const[clients,setClients]=useState([]);
   const[profil,setProfil]=useState(INIT_PROFIL);
-  const[page,setPage]=useState("vitrine");
+  const[page,setPage]=useState(()=>{try{return localStorage.getItem("ml_page")||"vitrine";}catch{return "vitrine";}});
+  const setPagePersist=useCallback(p=>{setPage(p);try{localStorage.setItem("ml_page",p);}catch{}},[]);
   const[selId,setSelId]=useState(null);
   const FORM0={locPrenom:"",locNom:"",locEntreprise:"",locAdresse:"",locCodePostal:"",locVille:"",locTel:"+33 ",locEmail:"",locPermis:"",locReseaux:"",loc2Prenom:"",loc2Nom:"",dateDebut:"",heureDebut:"10:00",dateFin:"",heureFin:"10:00",paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null,prixJourModifie:"",accompte:"",remise:"",codePromo:""};
   const[form,setForm]=useState(FORM0);
@@ -1042,11 +1074,16 @@ function AppContent(){
   }
 
   const resetUserData=useCallback(()=>{
-    setVehicles([]);setContrats([]);setDepenses([]);setRetours({});setQuestions([]);setClients([]);
+    setVehicles([]);setContrats([]);setDepenses([]);setRetours({});setQuestions([]);setClients([]);setAmendes([]);
     setProfil(INIT_PROFIL);setProfilForm(INIT_PROFIL);
     setSelId(null);setDocsId(null);setContratModalId(null);
     setLastContrat(null);setRetourContratId(null);setTarifsVehicleId(null);
     setDataLoaded(false);
+    try{
+      localStorage.removeItem("ml_page");
+      // Supprimer les caches de données de tous les utilisateurs
+      Object.keys(localStorage).filter(k=>k.startsWith('ml_data_')).forEach(k=>{try{localStorage.removeItem(k);}catch{}});
+    }catch{}
   },[]);
 
   useEffect(()=>{
@@ -1069,15 +1106,35 @@ function AppContent(){
   },[]);
 
   const loadAllData=useCallback(async(uid)=>{
-    setDataLoaded(false);
+    // Restaurer le cache local immédiatement (affichage instantané au retour sur l'onglet)
+    let hasCachedData=false;
     try{
-      const[profRes,vehRes,conRes,depRes,retRes,qRes]=await Promise.all([
+      const cached=localStorage.getItem('ml_data_'+uid);
+      if(cached){
+        const d=JSON.parse(cached);
+        if(d.vehicles)setVehicles(d.vehicles);
+        if(d.contrats)setContrats(d.contrats);
+        if(d.depenses)setDepenses(d.depenses);
+        if(d.retours)setRetours(d.retours);
+        if(d.questions)setQuestions(d.questions);
+        if(d.amendes)setAmendes(d.amendes);
+        if(d.profil){setProfil(d.profil);setProfilForm(d.profil);}
+        if(d.clients)setClients(d.clients);
+        setDataLoaded(true); // afficher l'app immédiatement avec le cache
+        hasCachedData=true;
+      }
+    }catch{}
+    // Afficher le loading seulement s'il n'y a pas de cache
+    if(!hasCachedData)setDataLoaded(false);
+    try{
+      const[profRes,vehRes,conRes,depRes,retRes,qRes,amenRes]=await Promise.all([
         supabase.from('profils').select('*').eq('user_id',uid).maybeSingle(),
         supabase.from('vehicules').select('*').eq('user_id',uid),
         supabase.from('contrats').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('depenses').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('retours').select('*').eq('user_id',uid),
         supabase.from('questions').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
+        supabase.from('amendes').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
       ]);
       if(activeUserIdRef.current!==uid)return;
       const p=profRes.data||{};
@@ -1087,10 +1144,10 @@ function AppContent(){
         setVehicles(vehRes.data.map(v=>({id:v.id,typeVehicule:v.type_vehicule||'voiture',marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,vin:v.vin||'',nbPortes:v.nb_portes||'',nbPlaces:v.nb_places||'',numParc:v.num_parc||'',docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],photosVehicule:v.photos_vehicule||[],publie:v.publie||false})));
       }
       let loadedContrats=[];
+      const clientMap={};
       if(conRes.data){
         loadedContrats=conRes.data.map(c=>({id:c.id,locNom:c.loc_nom||'',locPrenom:c.loc_prenom||'',locAdresse:c.loc_adresse||'',locTel:c.loc_tel||'',locEmail:c.loc_email||'',locPermis:c.loc_permis||'',dateDebut:c.date_debut||'',heureDebut:c.heure_debut||'10:00',dateFin:c.date_fin||'',heureFin:c.heure_fin||'10:00',paiement:c.paiement||'especes',cautionMode:c.caution_mode||'especes',kmDepart:c.km_depart||'',nbJours:c.nb_jours||1,heuresLoc:c.heures_loc||24,carburantDepart:c.carburant_depart??100,exterieurPropre:c.exterieur_propre,interieurPropre:c.interieur_propre,vehicleId:c.vehicle_id,vehicleLabel:c.vehicle_label||'',immat:c.immat||'',sigL:c.sig_l||null,sigLoc:c.sig_loc||null,totalCalc:c.total_calc||0,tarifLabel:c.tarif_label||'',remise:c.remise||0,accompte:c.accompte||0,resteAPayer:c.reste_a_payer||0,prixJourModifie:c.prix_jour_modifie||'',photosDepart:c.photos_depart||[],docsLocataire:c.docs_locataire||{},fraisSnap:c.frais_snap||[],clausesSnap:c.clauses_snap||[],kmInclus:c.km_inclus,prixKmSup:c.prix_km_sup}));
         setContrats(loadedContrats);
-        const clientMap={};
         loadedContrats.forEach(c=>{
           const key=(c.locNom||"").trim().toLowerCase()+"_"+(c.locTel||"").replace(/\D/g,"").slice(-6);
           if(!clientMap[key]){clientMap[key]={id:key,key,nom:c.locNom,tel:c.locTel,adresse:c.locAdresse,email:c.locEmail||"",permis:c.locPermis||"",docs:c.docsLocataire||{},createdAt:c.dateDebut,updatedAt:c.dateDebut};}
@@ -1101,10 +1158,30 @@ function AppContent(){
       if(depRes.data){setDepenses(depRes.data.map(d=>({id:d.id,label:d.label||'',montant:d.montant||0,categorie:d.categorie||'Carburant',date:d.date||'',vehicleId:d.vehicle_id||''})));}
       if(retRes.data){
         const rMap={};
-        retRes.data.forEach(r=>{rMap[r.contrat_id]={id:r.id,kmRetour:r.km_retour||'',carburantRetour:r.carburant_retour??100,montantRetenu:r.montant_retenu||0,raisonRetenue:r.raison_retenue||'',rembourse:r.rembourse||0,kmSup:r.km_sup||0,surplusKm:r.surplus_km||0,cautionRestituee:r.caution_restituee,checks:r.checks||{},carro:r.carro||{},carroPhotos:r.carro_photos||{},carroNotes:r.carro_notes||{},photos:r.photos||{},notes:r.notes||{},date:r.date||''};});
+        retRes.data.forEach(r=>{rMap[r.contrat_id]={id:r.id,kmRetour:r.km_retour||'',carburantRetour:r.carburant_retour??100,montantRetenu:r.montant_retenu||0,raisonRetenue:r.raison_retenue||'',rembourse:r.rembourse||0,kmSup:r.km_sup||0,surplusKm:r.surplus_km||0,cautionRestituee:r.caution_restituee,checks:r.checks||{},carro:r.carro||{},carroPhotos:r.carro_photos||{},carroNotes:r.carro_notes||{},photos:r.photos||{},notes:r.notes||{},remiseRetour:r.remise_retour||0,date:r.date||''};});
         setRetours(rMap);
       }
-      if(qRes.data){setQuestions(qRes.data.map(q=>({id:q.id,vehicleLabel:q.vehicle_label||'',clientNom:q.client_nom||'',question:q.question||'',reponse:q.reponse||'',lu:q.lu||false,createdAt:q.created_at||''})));}
+      const mappedQ=qRes.data?qRes.data.map(q=>({id:q.id,vehicleLabel:q.vehicle_label||'',clientNom:q.client_nom||'',question:q.question||'',reponse:q.reponse||'',lu:q.lu||false,createdAt:q.created_at||''})):[];
+      setQuestions(mappedQ);
+      const mappedA=amenRes.data?amenRes.data.map(a=>({id:a.id,vehicleId:a.vehicle_id||'',vehicleLabel:a.vehicle_label||'',contratId:a.contrat_id||null,locNom:a.loc_nom||'',locTel:a.loc_tel||'',date:a.date||'',heure:a.heure||'',montant:a.montant||'',type:a.type||'',statut:a.statut||'A traiter',notes:a.notes||'',photoData:a.photo_data||null})):[];
+      setAmendes(mappedA);
+      // Sauvegarder en cache (sans les photos base64 pour éviter le quota)
+      try{
+        const stripPhotos=v=>({...v,photosVehicule:[],docs:[]});
+        const stripContrPhotos=c=>({...c,photosDepart:[],docsLocataire:{}});
+        const stripRetourPhotos=r=>({...r,carroPhotos:{},photos:{}});
+        const cache={
+          profil:profData,
+          vehicles:vehRes.data?vehRes.data.map(v=>stripPhotos({id:v.id,typeVehicule:v.type_vehicule||'voiture',marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,vin:v.vin||'',frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],publie:v.publie||false})):[],
+          contrats:loadedContrats.map(stripContrPhotos),
+          retours:retRes.data?Object.fromEntries(retRes.data.map(r=>[r.contrat_id,stripRetourPhotos({id:r.id,kmRetour:r.km_retour||'',carburantRetour:r.carburant_retour??100,montantRetenu:r.montant_retenu||0,raisonRetenue:r.raison_retenue||'',rembourse:r.rembourse||0,kmSup:r.km_sup||0,surplusKm:r.surplus_km||0,cautionRestituee:r.caution_restituee,checks:r.checks||{},carro:r.carro||{},carroNotes:r.carro_notes||{},notes:r.notes||{},remiseRetour:r.remise_retour||0,date:r.date||''})])):{ },
+          depenses:depRes.data?depRes.data.map(d=>({id:d.id,label:d.label||'',montant:d.montant||0,categorie:d.categorie||'Carburant',date:d.date||'',vehicleId:d.vehicle_id||''})):[],
+          questions:mappedQ,
+          amendes:mappedA.map(a=>({...a,photoData:null})),
+          clients:Object.values(clientMap).map(c=>({...c,docs:{}})),
+        };
+        localStorage.setItem('ml_data_'+uid,JSON.stringify(cache));
+      }catch{/* quota dépassé, ignorer */}
     }catch(e){console.error('Error loading data:',e);}
     finally{if(activeUserIdRef.current===uid)setDataLoaded(true);}
   },[]);
@@ -1239,7 +1316,7 @@ function AppContent(){
     if(ct&&data.kmRetour)setVehicles(vs=>vs.map(v=>v.id===ct.vehicleId?{...v,km:parseFloat(data.kmRetour)}:v));
     toast_("Retour enregistré + PV PDF généré !");setRetourContratId(null);
     if(user){
-      await supabase.from('retours').insert([{user_id:user.id,contrat_id:contratId,km_retour:data.kmRetour||null,carburant_retour:data.carburantRetour??null,montant_retenu:data.montantRetenu||0,raison_retenue:data.raisonRetenue||'',rembourse:data.rembourse||0,km_sup:data.kmSup||0,surplus_km:data.surplusKm||0,caution_restituee:data.cautionRestituee,checks:data.checks||{},carro:data.carro||{},carro_photos:data.carroPhotos||{},carro_notes:data.carroNotes||{},photos:data.photos||{},notes:data.notes||'',date:data.date||new Date().toISOString()}]);
+      await supabase.from('retours').insert([{user_id:user.id,contrat_id:contratId,km_retour:data.kmRetour||null,carburant_retour:data.carburantRetour??null,montant_retenu:data.montantRetenu||0,raison_retenue:data.raisonRetenue||'',rembourse:data.rembourse||0,km_sup:data.kmSup||0,surplus_km:data.surplusKm||0,caution_restituee:data.cautionRestituee,checks:data.checks||{},carro:data.carro||{},carro_photos:data.carroPhotos||{},carro_notes:data.carroNotes||{},photos:data.photos||{},notes:data.notes||'',remise_retour:data.remiseRetour||0,date:data.date||new Date().toISOString()}]);
       if(ct&&data.kmRetour)await supabase.from('vehicules').update({km:parseFloat(data.kmRetour)}).eq('id',ct.vehicleId).eq('user_id',user.id);
     }
   }
@@ -1289,8 +1366,9 @@ function AppContent(){
   }
 
   async function repondreQuestion(q){
-    if(!reponseText.trim())return;
-    await supabase.from('questions').update({reponse:reponseText,lu:true}).eq('id',q.id).eq('user_id',user.id);
+    if(!reponseText.trim()||!user)return;
+    const{error}=await supabase.from('questions').update({reponse:reponseText,lu:true}).eq('id',q.id).eq('user_id',user.id);
+    if(error){toast_("Erreur: "+error.message,"error");return;}
     setQuestions(qs=>qs.map(x=>x.id===q.id?{...x,reponse:reponseText,lu:true}:x));
     setReponseModal(null);setReponseText("");toast_("Réponse envoyée !");
   }
@@ -1303,9 +1381,6 @@ function AppContent(){
   const tarifsVehicle=tarifsVehicleId?vehicles.find(v=>v.id===tarifsVehicleId):null;
   const isExp=exp=>exp&&new Date(exp)<new Date();
   const isSoon=exp=>{if(!exp)return false;const d=new Date(exp),n=new Date();return(d-n)/86400000<30&&(d-n)>0;};
-  const getDays=date=>{const y=date.getFullYear(),m=date.getMonth();return Array.from({length:new Date(y,m+1,0).getDate()},(_,i)=>new Date(y,m,i+1));};
-  const isBooked=(vid,date)=>contrats.some(c=>c.vehicleId===vid&&date>=new Date(c.dateDebut)&&date<=new Date(c.dateFin));
-  const days=getDays(planMonth);
 
   const caP=(()=>{
     const now=new Date();
@@ -1345,7 +1420,6 @@ function AppContent(){
 
   const ganttDays=90;
   const ganttDates=Array.from({length:ganttDays},(_,i)=>{const d=new Date(ganttStartDate);d.setDate(d.getDate()+i);return d;});
-  const DW=32;
   const today=new Date();
   const todayOffset=Math.floor((today-ganttStartDate)/86400000);
   const ganttColors=["#2563eb","#7c3aed","#16a34a","#d97706","#dc2626","#0891b2","#be185d"];
@@ -1381,7 +1455,7 @@ function AppContent(){
     );
   }
 
-  function pickDocFile(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setNewDoc(d=>({...d,file:f.name,fileData:ev.target.result}));r.readAsDataURL(f);}
+  function pickDocFile(e){const f=e.target.files[0];if(!validateFile(f,true))return;const r=new FileReader();r.onload=ev=>setNewDoc(d=>({...d,file:f.name,fileData:ev.target.result}));r.readAsDataURL(f);}
 
   if(!user)return <AuthPage/>;
   if(showResetPassword)return <ResetPasswordModal onDone={()=>setShowResetPassword(false)}/>;
@@ -1424,7 +1498,7 @@ function AppContent(){
           </div>
           <div style={{display:"flex",overflowX:"auto",gap:0,WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none",flex:1}}>
             {PAGES.map(p=>(
-              <button key={p.id} onClick={()=>setPage(p.id)} style={{flexShrink:0,padding:"4px 6px",borderRadius:6,fontSize:10,fontWeight:page===p.id?700:400,background:page===p.id?"rgba(255,255,255,0.2)":"transparent",color:page===p.id?"white":"rgba(255,255,255,0.65)",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:1,position:"relative",minWidth:44}}>
+              <button key={p.id} onClick={()=>setPagePersist(p.id)} style={{flexShrink:0,padding:"4px 6px",borderRadius:6,fontSize:10,fontWeight:page===p.id?700:400,background:page===p.id?"rgba(255,255,255,0.2)":"transparent",color:page===p.id?"white":"rgba(255,255,255,0.65)",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:1,position:"relative",minWidth:44}}>
                 <span style={{fontSize:16}}>{p.icon}</span>
                 <span style={{fontSize:8,whiteSpace:"nowrap"}}>{p.label}</span>
                 {p.id==="questions"&&nbQSansReponse>0&&<span style={{position:"absolute",top:1,right:1,background:"#ef4444",color:"white",borderRadius:"50%",width:13,height:13,fontSize:7,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{nbQSansReponse}</span>}
@@ -1479,7 +1553,7 @@ function AppContent(){
                     <div style={{display:"flex",flexDirection:"column",gap:8}}>
                       {[{k:"cniRecto",l:"CNI / Passeport - Recto",col:"#2563eb",ic:"🪪"},{k:"cniVerso",l:"CNI / Passeport - Verso",col:"#2563eb",ic:"🪪"},{k:"justifDom",l:"Justificatif de domicile",col:"#7c3aed",ic:"🏠"},{k:"photoAr",l:"Photo locataire",col:"#16a34a",ic:"👤"}].map(({k,l,col,ic})=>{
                         const src=(editingClient.docs||{})[k];
-                        function pickD(capture){const i=document.createElement("input");i.type="file";i.accept="image/*,application/pdf";if(capture)i.capture="environment";i.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setEditingClient(c=>({...c,docs:{...(c.docs||{}),[k]:ev.target.result}}));r.readAsDataURL(f);};i.click();}
+                        function pickD(capture){const i=document.createElement("input");i.type="file";i.accept="image/*,application/pdf";if(capture)i.capture="environment";i.onchange=e=>{const f=e.target.files[0];if(!validateFile(f,true))return;const r=new FileReader();r.onload=ev=>setEditingClient(c=>({...c,docs:{...(c.docs||{}),[k]:ev.target.result}}));r.readAsDataURL(f);};i.click();}
                         function dlD(){const ext=src.startsWith("data:image/png")?"png":src.startsWith("data:image/gif")?"gif":src.startsWith("data:application/pdf")?"pdf":"jpg";const a=document.createElement("a");a.href=src;a.download=`${(editingClient.nom||"client").replace(/\s+/g,"_")}_${k}.${ext}`;a.click();}
                         return(
                           <div key={k} style={{borderRadius:10,border:`2px solid ${src?col:"#e5e7eb"}`,background:src?"#f8fafc":"white",overflow:"hidden"}}>
@@ -1558,7 +1632,7 @@ function AppContent(){
             </div>
             <div style={{padding:"12px 16px",borderTop:"1px solid #e5e7eb",background:"white"}}>
               <div style={{display:"flex",gap:8,marginBottom:deleteClientConfirm!==null?8:0}}>
-                <button onClick={()=>{setForm(f=>({...f,locNom:selectedClient.nom,locTel:selectedClient.tel,locAdresse:selectedClient.adresse||"",locEmail:selectedClient.email||"",locPermis:selectedClient.permis||""}));setDocsLocataire({...selectedClient.docs});setSelectedClient(null);setDeleteClientConfirm("");setPage("nouveau");toast_("Client chargé !");}} style={{flex:1,background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Créer un contrat pour ce client</button>
+                <button onClick={()=>{setForm(f=>({...f,locNom:selectedClient.nom,locTel:selectedClient.tel,locAdresse:selectedClient.adresse||"",locEmail:selectedClient.email||"",locPermis:selectedClient.permis||""}));setDocsLocataire({...selectedClient.docs});setSelectedClient(null);setDeleteClientConfirm("");setPagePersist("nouveau");toast_("Client chargé !");}} style={{flex:1,background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Créer un contrat pour ce client</button>
                 <button onClick={()=>setDeleteClientConfirm(prev=>prev===null?"":null)} style={{padding:"10px 14px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>🗑️</button>
               </div>
               {deleteClientConfirm!==null&&(
@@ -1666,11 +1740,11 @@ function AppContent(){
             {vehicles.some(v=>v.publie)&&(
               <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",borderRadius:14,padding:16,marginBottom:16,color:"white"}}>
                 <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>Lien vitrine public</div>
-                <div style={{background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px",fontSize:11,wordBreak:"break-all",marginBottom:8}}>{window.location.origin}/vitrine/{user?.id?.slice(0,8)}</div>
+                <div style={{background:"rgba(255,255,255,.1)",borderRadius:8,padding:"8px 12px",fontSize:11,wordBreak:"break-all",marginBottom:8}}>{window.location.origin}/vitrine/{user?.id}</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  <button onClick={()=>{navigator.clipboard.writeText(window.location.origin+"/vitrine/"+user?.id?.slice(0,8));toast_("Lien copié !");}} style={{padding:"7px 14px",background:"white",color:"#1e3a8a",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Copier le lien</button>
-                  <button onClick={()=>window.open(window.location.origin+"/vitrine/"+user?.id?.slice(0,8),"_blank")} style={{padding:"7px 14px",background:"rgba(255,255,255,.15)",color:"white",border:"1px solid rgba(255,255,255,.4)",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Ouvrir</button>
-                  <button onClick={()=>{const msg="Bonjour, voici notre catalogue : "+window.location.origin+"/vitrine/"+user?.id?.slice(0,8);window.open("https://wa.me/"+(profil.whatsapp||profil.tel||"").replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");}} style={{padding:"7px 14px",background:"#25D366",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>WhatsApp</button>
+                  <button onClick={()=>{navigator.clipboard.writeText(window.location.origin+"/vitrine/"+user?.id);toast_("Lien copié !");}} style={{padding:"7px 14px",background:"white",color:"#1e3a8a",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Copier le lien</button>
+                  <button onClick={()=>window.open(window.location.origin+"/vitrine/"+user?.id,"_blank")} style={{padding:"7px 14px",background:"rgba(255,255,255,.15)",color:"white",border:"1px solid rgba(255,255,255,.4)",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Ouvrir</button>
+                  <button onClick={()=>{const msg="Bonjour, voici notre catalogue : "+window.location.origin+"/vitrine/"+user?.id;window.open("https://wa.me/"+(profil.whatsapp||profil.tel||"").replace(/\D/g,"")+"?text="+encodeURIComponent(msg),"_blank");}} style={{padding:"7px 14px",background:"#25D366",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>WhatsApp</button>
                 </div>
               </div>
             )}
@@ -1840,7 +1914,7 @@ function AppContent(){
             <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:20}}>Contrats</h1>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:16,marginBottom:24}}>
               {[{id:"nouveau",icon:"📝",label:"Nouveau contrat",desc:"Créer un contrat de location",color:"#1e3a8a",bg:"#eff6ff",border:"#bfdbfe"},{id:"retours",icon:"🔄",label:"Retours",desc:"Gérer les retours de véhicules",color:"#16a34a",bg:"#f0fdf4",border:"#bbf7d0"},{id:"contrats",icon:"📋",label:"Historique",desc:"Voir tous les contrats",color:"#7c3aed",bg:"#f5f3ff",border:"#ddd6fe"}].map(x=>(
-                <div key={x.id} onClick={()=>setPage(x.id)} style={{background:x.bg,borderRadius:16,padding:24,border:`2px solid ${x.border}`,cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.06)"}} onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.12)";}} onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
+                <div key={x.id} onClick={()=>setPagePersist(x.id)} style={{background:x.bg,borderRadius:16,padding:24,border:`2px solid ${x.border}`,cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.06)"}} onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.12)";}} onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
                   <div style={{fontSize:40,marginBottom:12}}>{x.icon}</div>
                   <div style={{fontWeight:800,fontSize:15,color:x.color,marginBottom:4}}>{x.label}</div>
                   <div style={{fontSize:12,color:"#6b7280"}}>{x.desc}</div>
@@ -1877,7 +1951,7 @@ function AppContent(){
         {page==="nouveau"&&(
           <div style={{maxWidth:680,margin:"0 auto"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-              <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
+              <button onClick={()=>setPagePersist("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Nouveau contrat</h1>
             </div>
             <div style={{background:"white",borderRadius:14,padding:16,marginBottom:14,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
@@ -2025,128 +2099,169 @@ function AppContent(){
         )}
 
         {/* PLANNING */}
-        {page==="planning"&&(
+        {page==="planning"&&(()=>{
+          const GDW=38;
+          const calWeeks=(()=>{
+            const y=planMonth.getFullYear(),m=planMonth.getMonth();
+            const first=new Date(y,m,1);
+            const startDay=(first.getDay()+6)%7;
+            const daysInMonth=new Date(y,m+1,0).getDate();
+            const cells=[];
+            for(let i=0;i<startDay;i++)cells.push(null);
+            for(let i=1;i<=daysInMonth;i++)cells.push(new Date(y,m,i));
+            while(cells.length%7!==0)cells.push(null);
+            const weeks=[];
+            for(let i=0;i<cells.length;i+=7)weeks.push(cells.slice(i,i+7));
+            return weeks;
+          })();
+          const todayStr=new Date().toDateString();
+          return(
           <div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
+            {/* Header */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Planning</h1>
-              <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
                 <div style={{display:"flex",background:"white",borderRadius:8,border:"1px solid #e5e7eb",overflow:"hidden"}}>
-                  <button onClick={()=>setPlanView("calendrier")} style={{padding:"6px 12px",fontSize:11,fontWeight:planView==="calendrier"?700:400,background:planView==="calendrier"?"#1e3a8a":"white",color:planView==="calendrier"?"white":"#374151",border:"none",cursor:"pointer"}}>Calendrier</button>
-                  <button onClick={()=>setPlanView("gantt")} style={{padding:"6px 12px",fontSize:11,fontWeight:planView==="gantt"?700:400,background:planView==="gantt"?"#1e3a8a":"white",color:planView==="gantt"?"white":"#374151",border:"none",cursor:"pointer"}}>Gantt</button>
+                  <button onClick={()=>setPlanView("calendrier")} style={{padding:"6px 14px",fontSize:11,fontWeight:600,background:planView==="calendrier"?"#1e3a8a":"white",color:planView==="calendrier"?"white":"#374151",border:"none",cursor:"pointer"}}>📅 Calendrier</button>
+                  <button onClick={()=>setPlanView("gantt")} style={{padding:"6px 14px",fontSize:11,fontWeight:600,background:planView==="gantt"?"#1e3a8a":"white",color:planView==="gantt"?"white":"#374151",border:"none",cursor:"pointer"}}>📊 Gantt</button>
                 </div>
-                {planView==="calendrier"&&(
-                  <>
-                    <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()-1);setPlanMonth(new Date(d));}} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>◀</button>
-                    <span style={{fontWeight:700,fontSize:13,minWidth:130,textAlign:"center",textTransform:"capitalize"}}>{planMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</span>
-                    <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()+1);setPlanMonth(new Date(d));}} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>▶</button>
-                  </>
-                )}
-                {planView==="gantt"&&(
-                  <>
-                    <button onClick={ganttPrevMonth} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>◀</button>
-                    <select value={`${ganttStartDate.getFullYear()}-${ganttStartDate.getMonth()}`} onChange={e=>{const[y,m]=e.target.value.split("-");setGanttStartDate(new Date(parseInt(y),parseInt(m),1));}} style={{padding:"5px 8px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:12}}>
-                      {Array.from({length:24},(_,i)=>{const d=new Date();d.setMonth(d.getMonth()-12+i);return d;}).map(d=><option key={`${d.getFullYear()}-${d.getMonth()}`} value={`${d.getFullYear()}-${d.getMonth()}`}>{MONTH_NAMES[d.getMonth()]} {d.getFullYear()}</option>)}
-                    </select>
-                    <button onClick={ganttNextMonth} style={{padding:"5px 12px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700}}>▶</button>
-                    <button onClick={ganttGoToday} style={{padding:"5px 12px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700}}>Aujourd'hui</button>
-                  </>
-                )}
+                {planView==="calendrier"&&<>
+                  <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()-1);setPlanMonth(new Date(d));}} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>◀</button>
+                  <span style={{fontWeight:700,fontSize:13,minWidth:120,textAlign:"center",textTransform:"capitalize"}}>{planMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</span>
+                  <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()+1);setPlanMonth(new Date(d));}} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>▶</button>
+                  <button onClick={()=>setPlanMonth(new Date())} style={{padding:"6px 10px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700}}>Aujourd'hui</button>
+                </>}
+                {planView==="gantt"&&<>
+                  <button onClick={ganttPrevMonth} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>◀</button>
+                  <span style={{fontWeight:700,fontSize:13,minWidth:120,textAlign:"center",textTransform:"capitalize"}}>{MONTH_NAMES[ganttStartDate.getMonth()]} {ganttStartDate.getFullYear()}</span>
+                  <button onClick={ganttNextMonth} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>▶</button>
+                  <button onClick={ganttGoToday} style={{padding:"6px 10px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700}}>Aujourd'hui</button>
+                </>}
               </div>
             </div>
-            {planView==="calendrier"&&vehicles.map((v,vi)=>{
-              const vContrats=contrats.filter(c=>c.vehicleId===v.id);
-              const vColor=ganttColors[vi%ganttColors.length];
-              return(
-                <div key={v.id} style={{background:"white",borderRadius:14,marginBottom:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:`1px solid #e5e7eb`,borderLeft:`4px solid ${vColor}`}}>
-                  <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div><span style={{color:"white",fontWeight:800,fontSize:13}}>{v.marque} {v.modele}</span><span style={{color:"rgba(255,255,255,.6)",fontSize:11,marginLeft:10}}>{v.immat}</span></div>
-                    <Badge s={statut(v.id)}/>
-                  </div>
-                  <div style={{overflowX:"auto"}}>
-                    <div style={{display:"flex",minWidth:days.length*28+130}}>
-                      <div style={{width:130,flexShrink:0}}/>
-                      {days.map(d=>{
-                        const isToday=d.toDateString()===new Date().toDateString();
-                        const isWE=d.getDay()===0||d.getDay()===6;
-                        return <div key={d.getTime()} style={{width:28,flexShrink:0,textAlign:"center",padding:"5px 0",fontSize:10,fontWeight:isToday?800:400,color:isToday?"#2563eb":isWE?"#9ca3af":"#6b7280",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:"1px solid #f0f0f0"}}>{d.getDate()}</div>;
-                      })}
-                    </div>
-                    <div style={{display:"flex",minWidth:days.length*28+130,padding:"4px 0"}}>
-                      <div style={{width:130,flexShrink:0,padding:"0 8px",fontSize:10,fontWeight:600,color:"#374151",display:"flex",alignItems:"center"}}>Disponibilite</div>
-                      {days.map(d=>{
-                        const b=isBooked(v.id,d);
-                        return <div key={d.getTime()} style={{width:28,flexShrink:0,height:28,display:"flex",alignItems:"center",justifyContent:"center",background:b?vColor+"22":"white",borderLeft:"1px solid #f0f0f0"}}><div style={{width:20,height:20,borderRadius:4,background:b?vColor:"#dcfce7"}}/></div>;
-                      })}
-                    </div>
-                  </div>
-                  {vContrats.length>0&&(
-                    <div style={{padding:"8px 12px",borderTop:"1px solid #f0f0f0",display:"flex",flexWrap:"wrap",gap:6}}>
-                      {vContrats.map(c=>{
-                        const mStart=new Date(c.dateDebut).getMonth(),mEnd=new Date(c.dateFin).getMonth(),y=planMonth.getMonth();
-                        if(mStart!==y&&mEnd!==y)return null;
-                        return <div key={c.id} style={{background:vColor+"18",borderRadius:8,padding:"4px 10px",fontSize:11,border:`1px solid ${vColor}44`}}><span style={{fontWeight:700,color:vColor}}>{c.locNom}</span><span style={{color:"#6b7280",marginLeft:6}}>{c.dateDebut} → {c.dateFin}</span></div>;
-                      })}
-                    </div>
-                  )}
+
+            {/* Légende véhicules */}
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+              {vehicles.map((v,vi)=>(
+                <div key={v.id} style={{display:"flex",alignItems:"center",gap:5,background:"white",borderRadius:20,padding:"4px 10px",fontSize:11,boxShadow:"0 1px 4px rgba(0,0,0,.08)",border:`1px solid ${ganttColors[vi%ganttColors.length]}44`}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:ganttColors[vi%ganttColors.length],flexShrink:0}}/>
+                  <span style={{fontWeight:700,color:"#1f2937"}}>{v.marque} {v.modele}</span>
+                  <span style={{color:"#9ca3af",fontSize:10}}>{v.immat}</span>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+
+            {/* VUE CALENDRIER */}
+            {planView==="calendrier"&&(
+              <div style={{background:"white",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+                {/* Jours semaine */}
+                <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:"#1e3a8a"}}>
+                  {["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].map(j=>(
+                    <div key={j} style={{textAlign:"center",padding:"8px 0",fontSize:11,fontWeight:700,color:"white",opacity:j==="Sam"||j==="Dim"?.6:1}}>{j}</div>
+                  ))}
+                </div>
+                {/* Semaines */}
+                {calWeeks.map((week,wi)=>(
+                  <div key={wi} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",borderTop:"1px solid #f0f0f0"}}>
+                    {week.map((d,di)=>{
+                      const isToday=d&&d.toDateString()===todayStr;
+                      const isWE=di>=5;
+                      const reservations=d?contrats.filter(c=>{
+                        const dStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+                        return dStr>=c.dateDebut&&dStr<=c.dateFin;
+                      }):[];
+                      return(
+                        <div key={di} style={{minHeight:72,padding:"4px",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:di>0?"1px solid #f0f0f0":"none",position:"relative"}}>
+                          {d&&<div style={{fontSize:12,fontWeight:isToday?800:400,marginBottom:3,width:22,height:22,borderRadius:"50%",background:isToday?"#2563eb":"transparent",color:isToday?"white":isWE?"#9ca3af":"#374151",display:"flex",alignItems:"center",justifyContent:"center"}}>{d.getDate()}</div>}
+                          <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                            {reservations.slice(0,3).map((c,ci)=>{
+                              const vi=vehicles.findIndex(v=>v.id===c.vehicleId);
+                              const col=ganttColors[vi%ganttColors.length];
+                              return <div key={c.id} style={{background:col,borderRadius:3,padding:"1px 4px",fontSize:9,fontWeight:700,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={c.locNom+" — "+c.vehicleLabel}>{c.locNom||c.vehicleLabel}</div>;
+                            })}
+                            {reservations.length>3&&<div style={{fontSize:9,color:"#6b7280",fontWeight:600}}>+{reservations.length-3} autres</div>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* VUE GANTT */}
             {planView==="gantt"&&(
               <div style={{background:"white",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <div ref={ganttRef} style={{overflowX:"auto"}}>
-                  <div style={{minWidth:150+ganttDays*DW}}>
-                    <div style={{display:"flex",borderBottom:"2px solid #e5e7eb",background:"#f8fafc"}}>
-                      <div style={{width:150,flexShrink:0,padding:"6px 10px",fontSize:11,fontWeight:700,borderRight:"1px solid #e5e7eb"}}>Véhicule</div>
+                  <div style={{minWidth:160+ganttDays*GDW}}>
+                    {/* En-tête jours */}
+                    <div style={{display:"flex",borderBottom:"2px solid #e5e7eb",background:"#f8fafc",position:"sticky",top:0,zIndex:3}}>
+                      <div style={{width:160,flexShrink:0,padding:"8px 12px",fontSize:12,fontWeight:700,borderRight:"2px solid #e5e7eb",color:"#374151"}}>Véhicule</div>
                       {ganttDates.map((d,i)=>{
                         const isToday=d.toDateString()===today.toDateString();
                         const isWE=d.getDay()===0||d.getDay()===6;
                         const isFirst=d.getDate()===1;
                         return(
-                          <div key={i} style={{width:DW,flexShrink:0,textAlign:"center",padding:"4px 0",fontSize:9,color:isToday?"white":isWE?"#9ca3af":"#6b7280",background:isToday?"#2563eb":isWE?"#f0f0f0":"#f8fafc",borderLeft:"1px solid #e8e8e8",position:"relative",fontWeight:isToday?800:400}}>
-                            {isFirst&&!isToday&&<div style={{position:"absolute",top:0,left:0,right:0,background:"#1e3a8a",color:"white",fontSize:7,textAlign:"center",lineHeight:"10px"}}>{MONTH_NAMES[d.getMonth()]}</div>}
-                            <span style={{position:"relative",top:isFirst&&!isToday?8:0}}>{d.getDate()}</span>
+                          <div key={i} style={{width:GDW,flexShrink:0,textAlign:"center",padding:"4px 0",fontSize:10,color:isToday?"white":isWE?"#9ca3af":"#6b7280",background:isToday?"#2563eb":isWE?"#f0f0f0":"#f8fafc",borderLeft:"1px solid #e8e8e8",position:"relative",fontWeight:isToday?800:400}}>
+                            {isFirst&&<div style={{position:"absolute",top:0,left:0,right:0,background:"#1e3a8a",color:"white",fontSize:8,textAlign:"center",lineHeight:"13px",fontWeight:700}}>{MONTH_NAMES[d.getMonth()].slice(0,3)}</div>}
+                            <span style={{position:"relative",top:isFirst?11:0}}>{d.getDate()}</span>
                           </div>
                         );
                       })}
                     </div>
-                    {vehicles.map(v=>(
-                      <div key={v.id} style={{display:"flex",borderBottom:"1px solid #f0f0f0"}}>
-                        <div style={{width:150,flexShrink:0,padding:"8px 10px",fontSize:11,borderRight:"1px solid #e5e7eb",background:"#fafafa"}}>
-                          <div style={{fontWeight:700}}>{v.marque} {v.modele}</div>
-                          <div style={{fontSize:9,color:"#9ca3af"}}>{v.immat}</div>
+                    {/* Lignes véhicules */}
+                    {vehicles.map((v,vi)=>{
+                      const vColor=ganttColors[vi%ganttColors.length];
+                      const vContrats=contrats.filter(c=>c.vehicleId===v.id&&c.dateDebut&&c.dateFin);
+                      return(
+                        <div key={v.id} style={{display:"flex",borderBottom:"1px solid #e5e7eb"}}>
+                          <div style={{width:160,flexShrink:0,padding:"10px 12px",borderRight:"2px solid #e5e7eb",background:"#fafafa",display:"flex",alignItems:"center",gap:8}}>
+                            <div style={{width:8,height:36,borderRadius:4,background:vColor,flexShrink:0}}/>
+                            <div>
+                              <div style={{fontWeight:700,fontSize:12,color:"#1f2937"}}>{v.marque} {v.modele}</div>
+                              <div style={{fontSize:10,color:"#9ca3af"}}>{v.immat}</div>
+                            </div>
+                          </div>
+                          <div style={{flex:1,position:"relative",height:56}}>
+                            {todayOffset>=0&&todayOffset<ganttDays&&<div style={{position:"absolute",left:todayOffset*GDW+GDW/2,top:0,bottom:0,width:2,background:"#ef4444",zIndex:2,opacity:.8}}/>}
+                            {ganttDates.map((d,i)=>{
+                              const isWE=d.getDay()===0||d.getDay()===6;
+                              return <div key={i} style={{position:"absolute",left:i*GDW,top:0,width:GDW,height:"100%",background:isWE?"rgba(0,0,0,.04)":"transparent",borderLeft:"1px solid #f0f0f0"}}/>;
+                            })}
+                            {vContrats.map((c,ci)=>{
+                              const s=new Date(c.dateDebut),e=new Date(c.dateFin);
+                              const off=Math.floor((s-ganttStartDate)/86400000);
+                              const w=Math.max(Math.ceil((e-s)/86400000)+1,1);
+                              if(off>ganttDays||off+w<0)return null;
+                              const clampedLeft=Math.max(0,off);
+                              const clampedRight=Math.min(w+off,ganttDays);
+                              const barW=Math.max(clampedRight-clampedLeft,1)*GDW-3;
+                              return(
+                                <div key={c.id} style={{position:"absolute",left:clampedLeft*GDW+1,top:8,height:40,width:barW,background:vColor,borderRadius:7,display:"flex",alignItems:"center",padding:"0 8px",overflow:"hidden",zIndex:1,cursor:"pointer",boxShadow:"0 2px 6px rgba(0,0,0,.25)"}} title={`${c.locNom} — ${c.dateDebut} → ${c.dateFin} — ${c.totalCalc}€`}>
+                                  <div style={{overflow:"hidden"}}>
+                                    <div style={{color:"white",fontSize:11,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.locNom}</div>
+                                    {barW>60&&<div style={{color:"rgba(255,255,255,.75)",fontSize:9,whiteSpace:"nowrap"}}>{c.dateDebut} → {c.dateFin}</div>}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                        <div style={{flex:1,position:"relative",height:44}}>
-                          {todayOffset>=0&&todayOffset<ganttDays&&<div style={{position:"absolute",left:todayOffset*DW+DW/2,top:0,bottom:0,width:2,background:"#ef4444",zIndex:2,opacity:.5}}/>}
-                          {ganttDates.map((d,i)=>{
-                            const isWE=d.getDay()===0||d.getDay()===6;
-                            return <div key={i} style={{position:"absolute",left:i*DW,top:0,width:DW,height:"100%",background:isWE?"rgba(0,0,0,.025)":"transparent",borderLeft:"1px solid #f5f5f5"}}/>;
-                          })}
-                          {contrats.filter(c=>c.vehicleId===v.id&&c.dateDebut&&c.dateFin).map((c,ci)=>{
-                            const s=new Date(c.dateDebut),e=new Date(c.dateFin);
-                            const off=Math.floor((s-ganttStartDate)/86400000);
-                            const w=Math.max(Math.ceil((e-s)/86400000)+1,1);
-                            if(off>ganttDays||off+w<0)return null;
-                            return(
-                              <div key={c.id} style={{position:"absolute",left:Math.max(0,off)*DW+2,top:8,height:28,width:Math.max(Math.min(w+off,ganttDays)-Math.max(off,0),1)*DW-4,background:ganttColors[ci%ganttColors.length],borderRadius:6,display:"flex",alignItems:"center",padding:"0 6px",overflow:"hidden",zIndex:1,cursor:"pointer"}} title={c.locNom+" — "+c.dateDebut+" → "+c.dateFin}>
-                                <span style={{color:"white",fontSize:9,fontWeight:700,whiteSpace:"nowrap"}}>{c.locNom}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
             )}
           </div>
-        )}
+          );
+        })()}
 
         {/* HISTORIQUE CONTRATS */}
         {page==="contrats"&&(
           <div>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-              <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
+              <button onClick={()=>setPagePersist("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Historique ({contratsFiltres.length}/{contrats.length})</h1>
             </div>
             <div style={{background:"white",borderRadius:12,padding:14,marginBottom:14,display:"flex",flexDirection:"column",gap:8}}>
@@ -2199,7 +2314,7 @@ function AppContent(){
         {page==="retours"&&(
           <div>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
-              <button onClick={()=>setPage("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
+              <button onClick={()=>setPagePersist("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Retours</h1>
             </div>
             {contrats.filter(c=>!retours[c.id]).length>0&&(
@@ -2287,8 +2402,8 @@ function AppContent(){
                         <button onClick={()=>setAmendeForm(f=>({...f,photoData:null}))} style={{position:"absolute",top:6,right:6,background:"#ef4444",color:"white",border:"none",borderRadius:"50%",width:22,height:22,fontSize:12,cursor:"pointer",fontWeight:700}}>x</button>
                       </div>
                       :<div style={{display:"flex",gap:8,marginTop:4}}>
-                        <button onClick={()=>{const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setAmendeForm(x=>({...x,photoData:ev.target.result}));r.readAsDataURL(f);};i.click();}} style={{flex:1,padding:"8px 0",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📁 Galerie</button>
-                        <button onClick={()=>{const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setAmendeForm(x=>({...x,photoData:ev.target.result}));r.readAsDataURL(f);};i.click();}} style={{flex:1,padding:"8px 0",background:"#7c3aed",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📷 Caméra</button>
+                        <button onClick={()=>{const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>{const f=e.target.files[0];if(!validateFile(f))return;const r=new FileReader();r.onload=ev=>setAmendeForm(x=>({...x,photoData:ev.target.result}));r.readAsDataURL(f);};i.click();}} style={{flex:1,padding:"8px 0",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📁 Galerie</button>
+                        <button onClick={()=>{const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>{const f=e.target.files[0];if(!validateFile(f))return;const r=new FileReader();r.onload=ev=>setAmendeForm(x=>({...x,photoData:ev.target.result}));r.readAsDataURL(f);};i.click();}} style={{flex:1,padding:"8px 0",background:"#7c3aed",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📷 Caméra</button>
                       </div>}
                   </div>
                   {amendeForm.vehicleId&&amendeForm.date&&(
@@ -2297,7 +2412,7 @@ function AppContent(){
                     </div>
                   )}
                   <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>{if(!amendeForm.vehicleId||!amendeForm.date){toast_("Choisissez un véhicule et une date","error");return;}const v=vehicles.find(x=>x.id===amendeForm.vehicleId);                    const newA={id:Date.now(),...amendeForm,vehicleLabel:v?v.marque+" "+v.modele+" - "+v.immat:"",contratId:contratRef?.id||null,locNom:contratRef?.locNom||"",locTel:contratRef?.locTel||""};setAmendes(a=>[newA,...a]);setAmendeForm({vehicleId:"",contratRef:"",date:"",heure:"",montant:"",type:"Excès de vitesse",statut:"A traiter",notes:"",photoData:null});setShowAddAmende(false);toast_("Amende ajoutée !");}} style={{background:"#dc2626",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>Enregistrer</button>
+                    <button onClick={async()=>{if(!amendeForm.vehicleId||!amendeForm.date){toast_("Choisissez un véhicule et une date","error");return;}const v=vehicles.find(x=>x.id===amendeForm.vehicleId);const localId=Date.now();const newA={id:localId,...amendeForm,vehicleLabel:v?v.marque+" "+v.modele+" - "+v.immat:"",contratId:contratRef?.id||null,locNom:contratRef?.locNom||"",locTel:contratRef?.locTel||""};setAmendes(a=>[newA,...a]);setAmendeForm({vehicleId:"",contratRef:"",date:"",heure:"",montant:"",type:"Excès de vitesse",statut:"A traiter",notes:"",photoData:null});setShowAddAmende(false);toast_("Amende ajoutée !");if(user){const{data:ins,error:err}=await supabase.from('amendes').insert([{user_id:user.id,vehicle_id:newA.vehicleId,vehicle_label:newA.vehicleLabel,contrat_id:newA.contratId,loc_nom:newA.locNom,loc_tel:newA.locTel,date:newA.date,heure:newA.heure,montant:newA.montant,type:newA.type,statut:newA.statut,notes:newA.notes,photo_data:newA.photoData}]).select().single();if(err){toast_("Erreur sauvegarde amende: "+err.message,"error");}else if(ins){setAmendes(as=>as.map(x=>x.id===localId?{...x,id:ins.id}:x));}}}} style={{background:"#dc2626",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>Enregistrer</button>
                     <button onClick={()=>setShowAddAmende(false)} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:12}}>Annuler</button>
                   </div>
                 </div>
@@ -2330,8 +2445,8 @@ function AppContent(){
                     {contratLie&&<div style={{background:"#eff6ff",borderRadius:8,padding:"6px 10px",marginBottom:8,fontSize:11,border:"1px solid #bfdbfe"}}>Contrat : <b>{contratLie.locNom}</b> — {contratLie.dateDebut} → {contratLie.dateFin}<button onClick={()=>rePrint(contratLie)} style={{marginLeft:8,padding:"2px 8px",background:"#1e3a8a",color:"white",border:"none",borderRadius:5,fontSize:10,cursor:"pointer",fontWeight:700}}>PDF</button></div>}
                     {a.photoData&&<div style={{marginBottom:8}}><img src={a.photoData} alt="amende" style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:10,border:"2px solid #fecaca"}}/></div>}
                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                      {STATUTS_AMENDE.filter(s=>s!==a.statut).map(s=><button key={s} onClick={()=>setAmendes(as=>as.map(x=>x.id===a.id?{...x,statut:s}:x))} style={{padding:"4px 10px",background:"#f1f5f9",color:"#374151",border:"1px solid #e5e7eb",borderRadius:7,fontSize:10,cursor:"pointer",fontWeight:600}}>{s}</button>)}
-                      <button onClick={()=>setAmendes(as=>as.filter(x=>x.id!==a.id))} style={{padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:10,cursor:"pointer"}}>Supprimer</button>
+                      {STATUTS_AMENDE.filter(s=>s!==a.statut).map(s=><button key={s} onClick={async()=>{setAmendes(as=>as.map(x=>x.id===a.id?{...x,statut:s}:x));if(user)await supabase.from('amendes').update({statut:s}).eq('id',a.id).eq('user_id',user.id);}} style={{padding:"4px 10px",background:"#f1f5f9",color:"#374151",border:"1px solid #e5e7eb",borderRadius:7,fontSize:10,cursor:"pointer",fontWeight:600}}>{s}</button>)}
+                      <button onClick={async()=>{setAmendes(as=>as.filter(x=>x.id!==a.id));if(user)await supabase.from('amendes').delete().eq('id',a.id).eq('user_id',user.id);}} style={{padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:10,cursor:"pointer"}}>Supprimer</button>
                     </div>
                   </div>
                 );
@@ -2646,7 +2761,7 @@ function AppContent(){
                 ))}
                 <div style={{marginBottom:10}}><label style={LBL_STYLE}>Snapchat</label><input style={INP_STYLE()} value={profilForm.snap||""} onChange={e=>setProfilForm(p=>({...p,snap:e.target.value}))}/></div>
                 <div style={{marginBottom:14}}><label style={LBL_STYLE}>💱 Devise</label><select style={INP_STYLE()} value={profilForm.devise||"EUR"} onChange={e=>setProfilForm(p=>({...p,devise:e.target.value}))}>{DEVISES.map(d=><option key={d.code} value={d.code}>{d.label}</option>)}</select></div>
-                <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);toast_("Profil mis à jour");if(user)await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...profilForm},{onConflict:'user_id'});}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+                <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);if(user){const{error:pErr}=await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...profilForm},{onConflict:'user_id'});if(pErr){toast_("Erreur sauvegarde profil: "+pErr.message,"error");return;}}toast_("Profil mis à jour");}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
               </div>
               :<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <div style={{textAlign:"center",marginBottom:16}}>
@@ -2702,7 +2817,9 @@ function AuthPage(){
   const[mode,setMode]=useState("login");
   const[email,setEmail]=useState("");
   const[password,setPassword]=useState("");
-  const[showPassword,setShowPassword]=useState(false);
+  const[password2,setPassword2]=useState("");
+  const[showPwd,setShowPwd]=useState(false);
+  const[showPwd2,setShowPwd2]=useState(false);
   const[loading,setLoading]=useState(false);
   const[error,setError]=useState("");
   const[success,setSuccess]=useState("");
@@ -2713,53 +2830,60 @@ function AuthPage(){
   const[resendLoading,setResendLoading]=useState(false);
   const[resendDone,setResendDone]=useState(false);
 
-  // Décompte si verrouillé
+  // Captcha mathématique
+  const genCaptcha=()=>{const a=Math.floor(Math.random()*9)+1,b=Math.floor(Math.random()*9)+1;return{a,b,ans:a+b};};
+  const[captcha,setCaptcha]=useState(genCaptcha);
+  const[captchaVal,setCaptchaVal]=useState("");
+  const refreshCaptcha=()=>{setCaptcha(genCaptcha());setCaptchaVal("");};
+
   useEffect(()=>{
     if(!lockedUntil)return;
-    const tick=()=>{
-      const left=lockedUntil-Date.now();
-      if(left<=0){setLockedUntil(null);setAttempts(0);setRemaining(0);}
-      else setRemaining(Math.ceil(left/1000));
-    };
-    tick();
-    const t=setInterval(tick,1000);
-    return()=>clearInterval(t);
+    const tick=()=>{const left=lockedUntil-Date.now();if(left<=0){setLockedUntil(null);setAttempts(0);setRemaining(0);}else setRemaining(Math.ceil(left/1000));};
+    tick();const t=setInterval(tick,1000);return()=>clearInterval(t);
   },[lockedUntil]);
 
   const isLocked=lockedUntil&&Date.now()<lockedUntil;
 
+  function switchMode(m){setMode(m);setError("");setSuccess("");setPassword("");setPassword2("");setEmail("");setCaptchaVal("");setCaptcha(genCaptcha());}
+
+  function translateError(msg){
+    const m=msg.toLowerCase();
+    if(m.includes("user already registered")||m.includes("already registered"))return "Cette adresse email est déjà utilisée. Connectez-vous ou utilisez 'Mot de passe oublié'.";
+    if(m.includes("email not confirmed")||m.includes("not confirmed"))return null; // handled separately
+    if(m.includes("invalid login")||m.includes("invalid credentials")||m.includes("email or password"))return "Email ou mot de passe incorrect.";
+    if(m.includes("email rate limit")||m.includes("rate limit"))return "Trop de tentatives. Attendez quelques minutes.";
+    if(m.includes("weak password")||m.includes("password should"))return "Mot de passe trop faible. Utilisez au moins 8 caractères.";
+    if(m.includes("invalid email"))return "Adresse email invalide.";
+    return "Erreur : "+msg;
+  }
+
   async function handleSubmit(){
     if(isLocked)return;
-    // Validation basique côté client
-    if(!email.trim()||!email.includes("@")){setError("Adresse email invalide.");return;}
-    if(mode!=="forgot"&&password.length<6){setError("Le mot de passe doit contenir au moins 6 caractères.");return;}
-
+    if(!email.trim()||!email.includes("@")||!email.includes(".")){setError("Adresse email invalide.");return;}
+    if(mode!=="forgot"&&password.length<8){setError("Le mot de passe doit contenir au moins 8 caractères.");return;}
+    if(mode==="signup"){
+      if(password!==password2){setError("Les mots de passe ne correspondent pas.");return;}
+      if(parseInt(captchaVal)!==captcha.ans){setError("Réponse au captcha incorrecte.");refreshCaptcha();return;}
+    }
     setLoading(true);setError("");setSuccess("");
     if(mode==="forgot"){
       const{error:fErr}=await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(),{redirectTo:window.location.origin});
-      if(fErr){setError("Erreur : "+fErr.message);setLoading(false);return;}
-      setSuccess("Email de réinitialisation envoyé ! Vérifiez votre boîte mail (et spam).");
+      if(fErr){setError(translateError(fErr.message));setLoading(false);return;}
+      setSuccess("Email de réinitialisation envoyé ! Vérifiez votre boîte mail (et spams).");
       setLoading(false);return;
     }
     let result;
     if(mode==="login")result=await supabase.auth.signInWithPassword({email:email.trim().toLowerCase(),password});
     else result=await supabase.auth.signUp({email:email.trim().toLowerCase(),password,options:{emailRedirectTo:window.location.origin}});
-
     if(result.error){
-      const msg=result.error.message||"";
-      if(msg.toLowerCase().includes("email not confirmed")||msg.toLowerCase().includes("not confirmed")){
-        setNeedsConfirm(true);
-        setError("");
-      } else {
-        const newAttempts=attempts+1;
-        setAttempts(newAttempts);
-        if(newAttempts>=MAX_LOGIN_ATTEMPTS){
-          setLockedUntil(Date.now()+LOCKOUT_DURATION_MS);
-          setError("Trop de tentatives. Accès bloqué pendant 15 minutes.");
-        } else {
-          setError("Email ou mot de passe incorrect. ("+(MAX_LOGIN_ATTEMPTS-newAttempts)+" tentative(s) restante(s))");
-        }
-      }
+      const raw=result.error.message||"";
+      const translated=translateError(raw);
+      if(translated===null){setNeedsConfirm(true);setError("");}
+      else if(mode==="login"){
+        const na=attempts+1;setAttempts(na);
+        if(na>=MAX_LOGIN_ATTEMPTS){setLockedUntil(Date.now()+LOCKOUT_DURATION_MS);setError("Trop de tentatives. Accès bloqué 15 min.");}
+        else setError(translated+" ("+(MAX_LOGIN_ATTEMPTS-na)+" essai(s) restant(s))");
+      } else setError(translated);
     } else if(mode==="signup"){
       setNeedsConfirm(true);
       setSuccess("Compte créé ! Un email de confirmation a été envoyé à "+email.trim().toLowerCase());
@@ -2767,47 +2891,69 @@ function AuthPage(){
     setLoading(false);
   }
 
+  const IS2={width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"};
   return(
-    <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",background:"#f1f5f9"}}>
-      <div style={{background:"white",borderRadius:16,padding:"40px 32px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
+    <div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"#f1f5f9",padding:16}}>
+      <div style={{background:"white",borderRadius:16,padding:"36px 28px",width:"100%",maxWidth:400,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
         <div style={{textAlign:"center",marginBottom:24}}>
-          <img src="/logo.png" alt="Man's Loc" style={{height:120,width:"auto"}}/>
+          <img src="/logo.png" alt="Man's Loc" style={{height:110,width:"auto"}}/>
         </div>
         {mode!=="forgot"&&(
-          <div style={{display:"flex",marginBottom:24,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
-            {["login","signup"].map(m=><button key={m} onClick={()=>{setMode(m);setError("");setSuccess("");}} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600}}>{m==="login"?"Connexion":"Inscription"}</button>)}
+          <div style={{display:"flex",marginBottom:20,borderRadius:8,overflow:"hidden",border:"1px solid #e5e7eb"}}>
+            {["login","signup"].map(m=><button key={m} onClick={()=>switchMode(m)} style={{flex:1,padding:"10px",border:"none",cursor:"pointer",background:mode===m?"#1d4ed8":"white",color:mode===m?"white":"#374151",fontWeight:600,fontSize:13}}>{m==="login"?"Connexion":"Inscription"}</button>)}
           </div>
         )}
+        {mode==="forgot"&&<p style={{fontWeight:700,fontSize:15,marginBottom:16,color:"#1f2937"}}>Réinitialiser le mot de passe</p>}
         {isLocked&&(
           <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:8,padding:"10px 14px",marginBottom:14,textAlign:"center"}}>
             <div style={{fontSize:13,color:"#dc2626",fontWeight:700}}>Accès temporairement bloqué</div>
             <div style={{fontSize:12,color:"#6b7280",marginTop:4}}>Réessayez dans {Math.floor(remaining/60)}:{String(remaining%60).padStart(2,"0")}</div>
           </div>
         )}
-        <input placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoComplete="email" style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,marginBottom:12,fontSize:14,boxSizing:"border-box"}}/>
+        {/* Email */}
+        <input placeholder="Adresse email" type="email" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoComplete="email" style={{...IS2,marginBottom:12}}/>
+        {/* Mot de passe */}
         {mode!=="forgot"&&(
-          <div style={{position:"relative",marginBottom:16}}>
-            <input placeholder="Mot de passe" type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoComplete={mode==="login"?"current-password":"new-password"} style={{width:"100%",padding:"10px 12px",paddingRight:40,border:"1px solid #e5e7eb",borderRadius:8,fontSize:14,boxSizing:"border-box"}}/>
-            <span onClick={()=>setShowPassword(!showPassword)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:18,color:"#6b7280",userSelect:"none"}}>{showPassword?"🙈":"👁️"}</span>
+          <div style={{position:"relative",marginBottom:mode==="signup"?10:16}}>
+            <input placeholder="Mot de passe (8 caractères min.)" type={showPwd?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoComplete={mode==="login"?"current-password":"new-password"} style={{...IS2,paddingRight:44}}/>
+            <span onClick={()=>setShowPwd(v=>!v)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:17,userSelect:"none"}}>{showPwd?"🙈":"👁️"}</span>
           </div>
+        )}
+        {/* Confirmation mot de passe (inscription seulement) */}
+        {mode==="signup"&&(
+          <>
+            <div style={{position:"relative",marginBottom:14}}>
+              <input placeholder="Confirmer le mot de passe" type={showPwd2?"text":"password"} value={password2} onChange={e=>setPassword2(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} autoComplete="new-password" style={{...IS2,paddingRight:44,borderColor:password2&&password&&password2!==password?"#ef4444":"#e5e7eb"}}/>
+              <span onClick={()=>setShowPwd2(v=>!v)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:17,userSelect:"none"}}>{showPwd2?"🙈":"👁️"}</span>
+            </div>
+            {password2&&password&&password2!==password&&<p style={{fontSize:12,color:"#dc2626",marginBottom:10,marginTop:-10}}>Les mots de passe ne correspondent pas.</p>}
+            {/* Captcha */}
+            <div style={{background:"#f8fafc",borderRadius:10,padding:"12px 14px",marginBottom:14,border:"1px solid #e5e7eb"}}>
+              <div style={{fontSize:12,color:"#374151",marginBottom:8,fontWeight:600}}>Vérification anti-robot</div>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{background:"#1e3a8a",color:"white",borderRadius:8,padding:"8px 16px",fontWeight:800,fontSize:16,letterSpacing:2,flexShrink:0}}>{captcha.a} + {captcha.b} = ?</div>
+                <input type="number" placeholder="Réponse" value={captchaVal} onChange={e=>setCaptchaVal(e.target.value)} style={{...IS2,width:90,flexShrink:0}}/>
+                <button onClick={refreshCaptcha} style={{background:"none",border:"1px solid #e5e7eb",borderRadius:7,padding:"8px 10px",cursor:"pointer",fontSize:14,flexShrink:0}} title="Nouveau calcul">🔄</button>
+              </div>
+            </div>
+          </>
         )}
         {error&&<p style={{color:"#dc2626",fontSize:13,marginBottom:12,background:"#fef2f2",padding:"8px 10px",borderRadius:7,border:"1px solid #fecaca"}}>{error}</p>}
         {success&&<p style={{color:"#16a34a",fontSize:13,marginBottom:12,background:"#f0fdf4",padding:"8px 10px",borderRadius:7,border:"1px solid #bbf7d0"}}>{success}</p>}
         {needsConfirm&&(
           <div style={{background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:10,padding:"14px 16px",marginBottom:14}}>
             <div style={{fontWeight:700,fontSize:13,color:"#b45309",marginBottom:6}}>📧 Email de confirmation requis</div>
-            <div style={{fontSize:12,color:"#78350f",marginBottom:10}}>Un email de confirmation a été envoyé à <b>{email.trim().toLowerCase()}</b>.<br/>Vérifiez votre boîte de réception et vos <b>spams</b>. Cliquez sur le lien pour activer votre compte.</div>
+            <div style={{fontSize:12,color:"#78350f",marginBottom:10}}>Un email a été envoyé à <b>{email.trim().toLowerCase()}</b>.<br/>Vérifiez votre boîte et vos <b>spams</b>. Cliquez sur le lien pour activer votre compte.</div>
             {resendDone
               ?<div style={{fontSize:12,color:"#16a34a",fontWeight:600}}>✅ Email renvoyé ! Vérifiez vos spams.</div>
-              :<button onClick={async()=>{setResendLoading(true);await supabase.auth.resend({type:"signup",email:email.trim().toLowerCase(),options:{emailRedirectTo:window.location.origin}});setResendLoading(false);setResendDone(true);}} disabled={resendLoading} style={{width:"100%",padding:"8px 0",background:"#d97706",color:"white",border:"none",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer"}}>{resendLoading?"Envoi...":"🔁 Renvoyer l'email de confirmation"}</button>
-            }
+              :<button onClick={async()=>{setResendLoading(true);await supabase.auth.resend({type:"signup",email:email.trim().toLowerCase(),options:{emailRedirectTo:window.location.origin}});setResendLoading(false);setResendDone(true);}} disabled={resendLoading} style={{width:"100%",padding:"8px 0",background:"#d97706",color:"white",border:"none",borderRadius:7,fontSize:12,fontWeight:700,cursor:"pointer"}}>{resendLoading?"Envoi...":"🔁 Renvoyer l'email de confirmation"}</button>}
           </div>
         )}
-        <button onClick={handleSubmit} disabled={loading||isLocked} style={{width:"100%",padding:"12px",background:isLocked?"#9ca3af":"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:isLocked?"not-allowed":"pointer"}}>
+        <button onClick={handleSubmit} disabled={loading||isLocked} style={{width:"100%",padding:"12px",background:isLocked?"#9ca3af":"#1d4ed8",color:"white",border:"none",borderRadius:8,fontWeight:700,fontSize:15,cursor:isLocked?"not-allowed":"pointer",marginBottom:12}}>
           {loading?"...":(mode==="login"?"Se connecter":mode==="signup"?"Créer mon compte":"Envoyer le lien")}
         </button>
-        {mode==="login"&&<p style={{textAlign:"center",marginTop:14,fontSize:13}}><span onClick={()=>{setMode("forgot");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Mot de passe oublié ?</span></p>}
-        {mode==="forgot"&&<p style={{textAlign:"center",marginTop:14,fontSize:13}}><span onClick={()=>{setMode("login");setError("");setSuccess("");}} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Retour</span></p>}
+        {mode==="login"&&<p style={{textAlign:"center",fontSize:13,margin:0}}><span onClick={()=>switchMode("forgot")} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>Mot de passe oublié ?</span></p>}
+        {mode==="forgot"&&<p style={{textAlign:"center",fontSize:13,margin:0}}><span onClick={()=>switchMode("login")} style={{color:"#1d4ed8",cursor:"pointer",textDecoration:"underline"}}>← Retour à la connexion</span></p>}
       </div>
     </div>
   );

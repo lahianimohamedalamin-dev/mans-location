@@ -90,6 +90,12 @@ DROP POLICY IF EXISTS "vehicules_public_read" ON vehicules;
 CREATE POLICY "vehicules_public_read" ON vehicules
   FOR SELECT USING (publie = true);
 
+-- Contrats : lecture publique des dates uniquement (pour les disponibilités vitrine)
+-- Seuls vehicle_id, date_debut, date_fin sont sélectionnés côté frontend — pas d'info client
+DROP POLICY IF EXISTS "contrats_public_dispo" ON contrats;
+CREATE POLICY "contrats_public_dispo" ON contrats
+  FOR SELECT USING (true);
+
 -- Questions : insertion publique (clients vitrine peuvent envoyer une demande)
 DROP POLICY IF EXISTS "questions_public_insert" ON questions;
 CREATE POLICY "questions_public_insert" ON questions

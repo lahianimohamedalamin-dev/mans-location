@@ -1,27 +1,131 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './supabase';
 
-/** Valide qu'un numéro de téléphone ne contient que des caractères autorisés */
 function safeTel(tel){ return /^[+\d\s\-()\\.]+$/.test(tel||"")?tel:""; }
 
+// ── Calendrier de disponibilités ─────────────────────────────────────────────
+function CalendrierDispo({ reservations }) {
+  const today = new Date();
+  const [year, setYear]   = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth());
+
+  const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin',
+                'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+  function toStr(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  const todayStr = toStr(today);
+
+  function isBooked(d) {
+    const s = toStr(d);
+    return reservations.some(r => s >= r.dateDebut && s <= r.dateFin);
+  }
+
+  const firstDay  = new Date(year, month, 1);
+  const lastDay   = new Date(year, month + 1, 0);
+  const startDow  = (firstDay.getDay() + 6) % 7; // lundi = 0
+
+  const cells = [];
+  for (let i = 0; i < startDow; i++) cells.push(null);
+  for (let d = 1; d <= lastDay.getDate(); d++) cells.push(new Date(year, month, d));
+
+  const canPrev = year > today.getFullYear() ||
+    (year === today.getFullYear() && month > today.getMonth());
+
+  function prevM() {
+    if (month === 0) { setMonth(11); setYear(y => y-1); }
+    else setMonth(m => m-1);
+  }
+  function nextM() {
+    if (month === 11) { setMonth(0); setYear(y => y+1); }
+    else setMonth(m => m+1);
+  }
+
+  return (
+    <div style={{ margin:'12px 0' }}>
+      {/* En-tête mois */}
+      <div style={{ display:'flex', alignItems:'center',
+        justifyContent:'space-between', marginBottom:6 }}>
+        <button onClick={prevM} disabled={!canPrev}
+          style={{ border:'none', background:'none', padding:'0 6px',
+            fontSize:18, cursor:canPrev?'pointer':'default',
+            color:canPrev?'#374151':'#d1d5db', fontWeight:700 }}>‹</button>
+        <span style={{ fontSize:13, fontWeight:700, color:'#374151' }}>
+          {MOIS[month]} {year}
+        </span>
+        <button onClick={nextM}
+          style={{ border:'none', background:'none', padding:'0 6px',
+            fontSize:18, cursor:'pointer', color:'#374151', fontWeight:700 }}>›</button>
+      </div>
+
+      {/* Légende */}
+      <div style={{ display:'flex', gap:14, marginBottom:6, fontSize:11, color:'#6b7280' }}>
+        <span style={{ display:'flex', alignItems:'center', gap:4 }}>
+          <span style={{ display:'inline-block', width:12, height:12,
+            background:'#d1fae5', borderRadius:3, border:'1px solid #6ee7b7' }}/>
+          Disponible
+        </span>
+        <span style={{ display:'flex', alignItems:'center', gap:4 }}>
+          <span style={{ display:'inline-block', width:12, height:12,
+            background:'#f3f4f6', borderRadius:3, border:'1px solid #d1d5db' }}/>
+          Non disponible
+        </span>
+      </div>
+
+      {/* Grille */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2 }}>
+        {['L','M','M','J','V','S','D'].map((j,i) => (
+          <div key={i} style={{ textAlign:'center', fontSize:10,
+            color:'#9ca3af', fontWeight:700, paddingBottom:2 }}>{j}</div>
+        ))}
+        {cells.map((d, i) => {
+          if (!d) return <div key={`e${i}`}/>;
+          const dStr   = toStr(d);
+          const past   = dStr < todayStr;
+          const booked = !past && isBooked(d);
+          const isToday = dStr === todayStr;
+          return (
+            <div key={i} style={{
+              textAlign:'center', fontSize:12, padding:'4px 2px',
+              borderRadius:4,
+              background: past   ? 'transparent'
+                        : booked ? '#f3f4f6'
+                        :          '#d1fae5',
+              color: past   ? '#d1d5db'
+                   : booked ? '#9ca3af'
+                   :          '#15803d',
+              fontWeight: isToday ? 800 : 400,
+              border: isToday ? '2px solid #2563eb' : '2px solid transparent',
+            }}>
+              {d.getDate()}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Page principale Vitrine ──────────────────────────────────────────────────
 export default function Vitrine() {
-  const [profil, setProfil] = useState(null);
-  const [vehicles, setVehicles] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [profil,       setProfil]       = useState(null);
+  const [vehicles,     setVehicles]     = useState([]);
+  const [reservations, setReservations] = useState({});
+  const [loading,      setLoading]      = useState(true);
 
   const slug = (window.location.pathname.split('/vitrine/')[1] || '').replace(/\/$/, '').trim();
 
   useEffect(() => {
-    if (!slug) return;
+    if (!slug) { setLoading(false); return; }
     async function load() {
+      // 1. Profil par user_id (UUID complet)
       let profils = null;
-
-      // 1. Essayer par user_id exact (UUID complet — méthode principale)
-      const { data: byUserId } = await supabase
+      const { data: byId } = await supabase
         .from('profils').select('*').eq('user_id', slug).maybeSingle();
-      profils = byUserId;
+      profils = byId;
 
-      // 2. Fallback : chercher par slug personnalisé
+      // 2. Fallback slug personnalisé
       if (!profils) {
         const { data: bySlug } = await supabase
           .from('profils').select('*').eq('slug', slug).maybeSingle();
@@ -29,30 +133,35 @@ export default function Vitrine() {
       }
 
       setProfil(profils);
+      if (!profils) { setLoading(false); return; }
 
+      // 3. Véhicules publiés
       const { data: vehs } = await supabase
-        .from('vehicules')
-        .select('*')
-        .eq('user_id', profils?.user_id)
-        .eq('publie', true);
+        .from('vehicules').select('*')
+        .eq('user_id', profils.user_id).eq('publie', true);
       setVehicles(vehs || []);
+
+      // 4. Dates de réservation (sans info client)
+      if (vehs && vehs.length > 0) {
+        const ids = vehs.map(v => v.id);
+        const { data: contrats } = await supabase
+          .from('contrats')
+          .select('vehicle_id,date_debut,date_fin')
+          .in('vehicle_id', ids);
+        if (contrats) {
+          const map = {};
+          contrats.forEach(c => {
+            if (!map[c.vehicle_id]) map[c.vehicle_id] = [];
+            map[c.vehicle_id].push({ dateDebut: c.date_debut, dateFin: c.date_fin });
+          });
+          setReservations(map);
+        }
+      }
 
       setLoading(false);
     }
     load();
   }, [slug]);
-
-  async function envoyerQuestion(vehicleId, vehicleLabel, question, tel) {
-    await supabase.from('questions').insert([{
-      user_id: profil?.user_id,
-      vehicle_id: vehicleId,
-      vehicle_label: vehicleLabel,
-      client_nom: 'Client vitrine',
-      client_tel: tel || '',
-      question: question,
-      lu: false
-    }]);
-  }
 
   if (loading) return (
     <div style={{ display:'flex', justifyContent:'center', alignItems:'center',
@@ -72,25 +181,26 @@ export default function Vitrine() {
     <div style={{ minHeight:'100vh', background:'#f0f4f8', fontFamily:'Arial,sans-serif' }}>
       {/* Header */}
       <div style={{ background:'linear-gradient(135deg,#0a1940,#1e3a8a)',
-        padding:'20px', textAlign:'center', color:'white' }}>
-        <h1 style={{ fontSize:24, fontWeight:800, marginBottom:4 }}>
+        padding:'24px 20px', textAlign:'center', color:'white' }}>
+        <h1 style={{ fontSize:24, fontWeight:800, margin:'0 0 4px' }}>
           {profil.entreprise || 'Location de véhicules'}
         </h1>
-        <p style={{ fontSize:13, opacity:.8 }}>
+        <p style={{ fontSize:13, opacity:.8, margin:'0 0 10px' }}>
           {profil.adresse}{profil.ville && ' · ' + profil.ville}
         </p>
         {safeTel(profil.tel) && (
-          <a href={`tel:${safeTel(profil.tel)}`} style={{ color:'#4ade80',
-            fontSize:14, fontWeight:700, textDecoration:'none' }}>
+          <a href={`tel:${safeTel(profil.tel)}`}
+            style={{ color:'#4ade80', fontSize:15, fontWeight:700, textDecoration:'none' }}>
             📞 {profil.tel}
           </a>
         )}
       </div>
 
       {/* Véhicules */}
-      <div style={{ maxWidth:960, margin:'0 auto', padding:16 }}>
-        <h2 style={{ fontSize:16, fontWeight:700, color:'#1f2937',
-          margin:'16px 0 12px' }}>Nos véhicules disponibles</h2>
+      <div style={{ maxWidth:980, margin:'0 auto', padding:16 }}>
+        <h2 style={{ fontSize:15, fontWeight:700, color:'#1f2937', margin:'16px 0 12px' }}>
+          Nos véhicules
+        </h2>
 
         {vehicles.length === 0 ? (
           <div style={{ textAlign:'center', color:'#9ca3af', padding:40,
@@ -105,7 +215,7 @@ export default function Vitrine() {
                 key={v.id}
                 vehicle={v}
                 profil={profil}
-                onQuestion={envoyerQuestion}
+                reservations={reservations[v.id] || []}
               />
             ))}
           </div>
@@ -115,56 +225,46 @@ export default function Vitrine() {
   );
 }
 
-function CarteVehicule({ vehicle, profil, onQuestion }) {
+// ── Carte véhicule ────────────────────────────────────────────────────────────
+function CarteVehicule({ vehicle, profil, reservations }) {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState('resa');
   const [form, setForm] = useState({
-    prenom:'', nom:'', age:'', tel:'+33 ',
-    email:'', dateDebut:'', dateFin:'', message:''
+    prenom:'', nom:'', tel:'+33 ', dateDebut:'', dateFin:'', message:''
   });
-  const [question, setQuestion] = useState('');
   const [sent, setSent] = useState(false);
-  const [qSent, setQSent] = useState(false);
 
   const cover = (vehicle.photos_vehicule || [])[0];
-  const wa = (profil.whatsapp || profil.tel || '').replace(/\D/g, '');
+  const wa    = (profil.whatsapp || profil.tel || '').replace(/\D/g, '');
+
+  function nbJours() {
+    if (!form.dateDebut || !form.dateFin) return 0;
+    return Math.max(1, Math.ceil(
+      (new Date(form.dateFin) - new Date(form.dateDebut)) / 86400000
+    ));
+  }
 
   function sendWhatsApp() {
-    const nbJ = form.dateDebut && form.dateFin
-      ? Math.max(1, Math.ceil(
-          (new Date(form.dateFin) - new Date(form.dateDebut)) / 86400000
-        )) : null;
-    const msg = `Bonjour, je souhaite louer le ${vehicle.marque} ${vehicle.modele}.\n`
-      + `Je m'appelle ${form.prenom} ${form.nom}, j'ai ${form.age} ans.\n`
-      + `Tel : ${form.tel}\nEmail : ${form.email}\n`
+    const j = nbJours();
+    const msg =
+      `Bonjour, je souhaite louer le ${vehicle.marque} ${vehicle.modele}.\n`
+      + `Je m'appelle ${form.prenom} ${form.nom}.\n`
+      + `Tél : ${form.tel}\n`
       + `Du ${form.dateDebut} au ${form.dateFin}`
-      + (nbJ ? ` (${nbJ} jour${nbJ > 1 ? 's' : ''})\n` : '\n')
+      + (j ? ` (${j} jour${j > 1 ? 's' : ''})\n` : '\n')
       + (form.message ? `\nMessage : ${form.message}` : '');
     window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(msg), '_blank');
     setSent(true);
   }
 
-  async function sendQuestion() {
-    if (!question.trim()) return;
-    await onQuestion(
-      vehicle.id,
-      vehicle.marque + ' ' + vehicle.modele,
-      question,
-      ''
-    );
-    setQSent(true);
-    setQuestion('');
-  }
-
   const IS = {
-    width:'100%', border:'1px solid #d1d5db',
-    borderRadius:8, padding:'9px 11px',
-    fontSize:14, boxSizing:'border-box'
+    width:'100%', border:'1px solid #d1d5db', borderRadius:8,
+    padding:'9px 11px', fontSize:14, boxSizing:'border-box'
   };
 
   return (
     <div style={{ background:'white', borderRadius:14, overflow:'hidden',
       boxShadow:'0 2px 8px rgba(0,0,0,.08)' }}>
+
       {/* Photo */}
       <div style={{ height:180, background:'#f1f5f9', overflow:'hidden' }}>
         {cover
@@ -175,6 +275,7 @@ function CarteVehicule({ vehicle, profil, onQuestion }) {
       </div>
 
       <div style={{ padding:16 }}>
+        {/* Titre */}
         <div style={{ fontWeight:800, fontSize:18, marginBottom:2 }}>
           {vehicle.marque} {vehicle.modele}
         </div>
@@ -182,163 +283,102 @@ function CarteVehicule({ vehicle, profil, onQuestion }) {
           {vehicle.couleur} · {vehicle.annee}
         </div>
 
+        {/* Prix */}
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr',
           gap:8, marginBottom:14 }}>
-          <div style={{ background:'#eff6ff', borderRadius:8,
-            padding:'10px', textAlign:'center' }}>
+          <div style={{ background:'#eff6ff', borderRadius:8, padding:10, textAlign:'center' }}>
             <div style={{ fontSize:11, color:'#6b7280' }}>Prix/jour</div>
             <div style={{ fontWeight:800, color:'#2563eb', fontSize:16 }}>{vehicle.tarif} €</div>
           </div>
-          <div style={{ background:'#fef3c7', borderRadius:8,
-            padding:'10px', textAlign:'center' }}>
+          <div style={{ background:'#fef3c7', borderRadius:8, padding:10, textAlign:'center' }}>
             <div style={{ fontSize:11, color:'#6b7280' }}>Caution</div>
             <div style={{ fontWeight:800, color:'#d97706', fontSize:16 }}>{vehicle.caution} €</div>
           </div>
         </div>
 
-        {/* Boutons */}
+        {/* Calendrier disponibilités */}
+        <CalendrierDispo reservations={reservations} />
+
+        {/* Formulaire réservation WhatsApp */}
         {!open ? (
-          <div style={{ display:'flex', gap:8 }}>
-            <button onClick={() => { setOpen(true); setTab('resa'); }}
-              style={{ flex:1, padding:'10px 0', background:'#1e3a8a',
-                color:'white', border:'none', borderRadius:8,
-                fontSize:14, fontWeight:700, cursor:'pointer' }}>
-              📅 Réserver
-            </button>
-            <button onClick={() => { setOpen(true); setTab('question'); }}
-              style={{ flex:1, padding:'10px 0', background:'#f1f5f9',
-                color:'#374151', border:'1px solid #e5e7eb',
-                borderRadius:8, fontSize:14, fontWeight:700, cursor:'pointer' }}>
-              ❓ Question
+          <button onClick={() => setOpen(true)}
+            style={{ width:'100%', padding:'11px 0', background:'#25D366',
+              color:'white', border:'none', borderRadius:10,
+              fontSize:14, fontWeight:700, cursor:'pointer' }}>
+            💬 Réserver sur WhatsApp
+          </button>
+        ) : sent ? (
+          <div style={{ textAlign:'center', padding:'16px 0',
+            background:'#f0fdf4', borderRadius:10, border:'1px solid #bbf7d0' }}>
+            <div style={{ fontSize:32, marginBottom:6 }}>✅</div>
+            <div style={{ fontWeight:700, color:'#16a34a', marginBottom:10, fontSize:15 }}>
+              Message envoyé !
+            </div>
+            <button onClick={() => { setSent(false); setForm({ prenom:'', nom:'',
+              tel:'+33 ', dateDebut:'', dateFin:'', message:'' }); setOpen(false); }}
+              style={{ padding:'8px 18px', background:'#e5e7eb', border:'none',
+                borderRadius:8, cursor:'pointer', fontSize:13 }}>
+              Fermer
             </button>
           </div>
         ) : (
-          <div style={{ background:'#f8fafc', borderRadius:10,
-            padding:14, border:'1px solid #e5e7eb' }}>
-            {/* Tabs */}
-            <div style={{ display:'flex', gap:6, marginBottom:14 }}>
-              <button onClick={() => setTab('resa')}
-                style={{ flex:1, padding:'8px 0', borderRadius:7, border:'none',
-                  cursor:'pointer', fontWeight:tab==='resa'?700:400,
-                  background:tab==='resa'?'#1e3a8a':'#e5e7eb',
-                  color:tab==='resa'?'white':'#374151', fontSize:13 }}>
-                📅 Réservation
-              </button>
-              <button onClick={() => setTab('question')}
-                style={{ flex:1, padding:'8px 0', borderRadius:7, border:'none',
-                  cursor:'pointer', fontWeight:tab==='question'?700:400,
-                  background:tab==='question'?'#7c3aed':'#e5e7eb',
-                  color:tab==='question'?'white':'#374151', fontSize:13 }}>
-                ❓ Question
-              </button>
+          <div style={{ background:'#f8fafc', borderRadius:10, padding:14,
+            border:'1px solid #e5e7eb', display:'flex', flexDirection:'column', gap:10 }}>
+            <div style={{ display:'flex', justifyContent:'space-between',
+              alignItems:'center', marginBottom:4 }}>
+              <span style={{ fontWeight:700, fontSize:13, color:'#374151' }}>
+                Demande de réservation
+              </span>
               <button onClick={() => setOpen(false)}
-                style={{ padding:'8px 12px', borderRadius:7, border:'none',
-                  cursor:'pointer', background:'#fef2f2',
-                  color:'#ef4444', fontSize:13, fontWeight:700 }}>
-                ✕
-              </button>
+                style={{ border:'none', background:'#fef2f2', color:'#ef4444',
+                  borderRadius:6, padding:'4px 10px', cursor:'pointer',
+                  fontSize:13, fontWeight:700 }}>✕</button>
             </div>
 
-            {/* Réservation */}
-            {tab === 'resa' && (sent ? (
-              <div style={{ textAlign:'center', padding:'16px 0' }}>
-                <div style={{ fontSize:36, marginBottom:8 }}>✅</div>
-                <div style={{ fontWeight:700, color:'#16a34a', marginBottom:8, fontSize:15 }}>
-                  Demande envoyée !
-                </div>
-                <button onClick={() => {
-                  setSent(false);
-                  setForm({ prenom:'', nom:'', age:'', tel:'+33 ',
-                    email:'', dateDebut:'', dateFin:'', message:'' });
-                }} style={{ padding:'8px 16px', background:'#e5e7eb',
-                  border:'none', borderRadius:8, cursor:'pointer', fontSize:13 }}>
-                  Nouvelle demande
-                </button>
-              </div>
-            ) : (
-              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-                  <input placeholder="Prénom *" value={form.prenom}
-                    onChange={e => setForm(f => ({...f, prenom:e.target.value}))}
-                    style={IS}/>
-                  <input placeholder="Nom *" value={form.nom}
-                    onChange={e => setForm(f => ({...f, nom:e.target.value}))}
-                    style={IS}/>
-                </div>
-                <input placeholder="Âge *" type="number" value={form.age}
-                  onChange={e => setForm(f => ({...f, age:e.target.value}))}
-                  style={IS}/>
-                <input placeholder="Téléphone *" value={form.tel}
-                  onChange={e => setForm(f => ({...f, tel:e.target.value}))}
-                  style={IS}/>
-                <input placeholder="Email" value={form.email}
-                  onChange={e => setForm(f => ({...f, email:e.target.value}))}
-                  style={IS}/>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-                  <div>
-                    <div style={{ fontSize:11, color:'#6b7280', marginBottom:4 }}>Début *</div>
-                    <input type="date" value={form.dateDebut}
-                      onChange={e => setForm(f => ({...f, dateDebut:e.target.value}))}
-                      style={IS}/>
-                  </div>
-                  <div>
-                    <div style={{ fontSize:11, color:'#6b7280', marginBottom:4 }}>Fin *</div>
-                    <input type="date" value={form.dateFin}
-                      onChange={e => setForm(f => ({...f, dateFin:e.target.value}))}
-                      style={IS}/>
-                  </div>
-                </div>
-                {form.dateDebut && form.dateFin &&
-                  new Date(form.dateFin) > new Date(form.dateDebut) && (
-                  <div style={{ background:'#eff6ff', borderRadius:8,
-                    padding:'8px 11px', fontSize:13, color:'#2563eb', fontWeight:600 }}>
-                    {Math.ceil((new Date(form.dateFin) - new Date(form.dateDebut)) / 86400000)} jour(s) —{' '}
-                    {Math.ceil((new Date(form.dateFin) - new Date(form.dateDebut)) / 86400000) * vehicle.tarif} €
-                  </div>
-                )}
-                <textarea placeholder="Message (optionnel)" value={form.message}
-                  onChange={e => setForm(f => ({...f, message:e.target.value}))}
-                  rows={3} style={{ ...IS, resize:'none', fontFamily:'inherit' }}/>
-                <button onClick={() => {
-                  if (!form.prenom || !form.nom || !form.tel ||
-                      !form.dateDebut || !form.dateFin) {
-                    alert('Remplissez les champs obligatoires *'); return;
-                  }
-                  sendWhatsApp();
-                }} style={{ width:'100%', padding:'11px 0', background:'#25D366',
-                  color:'white', border:'none', borderRadius:10,
-                  fontSize:14, fontWeight:700, cursor:'pointer' }}>
-                  💬 Envoyer sur WhatsApp
-                </button>
-              </div>
-            ))}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+              <input placeholder="Prénom *" value={form.prenom}
+                onChange={e => setForm(f => ({...f, prenom:e.target.value}))} style={IS}/>
+              <input placeholder="Nom *" value={form.nom}
+                onChange={e => setForm(f => ({...f, nom:e.target.value}))} style={IS}/>
+            </div>
+            <input placeholder="Téléphone *" value={form.tel}
+              onChange={e => setForm(f => ({...f, tel:e.target.value}))} style={IS}/>
 
-            {/* Question */}
-            {tab === 'question' && (qSent ? (
-              <div style={{ textAlign:'center', padding:'16px 0' }}>
-                <div style={{ fontSize:36, marginBottom:8 }}>✅</div>
-                <div style={{ fontWeight:700, color:'#16a34a', marginBottom:8, fontSize:15 }}>
-                  Question envoyée !
-                </div>
-                <button onClick={() => setQSent(false)}
-                  style={{ padding:'8px 16px', background:'#e5e7eb',
-                    border:'none', borderRadius:8, cursor:'pointer', fontSize:13 }}>
-                  Nouvelle question
-                </button>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+              <div>
+                <div style={{ fontSize:11, color:'#6b7280', marginBottom:3 }}>Date début *</div>
+                <input type="date" value={form.dateDebut}
+                  onChange={e => setForm(f => ({...f, dateDebut:e.target.value}))} style={IS}/>
               </div>
-            ) : (
-              <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                <textarea placeholder="Votre question..." value={question}
-                  onChange={e => setQuestion(e.target.value)} rows={4}
-                  style={{ ...IS, resize:'none', fontFamily:'inherit' }}/>
-                <button onClick={sendQuestion}
-                  style={{ width:'100%', padding:'11px 0', background:'#7c3aed',
-                    color:'white', border:'none', borderRadius:10,
-                    fontSize:14, fontWeight:700, cursor:'pointer' }}>
-                  Envoyer la question
-                </button>
+              <div>
+                <div style={{ fontSize:11, color:'#6b7280', marginBottom:3 }}>Date fin *</div>
+                <input type="date" value={form.dateFin}
+                  onChange={e => setForm(f => ({...f, dateFin:e.target.value}))} style={IS}/>
               </div>
-            ))}
+            </div>
+
+            {nbJours() > 0 && (
+              <div style={{ background:'#eff6ff', borderRadius:8,
+                padding:'8px 11px', fontSize:13, color:'#2563eb', fontWeight:600 }}>
+                {nbJours()} jour{nbJours() > 1 ? 's' : ''} — {nbJours() * vehicle.tarif} €
+              </div>
+            )}
+
+            <textarea placeholder="Message (optionnel)" value={form.message}
+              onChange={e => setForm(f => ({...f, message:e.target.value}))}
+              rows={2} style={{ ...IS, resize:'none', fontFamily:'inherit' }}/>
+
+            <button onClick={() => {
+              if (!form.prenom || !form.nom || !form.tel ||
+                  !form.dateDebut || !form.dateFin) {
+                alert('Merci de remplir les champs obligatoires *'); return;
+              }
+              sendWhatsApp();
+            }} style={{ width:'100%', padding:'11px 0', background:'#25D366',
+              color:'white', border:'none', borderRadius:10,
+              fontSize:14, fontWeight:700, cursor:'pointer' }}>
+              💬 Envoyer sur WhatsApp
+            </button>
           </div>
         )}
       </div>

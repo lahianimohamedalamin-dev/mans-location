@@ -11,6 +11,7 @@ function CalendrierDispo({ reservations }) {
 
   const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin',
                 'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const JOURS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 
   function toStr(d) {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -22,13 +23,15 @@ function CalendrierDispo({ reservations }) {
     return reservations.some(r => s >= r.dateDebut && s <= r.dateFin);
   }
 
-  const firstDay  = new Date(year, month, 1);
-  const lastDay   = new Date(year, month + 1, 0);
-  const startDow  = (firstDay.getDay() + 6) % 7; // lundi = 0
+  const firstDay = new Date(year, month, 1);
+  const lastDay  = new Date(year, month + 1, 0);
+  const startDow = (firstDay.getDay() + 6) % 7; // lundi = 0
 
   const cells = [];
   for (let i = 0; i < startDow; i++) cells.push(null);
   for (let d = 1; d <= lastDay.getDate(); d++) cells.push(new Date(year, month, d));
+  // compléter la dernière semaine
+  while (cells.length % 7 !== 0) cells.push(null);
 
   const canPrev = year > today.getFullYear() ||
     (year === today.getFullYear() && month > today.getMonth());
@@ -43,60 +46,73 @@ function CalendrierDispo({ reservations }) {
   }
 
   return (
-    <div style={{ margin:'12px 0' }}>
+    <div style={{ margin:'14px 0', background:'#f8fafc',
+      borderRadius:12, padding:'12px', border:'1px solid #e5e7eb' }}>
+
       {/* En-tête mois */}
       <div style={{ display:'flex', alignItems:'center',
-        justifyContent:'space-between', marginBottom:6 }}>
+        justifyContent:'space-between', marginBottom:10 }}>
         <button onClick={prevM} disabled={!canPrev}
-          style={{ border:'none', background:'none', padding:'0 6px',
-            fontSize:18, cursor:canPrev?'pointer':'default',
-            color:canPrev?'#374151':'#d1d5db', fontWeight:700 }}>‹</button>
-        <span style={{ fontSize:13, fontWeight:700, color:'#374151' }}>
+          style={{ border:'none', background: canPrev ? '#e5e7eb' : 'transparent',
+            width:32, height:32, borderRadius:8,
+            cursor: canPrev ? 'pointer' : 'default',
+            color: canPrev ? '#374151' : '#d1d5db',
+            fontSize:18, fontWeight:700, display:'flex',
+            alignItems:'center', justifyContent:'center' }}>‹</button>
+        <span style={{ fontSize:15, fontWeight:800, color:'#1e3a8a' }}>
           {MOIS[month]} {year}
         </span>
         <button onClick={nextM}
-          style={{ border:'none', background:'none', padding:'0 6px',
-            fontSize:18, cursor:'pointer', color:'#374151', fontWeight:700 }}>›</button>
+          style={{ border:'none', background:'#e5e7eb', width:32, height:32,
+            borderRadius:8, cursor:'pointer', color:'#374151',
+            fontSize:18, fontWeight:700, display:'flex',
+            alignItems:'center', justifyContent:'center' }}>›</button>
       </div>
 
       {/* Légende */}
-      <div style={{ display:'flex', gap:14, marginBottom:6, fontSize:11, color:'#6b7280' }}>
-        <span style={{ display:'flex', alignItems:'center', gap:4 }}>
-          <span style={{ display:'inline-block', width:12, height:12,
-            background:'#d1fae5', borderRadius:3, border:'1px solid #6ee7b7' }}/>
+      <div style={{ display:'flex', gap:14, marginBottom:10, fontSize:12, color:'#6b7280' }}>
+        <span style={{ display:'flex', alignItems:'center', gap:5 }}>
+          <span style={{ display:'inline-block', width:14, height:14,
+            background:'#d1fae5', borderRadius:4, border:'1px solid #6ee7b7' }}/>
           Disponible
         </span>
-        <span style={{ display:'flex', alignItems:'center', gap:4 }}>
-          <span style={{ display:'inline-block', width:12, height:12,
-            background:'#f3f4f6', borderRadius:3, border:'1px solid #d1d5db' }}/>
+        <span style={{ display:'flex', alignItems:'center', gap:5 }}>
+          <span style={{ display:'inline-block', width:14, height:14,
+            background:'#f3f4f6', borderRadius:4, border:'1px solid #d1d5db' }}/>
           Non disponible
         </span>
       </div>
 
-      {/* Grille */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2 }}>
-        {['L','M','M','J','V','S','D'].map((j,i) => (
-          <div key={i} style={{ textAlign:'center', fontSize:10,
-            color:'#9ca3af', fontWeight:700, paddingBottom:2 }}>{j}</div>
+      {/* Grille jours */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3 }}>
+        {JOURS.map((j, i) => (
+          <div key={i} style={{ textAlign:'center', fontSize:11,
+            color:'#6b7280', fontWeight:700, padding:'4px 0',
+            borderBottom:'2px solid #e5e7eb', marginBottom:2 }}>
+            {j}
+          </div>
         ))}
         {cells.map((d, i) => {
           if (!d) return <div key={`e${i}`}/>;
-          const dStr   = toStr(d);
-          const past   = dStr < todayStr;
-          const booked = !past && isBooked(d);
+          const dStr    = toStr(d);
+          const past    = dStr < todayStr;
+          const booked  = !past && isBooked(d);
           const isToday = dStr === todayStr;
           return (
             <div key={i} style={{
-              textAlign:'center', fontSize:12, padding:'4px 2px',
-              borderRadius:4,
-              background: past   ? 'transparent'
-                        : booked ? '#f3f4f6'
-                        :          '#d1fae5',
-              color: past   ? '#d1d5db'
-                   : booked ? '#9ca3af'
-                   :          '#15803d',
-              fontWeight: isToday ? 800 : 400,
+              textAlign:'center',
+              fontSize:13,
+              padding:'7px 2px',
+              borderRadius:7,
+              background: past    ? 'transparent'
+                        : booked  ? '#f3f4f6'
+                        :           '#d1fae5',
+              color: past    ? '#d1d5db'
+                   : booked  ? '#9ca3af'
+                   :           '#15803d',
+              fontWeight: isToday ? 900 : 500,
               border: isToday ? '2px solid #2563eb' : '2px solid transparent',
+              boxSizing:'border-box',
             }}>
               {d.getDate()}
             </div>
@@ -209,7 +225,7 @@ export default function Vitrine() {
           </div>
         ) : (
           <div style={{ display:'grid',
-            gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:16 }}>
+            gridTemplateColumns:'repeat(auto-fill,minmax(min(300px,100%),1fr))', gap:16 }}>
             {vehicles.map(v => (
               <CarteVehicule
                 key={v.id}
@@ -229,7 +245,7 @@ export default function Vitrine() {
 function CarteVehicule({ vehicle, profil, reservations }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
-    prenom:'', nom:'', tel:'+33 ', dateDebut:'', dateFin:'', message:''
+    prenom:'', nom:'', age:'', dateDebut:'', dateFin:'', message:''
   });
   const [sent, setSent] = useState(false);
 
@@ -247,10 +263,9 @@ function CarteVehicule({ vehicle, profil, reservations }) {
     const j = nbJours();
     const msg =
       `Bonjour, je souhaite louer le ${vehicle.marque} ${vehicle.modele}.\n`
-      + `Je m'appelle ${form.prenom} ${form.nom}.\n`
-      + `Tél : ${form.tel}\n`
+      + `Je m'appelle ${form.prenom} ${form.nom}${form.age ? `, ${form.age} ans` : ''}.\n`
       + `Du ${form.dateDebut} au ${form.dateFin}`
-      + (j ? ` (${j} jour${j > 1 ? 's' : ''})\n` : '\n')
+      + (j ? ` (${j} jour${j > 1 ? 's' : ''}) — ${j * vehicle.tarif} €\n` : '\n')
       + (form.message ? `\nMessage : ${form.message}` : '');
     window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(msg), '_blank');
     setSent(true);
@@ -315,7 +330,7 @@ function CarteVehicule({ vehicle, profil, reservations }) {
               Message envoyé !
             </div>
             <button onClick={() => { setSent(false); setForm({ prenom:'', nom:'',
-              tel:'+33 ', dateDebut:'', dateFin:'', message:'' }); setOpen(false); }}
+              age:'', dateDebut:'', dateFin:'', message:'' }); setOpen(false); }}
               style={{ padding:'8px 18px', background:'#e5e7eb', border:'none',
                 borderRadius:8, cursor:'pointer', fontSize:13 }}>
               Fermer
@@ -341,8 +356,8 @@ function CarteVehicule({ vehicle, profil, reservations }) {
               <input placeholder="Nom *" value={form.nom}
                 onChange={e => setForm(f => ({...f, nom:e.target.value}))} style={IS}/>
             </div>
-            <input placeholder="Téléphone *" value={form.tel}
-              onChange={e => setForm(f => ({...f, tel:e.target.value}))} style={IS}/>
+            <input placeholder="Âge *" type="number" min="18" max="99" value={form.age}
+              onChange={e => setForm(f => ({...f, age:e.target.value}))} style={IS}/>
 
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
               <div>
@@ -369,7 +384,7 @@ function CarteVehicule({ vehicle, profil, reservations }) {
               rows={2} style={{ ...IS, resize:'none', fontFamily:'inherit' }}/>
 
             <button onClick={() => {
-              if (!form.prenom || !form.nom || !form.tel ||
+              if (!form.prenom || !form.nom || !form.age ||
                   !form.dateDebut || !form.dateFin) {
                 alert('Merci de remplir les champs obligatoires *'); return;
               }

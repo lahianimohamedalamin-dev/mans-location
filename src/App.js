@@ -1058,6 +1058,11 @@ function AppContent(){
   const activeUserIdRef=useRef(null);
   const req=["locNom","locAdresse","locTel","dateDebut","dateFin"];
 
+  // Détection taille écran pour responsive
+  const[sw,setSW]=useState(typeof window!=="undefined"?window.innerWidth:390);
+  useEffect(()=>{const h=()=>setSW(window.innerWidth);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
+  const isPhone=sw<600;const isTablet=sw>=600&&sw<1024;
+
   function findContratForAmende(vehicleId,date,heure){
     if(!vehicleId||!date)return null;
     const dt=new Date(`${date}T${heure||"00:00"}`);
@@ -1492,23 +1497,23 @@ function AppContent(){
   return(
     <div style={{minHeight:"100vh",background:"#f0f4f8"}}>
       <nav style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",boxShadow:"0 2px 12px rgba(0,0,0,.3)",position:"sticky",top:0,zIndex:100}}>
-        <div style={{maxWidth:1100,margin:"0 auto",padding:"0 8px",height:54,display:"flex",alignItems:"center",gap:4}}>
+        <div style={{maxWidth:1100,margin:"0 auto",padding:"0 8px",height:isPhone?54:60,display:"flex",alignItems:"center",gap:4}}>
           <div style={{display:"flex",alignItems:"center",flexShrink:0}}>
-            <img src="/logo.png" alt="Man's Loc" style={{height:42,width:"auto"}}/>
+            <img src="/logo.png" alt="Man's Loc" style={{height:isPhone?36:44,width:"auto"}}/>
           </div>
-          <div style={{display:"flex",overflowX:"auto",gap:0,WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none",flex:1}}>
+          <div style={{display:"flex",overflowX:"auto",gap:isPhone?0:2,WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none",flex:1}}>
             {PAGES.map(p=>(
-              <button key={p.id} onClick={()=>setPagePersist(p.id)} style={{flexShrink:0,padding:"4px 6px",borderRadius:6,fontSize:10,fontWeight:page===p.id?700:400,background:page===p.id?"rgba(255,255,255,0.2)":"transparent",color:page===p.id?"white":"rgba(255,255,255,0.65)",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:1,position:"relative",minWidth:44}}>
-                <span style={{fontSize:16}}>{p.icon}</span>
-                <span style={{fontSize:8,whiteSpace:"nowrap"}}>{p.label}</span>
-                {p.id==="questions"&&nbQSansReponse>0&&<span style={{position:"absolute",top:1,right:1,background:"#ef4444",color:"white",borderRadius:"50%",width:13,height:13,fontSize:7,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{nbQSansReponse}</span>}
+              <button key={p.id} onClick={()=>setPagePersist(p.id)} style={{flexShrink:0,padding:isPhone?"4px 6px":"6px 10px",borderRadius:8,fontSize:10,fontWeight:page===p.id?700:400,background:page===p.id?"rgba(255,255,255,0.2)":"transparent",color:page===p.id?"white":"rgba(255,255,255,0.65)",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,position:"relative",minWidth:isPhone?44:54}}>
+                <span style={{fontSize:isPhone?16:18}}>{p.icon}</span>
+                <span style={{fontSize:isPhone?8:10,whiteSpace:"nowrap"}}>{p.label}</span>
+                {p.id==="questions"&&nbQSansReponse>0&&<span style={{position:"absolute",top:2,right:2,background:"#ef4444",color:"white",borderRadius:"50%",width:14,height:14,fontSize:8,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{nbQSansReponse}</span>}
               </button>
             ))}
           </div>
         </div>
       </nav>
 
-      {toast&&<div style={{position:"fixed",top:14,right:14,zIndex:10000,padding:"10px 16px",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,.15)",color:"white",fontSize:12,fontWeight:600,background:toast.type==="error"?"#ef4444":"#16a34a",maxWidth:320}}>{toast.msg}</div>}
+      {toast&&<div style={{position:"fixed",zIndex:10000,padding:"10px 16px",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,.15)",color:"white",fontSize:13,fontWeight:600,background:toast.type==="error"?"#ef4444":"#16a34a",maxWidth:"calc(100vw - 32px)",left:isPhone?"50%":"auto",transform:isPhone?"translateX(-50%)":"none",bottom:isPhone?20:"auto",top:isPhone?"auto":14,right:isPhone?"auto":14,whiteSpace:"nowrap"}}>{toast.msg}</div>}
 
       {/* Modals */}
       {reponseModal&&(
@@ -1723,7 +1728,7 @@ function AppContent(){
         </div>
       )}
 
-      <div style={{maxWidth:1100,margin:"0 auto",width:"100%",padding:"12px 10px",boxSizing:"border-box"}}>
+      <div style={{maxWidth:1100,margin:"0 auto",width:"100%",padding:isPhone?"10px 8px":isTablet?"12px 14px":"14px 20px",boxSizing:"border-box"}}>
 
         {/* VITRINE */}
         {page==="vitrine"&&(
@@ -1748,7 +1753,7 @@ function AppContent(){
                 </div>
               </div>
             )}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:14}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(280px,100%),1fr))",gap:14}}>
               {vehicles.map(v=>{
                 const cover=(v.photosVehicule||[])[0];
                 return(
@@ -1774,7 +1779,7 @@ function AppContent(){
                     <div style={{fontWeight:800,fontSize:18,color:"#0a1940"}}>{profil.entreprise||"MAN'S LOCATION"}</div>
                     <div style={{fontSize:12,color:"#6b7280"}}>Nos véhicules disponibles</div>
                   </div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:16}}>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(280px,100%),1fr))",gap:16}}>
                     {vehicles.filter(v=>v.publie).map(v=>{
                       const cover=(v.photosVehicule||[])[0];
                       return(
@@ -1810,7 +1815,7 @@ function AppContent(){
             </div>
             {clientsFiltres.length===0
               ?<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>👥</div><p>Aucun client{searchClient?" trouvé":". Créés automatiquement lors des contrats."}</p></div>
-              :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>
+              :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(min(280px,100%),1fr))",gap:12}}>
                 {clientsFiltres.map(c=>{
                   const nbContrats=contrats.filter(x=>x.locNom===c.nom&&x.locTel===c.tel).length;
                   const totalCA=contrats.filter(x=>x.locNom===c.nom&&x.locTel===c.tel).reduce((s,x)=>s+(x.totalCalc||0),0);
@@ -1855,7 +1860,7 @@ function AppContent(){
                     ))}
                   </div>
                 </div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10}}>
+                <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fit,minmax(${isPhone?"min(140px,100%)":"140px"},1fr))`,gap:10}}>
                   <div><label style={LBL_STYLE}>Marque *</label><select style={INP_STYLE()} value={vForm.marque} onChange={e=>setVForm(f=>({...f,marque:e.target.value,modele:""}))}><option value="">-- Choisir --</option>{Object.keys(CAR_BRANDS).sort().map(b=><option key={b} value={b}>{b}</option>)}</select></div>
                   <div><label style={LBL_STYLE}>Modèle *</label><select style={INP_STYLE()} value={vForm.modele} onChange={e=>setVForm(f=>({...f,modele:e.target.value}))} disabled={!vForm.marque}><option value="">-- Choisir --</option>{(CAR_BRANDS[vForm.marque]||[]).map(m=><option key={m} value={m}>{m}</option>)}</select></div>
                   <div><label style={LBL_STYLE}>Immatriculation *</label><input style={INP_STYLE()} value={vForm.immat} onChange={e=>setVForm(f=>({...f,immat:e.target.value.toUpperCase()}))}/></div>
@@ -2761,7 +2766,7 @@ function AppContent(){
                 ))}
                 <div style={{marginBottom:10}}><label style={LBL_STYLE}>Snapchat</label><input style={INP_STYLE()} value={profilForm.snap||""} onChange={e=>setProfilForm(p=>({...p,snap:e.target.value}))}/></div>
                 <div style={{marginBottom:14}}><label style={LBL_STYLE}>💱 Devise</label><select style={INP_STYLE()} value={profilForm.devise||"EUR"} onChange={e=>setProfilForm(p=>({...p,devise:e.target.value}))}>{DEVISES.map(d=><option key={d.code} value={d.code}>{d.label}</option>)}</select></div>
-                <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);if(user){const{error:pErr}=await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...profilForm},{onConflict:'user_id'});if(pErr){toast_("Erreur sauvegarde profil: "+pErr.message,"error");return;}}toast_("Profil mis à jour");}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+                <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);if(user){const{error:pErr}=await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...profilForm},{onConflict:'user_id'});if(pErr){toast_("Erreur sauvegarde profil: "+pErr.message,"error");return;}try{const cached=localStorage.getItem('ml_data_'+user.id);if(cached){const d=JSON.parse(cached);d.profil=profilForm;localStorage.setItem('ml_data_'+user.id,JSON.stringify(d));}}catch{}}toast_("Profil mis à jour");}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
               </div>
               :<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <div style={{textAlign:"center",marginBottom:16}}>

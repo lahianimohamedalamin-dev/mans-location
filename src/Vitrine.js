@@ -239,7 +239,6 @@ function VehiculeDetailModal({ vehicle, profil, reservations, onClose }) {
 
   const [form, setForm] = useState({ prenom: '', nom: '', age: '', dateDebut: '', dateFin: '', message: '' });
   const [sent, setSent]  = useState(false);
-  const [hover, setHover] = useState(false);
 
   const wa = (profil.whatsapp || profil.tel || '').replace(/\D/g, '');
   const hasContact = !!(safeTel(profil.tel) || wa);

@@ -492,13 +492,48 @@ function PhotosDepart({photos,setPhotos}){
   );
 }
 
+// ── Lightbox universelle ─────────────────────────────────────────────────────
+function Lightbox({srcs,startIndex=0,onClose}){
+  const[idx,setIdx]=useState(startIndex);
+  const n=srcs.length;
+  useEffect(()=>{
+    function k(e){
+      if(e.key==="ArrowLeft")setIdx(i=>(i-1+n)%n);
+      else if(e.key==="ArrowRight")setIdx(i=>(i+1)%n);
+      else if(e.key==="Escape")onClose();
+    }
+    window.addEventListener("keydown",k);
+    return()=>window.removeEventListener("keydown",k);
+  },[n,onClose]);
+  return(
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:99999,background:"rgba(0,0,0,.96)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+      <button onClick={onClose} style={{position:"absolute",top:16,right:16,background:"rgba(255,255,255,.15)",border:"none",color:"white",fontSize:22,width:42,height:42,borderRadius:"50%",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+      <img src={srcs[idx]} alt="" onClick={e=>e.stopPropagation()} style={{maxWidth:"95vw",maxHeight:"80vh",objectFit:"contain",borderRadius:8}}/>
+      {n>1&&(
+        <>
+          <button onClick={e=>{e.stopPropagation();setIdx(i=>(i-1+n)%n);}} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,.15)",border:"none",color:"white",fontSize:30,width:50,height:50,borderRadius:"50%",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>‹</button>
+          <button onClick={e=>{e.stopPropagation();setIdx(i=>(i+1)%n);}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,.15)",border:"none",color:"white",fontSize:30,width:50,height:50,borderRadius:"50%",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>›</button>
+          <div style={{display:"flex",gap:8,marginTop:16}}>
+            {srcs.map((_,i)=>(
+              <button key={i} onClick={e=>{e.stopPropagation();setIdx(i);}} style={{width:i===idx?24:8,height:8,borderRadius:4,background:i===idx?"white":"rgba(255,255,255,.4)",border:"none",cursor:"pointer",padding:0,transition:"width .2s"}}/>
+            ))}
+          </div>
+          <div style={{color:"rgba(255,255,255,.5)",fontSize:12,marginTop:8}}>{idx+1} / {n}</div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function PhotosVehicule({photos,setPhotos,max=5}){
+  const[lbIdx,setLbIdx]=useState(null);
   function addPhoto(file){if(!file||!validateFile(file))return;if(photos.length>=max){alert("Maximum "+max+" photos");return;}const r=new FileReader();r.onload=ev=>setPhotos(p=>[...p,{id:Date.now(),data:ev.target.result,name:file.name}]);r.readAsDataURL(file);}
   function pickFile(){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>addPhoto(e.target.files[0]);i.click();}
   function pickCamera(){const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>addPhoto(e.target.files[0]);i.click();}
   function remove(id){setPhotos(p=>p.filter(x=>x.id!==id));}
   return (
     <div>
+      {lbIdx!==null&&<Lightbox srcs={photos.map(p=>p.data)} startIndex={lbIdx} onClose={()=>setLbIdx(null)}/>}
       <div style={{display:"flex",gap:8,marginBottom:10}}>
         <button onClick={pickFile} disabled={photos.length>=max} style={{flex:1,padding:"8px 0",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",opacity:photos.length>=max?.5:1}}>📁 Galerie</button>
         <button onClick={pickCamera} disabled={photos.length>=max} style={{flex:1,padding:"8px 0",background:"#7c3aed",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer",opacity:photos.length>=max?.5:1}}>📷 Photo</button>
@@ -507,10 +542,10 @@ function PhotosVehicule({photos,setPhotos,max=5}){
       {photos.length>0
         ?<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(90px,1fr))",gap:7}}>
           {photos.map((p,i)=>(
-            <div key={p.id} style={{position:"relative",borderRadius:8,overflow:"hidden",border:"2px solid #e5e7eb"}}>
+            <div key={p.id} onClick={()=>setLbIdx(i)} style={{position:"relative",borderRadius:8,overflow:"hidden",border:"2px solid #e5e7eb",cursor:"zoom-in"}}>
               <img src={p.data} alt="" style={{width:"100%",height:75,objectFit:"cover",display:"block"}}/>
               {i===0&&<div style={{position:"absolute",top:3,left:3,background:"#2563eb",color:"white",fontSize:8,fontWeight:700,padding:"1px 5px",borderRadius:4}}>COUV</div>}
-              <button onClick={()=>remove(p.id)} style={{position:"absolute",top:3,right:3,background:"#ef4444",color:"white",border:"none",borderRadius:"50%",width:16,height:16,fontSize:10,cursor:"pointer",fontWeight:700,lineHeight:"16px",textAlign:"center",padding:0}}>x</button>
+              <button onClick={e=>{e.stopPropagation();remove(p.id);}} style={{position:"absolute",top:3,right:3,background:"#ef4444",color:"white",border:"none",borderRadius:"50%",width:16,height:16,fontSize:10,cursor:"pointer",fontWeight:700,lineHeight:"16px",textAlign:"center",padding:0}}>x</button>
             </div>
           ))}
         </div>
@@ -539,24 +574,29 @@ function PhotosVehiculeModal({vehicle,onClose,onSave}){
 }
 
 function DocsLocataire({docs,setDocs}){
+  const[lbSrc,setLbSrc]=useState(null);
   function pickImg(key,capture=false){const i=document.createElement("input");i.type="file";i.accept="image/*";if(capture)i.capture="environment";i.onchange=e=>{const f=e.target.files[0];if(!validateFile(f))return;const r=new FileReader();r.onload=ev=>setDocs(d=>({...d,[key]:ev.target.result}));r.readAsDataURL(f);};i.click();}
   function removeImg(key){setDocs(d=>{const n={...d};delete n[key];return n;});}
   const ITEMS=[{key:"cniRecto",label:"CNI / Passeport - Recto",color:"#2563eb",icon:"🪪"},{key:"cniVerso",label:"CNI / Passeport - Verso",color:"#2563eb",icon:"🪪"},{key:"justifDom",label:"Justificatif de domicile",color:"#7c3aed",icon:"🏠"},{key:"photoAr",label:"Photo arrière du véhicule",color:"#16a34a",icon:"🚗"}];
   return (
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {lbSrc&&<Lightbox srcs={[lbSrc]} onClose={()=>setLbSrc(null)}/>}
       {ITEMS.map(({key,label,color,icon})=>(
         <div key={key} style={{borderRadius:10,border:`2px solid ${docs[key]?color:"#e5e7eb"}`,background:docs[key]?"#f8fafc":"white",overflow:"hidden"}}>
           <div style={{padding:"8px 12px",display:"flex",alignItems:"center",gap:8}}>
             <span style={{fontSize:18}}>{icon}</span>
             <span style={{flex:1,fontWeight:600,fontSize:12,color:docs[key]?color:"#374151"}}>{label}</span>
             {docs[key]
-              ?<button onClick={()=>removeImg(key)} style={{padding:"3px 8px",background:"#fef2f2",color:"#ef4444",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}>Retirer</button>
+              ?<div style={{display:"flex",gap:6}}>
+                <button onClick={()=>setLbSrc(docs[key])} style={{padding:"3px 8px",background:"#eff6ff",color:"#2563eb",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}>🔍</button>
+                <button onClick={()=>removeImg(key)} style={{padding:"3px 8px",background:"#fef2f2",color:"#ef4444",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:700}}>✕</button>
+              </div>
               :<div style={{display:"flex",gap:6}}>
                 <button onClick={()=>pickImg(key,false)} style={{padding:"5px 10px",background:"#1e3a8a",color:"white",border:"none",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer"}}>📁</button>
                 <button onClick={()=>pickImg(key,true)} style={{padding:"5px 10px",background:"#7c3aed",color:"white",border:"none",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer"}}>📷</button>
               </div>}
           </div>
-          {docs[key]&&<div style={{padding:"0 12px 10px"}}><img src={docs[key]} alt={label} style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:8,border:`2px solid ${color}`}}/></div>}
+          {docs[key]&&<div onClick={()=>setLbSrc(docs[key])} style={{padding:"0 12px 10px",cursor:"zoom-in"}}><img src={docs[key]} alt={label} style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:8,border:`2px solid ${color}`}}/></div>}
         </div>
       ))}
     </div>
@@ -1054,6 +1094,7 @@ function AppContent(){
   const[editingClient,setEditingClient]=useState(null);
   const[deleteClientConfirm,setDeleteClientConfirm]=useState(null);
   const[searchClientContrat,setSearchClientContrat]=useState("");
+  const[clientDocLb,setClientDocLb]=useState(null);
   const[showClientSuggestions,setShowClientSuggestions]=useState(false);
   const activeUserIdRef=useRef(null);
   const req=["locNom","locAdresse","locTel","dateDebut","dateFin"];
@@ -1470,7 +1511,7 @@ function AppContent(){
     </div>
   );
 
-  const profilVide=!profil.nom&&!profil.entreprise&&!profil.tel;
+  const profilVide=!profil.nom&&!profil.entreprise;
   if(profilVide)return(
     <div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"#f1f5f9",padding:16}}>
       <div style={{background:"white",borderRadius:16,padding:"32px 28px",width:"100%",maxWidth:480,boxShadow:"0 4px 24px rgba(0,0,0,0.1)"}}>
@@ -1482,13 +1523,13 @@ function AppContent(){
             <input placeholder={l.replace(" *","")} style={{width:"100%",padding:"10px 12px",border:"1px solid #e5e7eb",borderRadius:8,fontSize:13,boxSizing:"border-box"}} value={profilForm[k]||""} onChange={e=>setProfilForm(p=>({...p,[k]:e.target.value}))}/>
           </div>
         ))}
-        {[["tel","Téléphone *"],["whatsapp","WhatsApp"]].map(([k,l])=>(
+        {[["tel","Téléphone"],["whatsapp","WhatsApp"]].map(([k,l])=>(
           <div key={k} style={{marginBottom:10}}>
             <label style={{fontSize:11,fontWeight:600,color:"#6b7280",display:"block",marginBottom:3}}>{l}</label>
             <TelInput value={profilForm[k]||""} onChange={v=>setProfilForm(p=>({...p,[k]:v}))} placeholder={l.replace(" *","")}/>
           </div>
         ))}
-        <button onClick={async()=>{if(!profilForm.nom||!profilForm.entreprise||!profilForm.tel)return;setProfil({...profilForm});if(user)await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...profilForm},{onConflict:'user_id'});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>Commencer</button>
+        <button onClick={async()=>{if(!profilForm.nom||!profilForm.entreprise)return;setProfil({...profilForm});if(user)await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...profilForm},{onConflict:'user_id'});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>Commencer</button>
         <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
       </div>
     </div>
@@ -1596,6 +1637,7 @@ function AppContent(){
                   ))}
                 </div>
               )}
+              {clientDocLb&&<Lightbox srcs={[clientDocLb]} onClose={()=>setClientDocLb(null)}/>}
               {(selectedClient.docs?.cniRecto||selectedClient.docs?.cniVerso||selectedClient.docs?.justifDom||selectedClient.docs?.photoAr)&&(
                 <div style={{marginBottom:16}}>
                   <div style={{fontWeight:700,fontSize:13,marginBottom:8}}>Documents</div>
@@ -1609,7 +1651,7 @@ function AppContent(){
                       }
                       return(
                         <div key={k} style={{borderRadius:10,border:`2px solid ${col}`,overflow:"hidden",background:"white"}}>
-                          <img src={src} alt={lbl} style={{width:"100%",height:120,objectFit:"contain",background:"#f8fafc",display:"block",cursor:"zoom-in"}} onClick={()=>window.open(src,"_blank")}/>
+                          <img src={src} alt={lbl} style={{width:"100%",height:120,objectFit:"contain",background:"#f8fafc",display:"block",cursor:"zoom-in"}} onClick={()=>setClientDocLb(src)}/>
                           <div style={{padding:"6px 8px",background:"#f8fafc",borderTop:`1px solid ${col}22`}}>
                             <div style={{fontSize:10,fontWeight:700,color:col,marginBottom:4}}>{lbl}</div>
                             <button onClick={dlDoc} style={{width:"100%",padding:"4px 0",background:col,color:"white",border:"none",borderRadius:5,fontSize:10,fontWeight:700,cursor:"pointer"}}>⬇ Télécharger</button>
@@ -2766,7 +2808,7 @@ function AppContent(){
                 ))}
                 <div style={{marginBottom:10}}><label style={LBL_STYLE}>Snapchat</label><input style={INP_STYLE()} value={profilForm.snap||""} onChange={e=>setProfilForm(p=>({...p,snap:e.target.value}))}/></div>
                 <div style={{marginBottom:14}}><label style={LBL_STYLE}>💱 Devise</label><select style={INP_STYLE()} value={profilForm.devise||"EUR"} onChange={e=>setProfilForm(p=>({...p,devise:e.target.value}))}>{DEVISES.map(d=><option key={d.code} value={d.code}>{d.label}</option>)}</select></div>
-                <button onClick={async()=>{setProfil(profilForm);setProfilEdit(false);if(user){const{error:pErr}=await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...profilForm},{onConflict:'user_id'});if(pErr){toast_("Erreur sauvegarde profil: "+pErr.message,"error");return;}try{const cached=localStorage.getItem('ml_data_'+user.id);if(cached){const d=JSON.parse(cached);d.profil=profilForm;localStorage.setItem('ml_data_'+user.id,JSON.stringify(d));}}catch{}}toast_("Profil mis à jour");}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+                <button onClick={async()=>{const pf={...profilForm};setProfil(pf);setProfilEdit(false);if(user){const{error:pErr}=await supabase.from('profils').update({nom:pf.nom,entreprise:pf.entreprise,siren:pf.siren,siret:pf.siret,kbis:pf.kbis,tel:pf.tel||null,whatsapp:pf.whatsapp||null,snap:pf.snap||null,email:pf.email||null,adresse:pf.adresse||null,ville:pf.ville||null,iban:pf.iban||null,devise:pf.devise||'EUR'}).eq('user_id',user.id);if(pErr){toast_("Erreur sauvegarde profil: "+pErr.message,"error");return;}try{const cached=localStorage.getItem('ml_data_'+user.id);if(cached){const d=JSON.parse(cached);d.profil=pf;localStorage.setItem('ml_data_'+user.id,JSON.stringify(d));}}catch{}}toast_("Profil mis à jour");}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
               </div>
               :<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <div style={{textAlign:"center",marginBottom:16}}>

@@ -75,6 +75,11 @@ ALTER TABLE retours ADD COLUMN IF NOT EXISTS remise_retour numeric DEFAULT 0;
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS whatsapp text;
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS reseaux text;
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS docs jsonb DEFAULT '[]';
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS devise text DEFAULT 'EUR';
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS snap text;
+ALTER TABLE profils ADD COLUMN IF NOT EXISTS iban text;
+-- Recharge le cache schema Supabase (nécessaire après ajout de colonnes)
+NOTIFY pgrst, 'reload schema';
 
 -- ============================================================
 -- LECTURE PUBLIQUE POUR LA VITRINE (clients sans compte)

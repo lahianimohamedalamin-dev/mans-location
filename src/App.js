@@ -2808,7 +2808,23 @@ function AppContent(){
                 ))}
                 <div style={{marginBottom:10}}><label style={LBL_STYLE}>Snapchat</label><input style={INP_STYLE()} value={profilForm.snap||""} onChange={e=>setProfilForm(p=>({...p,snap:e.target.value}))}/></div>
                 <div style={{marginBottom:14}}><label style={LBL_STYLE}>💱 Devise</label><select style={INP_STYLE()} value={profilForm.devise||"EUR"} onChange={e=>setProfilForm(p=>({...p,devise:e.target.value}))}>{DEVISES.map(d=><option key={d.code} value={d.code}>{d.label}</option>)}</select></div>
-                <button onClick={async()=>{const pf={...profilForm,tel:profilForm.tel||null,whatsapp:profilForm.whatsapp||null,snap:profilForm.snap||null,email:profilForm.email||null,adresse:profilForm.adresse||null,ville:profilForm.ville||null,iban:profilForm.iban||null};setProfil(pf);setProfilEdit(false);if(user){const{error:pErr}=await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...pf},{onConflict:'user_id'});if(pErr){toast_("Erreur sauvegarde profil: "+pErr.message,"error");return;}try{const cached=localStorage.getItem('ml_data_'+user.id);if(cached){const d=JSON.parse(cached);d.profil=pf;localStorage.setItem('ml_data_'+user.id,JSON.stringify(d));}}catch{}}toast_("Profil mis à jour");}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+                <button onClick={async()=>{
+                  const pf={...profilForm,tel:profilForm.tel||null,whatsapp:profilForm.whatsapp||null,snap:profilForm.snap||null,email:profilForm.email||null,adresse:profilForm.adresse||null,ville:profilForm.ville||null,iban:profilForm.iban||null};
+                  setProfil(pf);setProfilEdit(false);
+                  if(user){
+                    // Essai complet d'abord
+                    let{error:e1}=await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...pf},{onConflict:'user_id'});
+                    // Si colonne inconnue → retry sans les champs optionnels (devise/snap/iban)
+                    if(e1&&(e1.message.includes('column')||e1.code==='42703')){
+                      const safe={user_id:user.id,slug:user.id.slice(0,8),nom:pf.nom||'',entreprise:pf.entreprise||'',siren:pf.siren||'',siret:pf.siret||'',kbis:pf.kbis||'',tel:pf.tel,whatsapp:pf.whatsapp,email:pf.email,adresse:pf.adresse,ville:pf.ville};
+                      const{error:e2}=await supabase.from('profils').upsert(safe,{onConflict:'user_id'});
+                      e1=e2;
+                    }
+                    if(e1){toast_("Erreur sauvegarde profil: "+e1.message,"error");return;}
+                    try{const cached=localStorage.getItem('ml_data_'+user.id);if(cached){const d=JSON.parse(cached);d.profil=pf;localStorage.setItem('ml_data_'+user.id,JSON.stringify(d));}}catch{}
+                  }
+                  toast_("Profil mis à jour");
+                }} style={{background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:"10px 0",width:"100%",fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
               </div>
               :<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <div style={{textAlign:"center",marginBottom:16}}>

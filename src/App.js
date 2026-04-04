@@ -173,6 +173,26 @@ function dlPDF(html){
   setTimeout(()=>win.print(),600);
 }
 
+async function uploadContratEtEnvoyerMail(supabaseClient,html,contratId,locEmail,locNom){
+  if(!locEmail)return{sent:false,reason:"no_email"};
+  try{
+    // Uploader le HTML comme fichier public dans Storage
+    const fileName=`contrat_${contratId}_${Date.now()}.html`;
+    const blob=new Blob([html],{type:"text/html;charset=utf-8"});
+    const{error:upErr}=await supabaseClient.storage.from('contrats').upload(fileName,blob,{contentType:"text/html;charset=utf-8",upsert:false});
+    if(upErr)throw upErr;
+    const{data:urlData}=supabaseClient.storage.from('contrats').getPublicUrl(fileName);
+    const contractUrl=urlData.publicUrl;
+    // Appel Edge Function
+    const{error:fnErr}=await supabaseClient.functions.invoke('send-contract-email',{body:{clientEmail:locEmail,clientName:locNom,contractUrl,contractId:String(contratId)}});
+    if(fnErr)throw fnErr;
+    return{sent:true,contractUrl};
+  }catch(e){
+    console.error("uploadContratEtEnvoyerMail:",e);
+    return{sent:false,reason:e.message||"erreur"};
+  }
+}
+
 function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   const nb=contrat.nbJours||1,total=contrat.totalCalc||0,pm=contrat.paiement;
   const frais=vehicle.frais||DEF_FRAIS,clauses=vehicle.clauses||DEF_CLAUSES;
@@ -603,13 +623,10 @@ function DocsLocataire({docs,setDocs}){
   );
 }
 
-function DemandeVehicule({vehicle,profil,userId}){
+function DemandeVehicule({vehicle,profil}){
   const[open,setOpen]=useState(false);
-  const[tab,setTab]=useState("resa");
   const[form,setForm]=useState({prenom:"",nom:"",age:"",tel:"+33 ",email:"",dateDebut:"",dateFin:"",message:""});
-  const[question,setQuestion]=useState("");
   const[sent,setSent]=useState(false);
-  const[qSent,setQSent]=useState(false);
   const wa=(profil.whatsapp||profil.tel||"").replace(/\D/g,"");
   function sendWhatsApp(){
     const nbJ=form.dateDebut&&form.dateFin?Math.max(1,Math.ceil((new Date(form.dateFin)-new Date(form.dateDebut))/86400000)):null;
@@ -617,25 +634,17 @@ function DemandeVehicule({vehicle,profil,userId}){
     window.open("https://wa.me/"+wa+"?text="+encodeURIComponent(msg),"_blank");
     setSent(true);
   }
-  async function sendQuestion(){
-    if(!question.trim()){alert("Ecrivez votre question");return;}
-    if(userId)await supabase.from('questions').insert([{user_id:userId,vehicle_id:vehicle.id,vehicle_label:vehicle.marque+" "+vehicle.modele,client_nom:"Client vitrine",client_tel:"",question:question,lu:false}]);
-    setQSent(true);setQuestion("");
-  }
   if(!open)return(
     <div style={{display:"flex",gap:6,marginTop:6}}>
-      <button onClick={()=>{setOpen(true);setTab("resa");}} style={{flex:1,padding:"8px 0",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📅 Réserver</button>
-      <button onClick={()=>{setOpen(true);setTab("question");}} style={{flex:1,padding:"8px 0",background:"#f1f5f9",color:"#374151",border:"1px solid #e5e7eb",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>❓ Question</button>
+      <button onClick={()=>setOpen(true)} style={{flex:1,padding:"8px 0",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📅 Réserver</button>
     </div>
   );
   return(
     <div style={{marginTop:8,background:"#f8fafc",borderRadius:12,padding:14,border:"1px solid #e5e7eb"}}>
       <div style={{display:"flex",gap:6,marginBottom:12}}>
-        <button onClick={()=>setTab("resa")} style={{flex:1,padding:"7px 0",borderRadius:8,border:"none",cursor:"pointer",fontWeight:tab==="resa"?700:400,background:tab==="resa"?"#1e3a8a":"#e5e7eb",color:tab==="resa"?"white":"#374151",fontSize:12}}>📅 Réservation</button>
-        <button onClick={()=>setTab("question")} style={{flex:1,padding:"7px 0",borderRadius:8,border:"none",cursor:"pointer",fontWeight:tab==="question"?700:400,background:tab==="question"?"#7c3aed":"#e5e7eb",color:tab==="question"?"white":"#374151",fontSize:12}}>❓ Question</button>
         <button onClick={()=>setOpen(false)} style={{padding:"7px 10px",borderRadius:8,border:"none",cursor:"pointer",background:"#fef2f2",color:"#ef4444",fontSize:12,fontWeight:700}}>✕</button>
       </div>
-      {tab==="resa"&&(sent
+      {(sent
         ?<div style={{textAlign:"center",padding:"16px 0"}}>
           <div style={{fontSize:32,marginBottom:8}}>✅</div>
           <div style={{fontWeight:700,fontSize:14,color:"#16a34a",marginBottom:6}}>Demande envoyée !</div>
@@ -652,17 +661,8 @@ function DemandeVehicule({vehicle,profil,userId}){
             <div><div style={{fontSize:10,color:"#6b7280",marginBottom:3}}>Fin *</div><input type="date" value={form.dateFin} onChange={e=>setForm(f=>({...f,dateFin:e.target.value}))} style={{padding:"8px 10px",border:"1px solid #d1d5db",borderRadius:8,fontSize:13,width:"100%",boxSizing:"border-box"}}/></div>
           </div>
           <button onClick={()=>{if(!form.prenom||!form.nom||!form.tel||!form.dateDebut||!form.dateFin){alert("Champs * obligatoires");return;}sendWhatsApp();}} style={{width:"100%",padding:"10px 0",background:"#25D366",color:"white",border:"none",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>💬 Envoyer sur WhatsApp</button>
-        </div>)}
-      {tab==="question"&&(qSent
-        ?<div style={{textAlign:"center",padding:"16px 0"}}>
-          <div style={{fontSize:32,marginBottom:8}}>✅</div>
-          <div style={{fontWeight:700,fontSize:14,color:"#16a34a"}}>Question envoyée !</div>
-          <button onClick={()=>setQSent(false)} style={{padding:"8px 16px",background:"#e5e7eb",border:"none",borderRadius:8,fontSize:12,cursor:"pointer",marginTop:8}}>Nouvelle question</button>
-        </div>
-        :<div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <textarea placeholder="Votre question..." value={question} onChange={e=>setQuestion(e.target.value)} rows={4} style={{padding:"10px",border:"1px solid #d1d5db",borderRadius:8,fontSize:13,resize:"none",fontFamily:"inherit"}}/>
-          <button onClick={sendQuestion} style={{width:"100%",padding:"10px 0",background:"#7c3aed",color:"white",border:"none",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Envoyer la question</button>
-        </div>)}
+        </div>)
+      }
     </div>
   );
 }
@@ -1041,7 +1041,6 @@ function AppContent(){
   const[photosDepart,setPhotosDepart]=useState([]);
   const[photosVehicleModal,setPhotosVehicleModal]=useState(null);
   const[docsLocataire,setDocsLocataire]=useState({});
-  const[questions,setQuestions]=useState([]);
   const[touched,setTouched]=useState({});
   const[sigL,setSigL]=useState(null);
   const[sigLoc,setSigLoc]=useState(null);
@@ -1053,7 +1052,6 @@ function AppContent(){
   const[planView,setPlanView]=useState("calendrier");
   const ganttRef=useRef(null);
   const[ganttStartDate,setGanttStartDate]=useState(()=>{const d=new Date();d.setDate(1);return d;});
-  const[reponseModal,setReponseModal]=useState(null);
   const[dForm,setDForm]=useState({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});
   const[showAddD,setShowAddD]=useState(false);
   const[finPeriode,setFinPeriode]=useState("6mois");
@@ -1066,6 +1064,7 @@ function AppContent(){
   const[contratModalId,setContratModalId]=useState(null);
   const[newDoc,setNewDoc]=useState({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});
   const[lastContrat,setLastContrat]=useState(null);
+  const[mailStatus,setMailStatus]=useState(null); // null | "sending" | "sent" | "error"
   const[retourContratId,setRetourContratId]=useState(null);
   const[prolonContrat,setProlonContrat]=useState(null);
   const[prolonDateFin,setProlonDateFin]=useState("");
@@ -1080,7 +1079,6 @@ function AppContent(){
   const[amendeForm,setAmendeForm]=useState({vehicleId:"",contratRef:"",date:"",heure:"",montant:"",type:"Excès de vitesse",statut:"A traiter",notes:"",photoData:null});
   const TYPES_AMENDE=["Excès de vitesse","Stationnement","Feu rouge","Téléphone au volant","Non port ceinture","Autre"];
   const STATUTS_AMENDE=["A traiter","En cours","Confirmée","Payée","Contestée"];
-  const[reponseText,setReponseText]=useState("");
   const[searchContrat,setSearchContrat]=useState("");
   const[filterVehicleContrat,setFilterVehicleContrat]=useState("");
   const[filterDateDebut,setFilterDateDebut]=useState("");
@@ -1120,7 +1118,7 @@ function AppContent(){
   }
 
   const resetUserData=useCallback(()=>{
-    setVehicles([]);setContrats([]);setDepenses([]);setRetours({});setQuestions([]);setClients([]);setAmendes([]);
+    setVehicles([]);setContrats([]);setDepenses([]);setRetours({});setClients([]);setAmendes([]);
     setProfil(INIT_PROFIL);setProfilForm(INIT_PROFIL);
     setSelId(null);setDocsId(null);setContratModalId(null);
     setLastContrat(null);setRetourContratId(null);setTarifsVehicleId(null);
@@ -1162,7 +1160,6 @@ function AppContent(){
         if(d.contrats)setContrats(d.contrats);
         if(d.depenses)setDepenses(d.depenses);
         if(d.retours)setRetours(d.retours);
-        if(d.questions)setQuestions(d.questions);
         if(d.amendes)setAmendes(d.amendes);
         if(d.profil){setProfil(d.profil);setProfilForm(d.profil);}
         if(d.clients)setClients(d.clients);
@@ -1173,13 +1170,12 @@ function AppContent(){
     // Afficher le loading seulement s'il n'y a pas de cache
     if(!hasCachedData)setDataLoaded(false);
     try{
-      const[profRes,vehRes,conRes,depRes,retRes,qRes,amenRes]=await Promise.all([
+      const[profRes,vehRes,conRes,depRes,retRes,amenRes]=await Promise.all([
         supabase.from('profils').select('*').eq('user_id',uid).maybeSingle(),
         supabase.from('vehicules').select('*').eq('user_id',uid),
         supabase.from('contrats').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('depenses').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('retours').select('*').eq('user_id',uid),
-        supabase.from('questions').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('amendes').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
       ]);
       if(activeUserIdRef.current!==uid)return;
@@ -1207,8 +1203,6 @@ function AppContent(){
         retRes.data.forEach(r=>{rMap[r.contrat_id]={id:r.id,kmRetour:r.km_retour||'',carburantRetour:r.carburant_retour??100,montantRetenu:r.montant_retenu||0,raisonRetenue:r.raison_retenue||'',rembourse:r.rembourse||0,kmSup:r.km_sup||0,surplusKm:r.surplus_km||0,cautionRestituee:r.caution_restituee,checks:r.checks||{},carro:r.carro||{},carroPhotos:r.carro_photos||{},carroNotes:r.carro_notes||{},photos:r.photos||{},notes:r.notes||{},remiseRetour:r.remise_retour||0,date:r.date||''};});
         setRetours(rMap);
       }
-      const mappedQ=qRes.data?qRes.data.map(q=>({id:q.id,vehicleLabel:q.vehicle_label||'',clientNom:q.client_nom||'',question:q.question||'',reponse:q.reponse||'',lu:q.lu||false,createdAt:q.created_at||''})):[];
-      setQuestions(mappedQ);
       const mappedA=amenRes.data?amenRes.data.map(a=>({id:a.id,vehicleId:a.vehicle_id||'',vehicleLabel:a.vehicle_label||'',contratId:a.contrat_id||null,locNom:a.loc_nom||'',locTel:a.loc_tel||'',date:a.date||'',heure:a.heure||'',montant:a.montant||'',type:a.type||'',statut:a.statut||'A traiter',notes:a.notes||'',photoData:a.photo_data||null})):[];
       setAmendes(mappedA);
       // Sauvegarder en cache (sans les photos base64 pour éviter le quota)
@@ -1222,7 +1216,6 @@ function AppContent(){
           contrats:loadedContrats.map(stripContrPhotos),
           retours:retRes.data?Object.fromEntries(retRes.data.map(r=>[r.contrat_id,stripRetourPhotos({id:r.id,kmRetour:r.km_retour||'',carburantRetour:r.carburant_retour??100,montantRetenu:r.montant_retenu||0,raisonRetenue:r.raison_retenue||'',rembourse:r.rembourse||0,kmSup:r.km_sup||0,surplusKm:r.surplus_km||0,cautionRestituee:r.caution_restituee,checks:r.checks||{},carro:r.carro||{},carroNotes:r.carro_notes||{},notes:r.notes||{},remiseRetour:r.remise_retour||0,date:r.date||''})])):{ },
           depenses:depRes.data?depRes.data.map(d=>({id:d.id,label:d.label||'',montant:d.montant||0,categorie:d.categorie||'Carburant',date:d.date||'',vehicleId:d.vehicle_id||''})):[],
-          questions:mappedQ,
           amendes:mappedA.map(a=>({...a,photoData:null})),
           clients:Object.values(clientMap).map(c=>({...c,docs:{}})),
         };
@@ -1273,7 +1266,6 @@ function AppContent(){
   const totalNet=Math.max(0,(tarifAuto.prix||0)-remise);
   const resteAPayer=Math.max(0,totalNet-accompte);
   const inv=k=>touched[k]&&!form[k];
-  const nbQSansReponse=questions.filter(q=>!q.reponse).length;
 
   const contratsFiltres=contrats.filter(c=>{
     const q=searchContrat.toLowerCase();
@@ -1319,6 +1311,14 @@ function AppContent(){
       const{data:ins,error:err}=await supabase.from('contrats').insert([{user_id:user.id,loc_prenom:form.locPrenom||'',loc_nom:locNom,loc_adresse:form.locAdresse,loc_tel:form.locTel,loc_email:form.locEmail,loc_permis:form.locPermis,date_debut:form.dateDebut,heure_debut:form.heureDebut,date_fin:form.dateFin,heure_fin:form.heureFin,paiement:form.paiement,caution_mode:form.cautionMode,km_depart:form.kmDepart,nb_jours:form.nbJours,heures_loc:form.heuresLoc,carburant_depart:form.carburantDepart,exterieur_propre:form.exterieurPropre,interieur_propre:form.interieurPropre,vehicle_id:c.vehicleId,vehicle_label:c.vehicleLabel,immat:c.immat,sig_l:c.sigL,sig_loc:c.sigLoc,total_calc:c.totalCalc,tarif_label:c.tarifLabel,remise:c.remise||0,accompte:c.accompte||0,reste_a_payer:c.resteAPayer||0,prix_jour_modifie:form.prixJourModifie||null,photos_depart:c.photosDepart,docs_locataire:c.docsLocataire,frais_snap:c.fraisSnap,clauses_snap:c.clausesSnap,km_inclus:c.kmInclus,prix_km_sup:c.prixKmSup}]).select().single();
       if(!err&&ins)setContrats(p=>p.map(x=>x.id===c.id?{...x,id:ins.id}:x));
       if(err){console.error(err);toast_("Erreur sauvegarde contrat: "+err.message,"error");}
+      // Envoi mail automatique si email renseigné
+      if(form.locEmail){
+        const realId=(!err&&ins)?ins.id:c.id;
+        setMailStatus("sending");
+        const{sent,reason}=await uploadContratEtEnvoyerMail(supabase,html,realId,form.locEmail,locNom);
+        setMailStatus(sent?"sent":"error");
+        if(!sent)console.warn("Mail non envoyé:",reason);
+      }
     }
   }
 
@@ -1411,19 +1411,6 @@ function AppContent(){
     if(user)await supabase.from('vehicules').update({publie:newVal}).eq('id',v.id).eq('user_id',user.id);
   }
 
-  async function repondreQuestion(q){
-    if(!reponseText.trim()||!user)return;
-    const{error}=await supabase.from('questions').update({reponse:reponseText,lu:true}).eq('id',q.id).eq('user_id',user.id);
-    if(error){toast_("Erreur: "+error.message,"error");return;}
-    setQuestions(qs=>qs.map(x=>x.id===q.id?{...x,reponse:reponseText,lu:true}:x));
-    setReponseModal(null);setReponseText("");toast_("Réponse envoyée !");
-  }
-
-  async function supprimerQuestion(q){
-    setQuestions(qs=>qs.filter(x=>x.id!==q.id));
-    if(user)await supabase.from('questions').delete().eq('id',q.id).eq('user_id',user.id);
-  }
-
   const tarifsVehicle=tarifsVehicleId?vehicles.find(v=>v.id===tarifsVehicleId):null;
   const isExp=exp=>exp&&new Date(exp)<new Date();
   const isSoon=exp=>{if(!exp)return false;const d=new Date(exp),n=new Date();return(d-n)/86400000<30&&(d-n)>0;};
@@ -1481,7 +1468,6 @@ function AppContent(){
     {id:"contrats_hub",icon:"📋",label:"Contrats"},
     {id:"planning",icon:"📅",label:"Planning"},
     {id:"amendes",icon:"🚨",label:"Amendes"},
-    {id:"questions",icon:"❓",label:"Questions"},
     {id:"finances",icon:"💰",label:"Finances"},
     {id:"profil",icon:"👤",label:"Profil"},
   ];
@@ -1547,7 +1533,6 @@ function AppContent(){
               <button key={p.id} onClick={()=>setPagePersist(p.id)} style={{flexShrink:0,padding:isPhone?"4px 6px":"6px 10px",borderRadius:8,fontSize:10,fontWeight:page===p.id?700:400,background:page===p.id?"rgba(255,255,255,0.2)":"transparent",color:page===p.id?"white":"rgba(255,255,255,0.65)",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,position:"relative",minWidth:isPhone?44:54}}>
                 <span style={{fontSize:isPhone?16:18}}>{p.icon}</span>
                 <span style={{fontSize:isPhone?8:10,whiteSpace:"nowrap"}}>{p.label}</span>
-                {p.id==="questions"&&nbQSansReponse>0&&<span style={{position:"absolute",top:2,right:2,background:"#ef4444",color:"white",borderRadius:"50%",width:14,height:14,fontSize:8,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{nbQSansReponse}</span>}
               </button>
             ))}
           </div>
@@ -1557,19 +1542,6 @@ function AppContent(){
       {toast&&<div style={{position:"fixed",zIndex:10000,padding:"10px 16px",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,.15)",color:"white",fontSize:13,fontWeight:600,background:toast.type==="error"?"#ef4444":"#16a34a",maxWidth:"calc(100vw - 32px)",left:isPhone?"50%":"auto",transform:isPhone?"translateX(-50%)":"none",bottom:isPhone?20:"auto",top:isPhone?"auto":14,right:isPhone?"auto":14,whiteSpace:"nowrap"}}>{toast.msg}</div>}
 
       {/* Modals */}
-      {reponseModal&&(
-        <div onClick={e=>{if(e.target===e.currentTarget){setReponseModal(null);setReponseText("");}}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:480,padding:20}}>
-            <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>Répondre à la question</div>
-            <div style={{background:"#f1f5f9",borderRadius:8,padding:10,fontSize:12,marginBottom:12,border:"1px solid #e5e7eb"}}>{reponseModal.question}</div>
-            <textarea placeholder="Votre réponse..." value={reponseText} onChange={e=>setReponseText(e.target.value)} rows={4} style={{width:"100%",padding:"8px",border:"1px solid #d1d5db",borderRadius:8,fontSize:12,resize:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>repondreQuestion(reponseModal)} style={{flex:1,background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Envoyer</button>
-              <button onClick={()=>{setReponseModal(null);setReponseText("");}} style={{padding:"10px 16px",background:"#e5e7eb",border:"none",borderRadius:10,fontSize:13,cursor:"pointer"}}>Annuler</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {photosVehicleModal&&<PhotosVehiculeModal vehicle={photosVehicleModal} onClose={()=>setPhotosVehicleModal(null)} onSave={async(photos)=>{setVehicles(vs=>vs.map(v=>v.id===photosVehicleModal.id?{...v,photosVehicule:photos}:v));setPhotosVehicleModal(null);toast_("Photos enregistrées !");if(user)await supabase.from('vehicules').update({photos_vehicule:photos}).eq('id',photosVehicleModal.id).eq('user_id',user.id);}}/>}
       {contratModalId&&contratV&&<ContratModal vehicle={contratV} onClose={()=>setContratModalId(null)} onSave={async(fr,cl)=>{setVehicles(vs=>vs.map(v=>v.id===contratModalId?{...v,frais:fr,clauses:cl}:v));setContratModalId(null);toast_("Mis à jour !");if(user)await supabase.from('vehicules').update({frais:fr,clauses:cl}).eq('id',contratModalId).eq('user_id',user.id);}}/>}
@@ -2136,9 +2108,20 @@ function AppContent(){
             {lastContrat&&(
               <div style={{marginTop:16,background:"#f0fdf4",borderRadius:14,padding:16,border:"2px solid #86efac"}}>
                 <div style={{fontWeight:700,color:"#16a34a",marginBottom:8}}>✅ Contrat créé pour {lastContrat.contrat.locNom}</div>
+                {lastContrat.contrat.locEmail&&(
+                  <div style={{marginBottom:10,padding:"8px 12px",borderRadius:8,fontSize:12,fontWeight:600,
+                    background:mailStatus==="sent"?"#dcfce7":mailStatus==="error"?"#fef2f2":mailStatus==="sending"?"#eff6ff":"#f1f5f9",
+                    color:mailStatus==="sent"?"#16a34a":mailStatus==="error"?"#ef4444":mailStatus==="sending"?"#2563eb":"#6b7280",
+                    border:`1px solid ${mailStatus==="sent"?"#86efac":mailStatus==="error"?"#fca5a5":mailStatus==="sending"?"#bfdbfe":"#e5e7eb"}`}}>
+                    {mailStatus==="sending"&&"⏳ Envoi du contrat par mail..."}
+                    {mailStatus==="sent"&&`📧 Contrat envoyé à ${lastContrat.contrat.locEmail}`}
+                    {mailStatus==="error"&&`⚠️ Mail non envoyé (vérifie les secrets Supabase)`}
+                    {!mailStatus&&`📧 ${lastContrat.contrat.locEmail}`}
+                  </div>
+                )}
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                   <button onClick={()=>dlPDF(lastContrat.html)} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>📄 Imprimer / PDF</button>
-                  <button onClick={()=>setLastContrat(null)} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"8px 12px",fontSize:12,cursor:"pointer"}}>Fermer</button>
+                  <button onClick={()=>{setLastContrat(null);setMailStatus(null);}} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"8px 12px",fontSize:12,cursor:"pointer"}}>Fermer</button>
                 </div>
               </div>
             )}
@@ -2502,44 +2485,6 @@ function AppContent(){
         )}
 
         {/* QUESTIONS */}
-        {page==="questions"&&(
-          <div>
-            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:4}}>Questions clients</h1>
-            <p style={{fontSize:12,color:"#6b7280",marginBottom:16}}>Questions posées depuis la vitrine.</p>
-            {questions.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>❓</div><p>Aucune question.</p></div>}
-            {questions.filter(q=>!q.reponse).length>0&&(
-              <div style={{marginBottom:20}}>
-                <h2 style={{fontSize:13,fontWeight:700,color:"#dc2626",marginBottom:8}}>Sans réponse ({questions.filter(q=>!q.reponse).length})</h2>
-                {questions.filter(q=>!q.reponse).map(q=>(
-                  <div key={q.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"2px solid #fde68a"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                      <div><div style={{fontWeight:700,fontSize:13,color:"#1e3a8a"}}>{q.vehicleLabel}</div><div style={{fontSize:10,color:"#9ca3af"}}>{new Date(q.createdAt).toLocaleDateString("fr-FR")}</div></div>
-                      <span style={{fontSize:10,background:"#fef3c7",color:"#d97706",borderRadius:99,padding:"2px 8px",fontWeight:700}}>En attente</span>
-                    </div>
-                    <div style={{background:"#f8fafc",borderRadius:8,padding:"10px 12px",fontSize:12,marginBottom:10,border:"1px solid #e5e7eb"}}>{q.question}</div>
-                    <div style={{display:"flex",gap:8}}>
-                      <button onClick={()=>{setReponseModal(q);setReponseText("");}} style={{padding:"7px 14px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Répondre</button>
-                      <button onClick={()=>supprimerQuestion(q)} style={{padding:"7px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:12,cursor:"pointer"}}>Supprimer</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {questions.filter(q=>q.reponse).length>0&&(
-              <div>
-                <h2 style={{fontSize:13,fontWeight:700,color:"#16a34a",marginBottom:8}}>Répondues ({questions.filter(q=>q.reponse).length})</h2>
-                {questions.filter(q=>q.reponse).map(q=>(
-                  <div key={q.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"1px solid #bbf7d0"}}>
-                    <div style={{fontWeight:700,fontSize:13,color:"#1e3a8a",marginBottom:4}}>{q.vehicleLabel}</div>
-                    <div style={{background:"#f8fafc",borderRadius:8,padding:"8px 10px",fontSize:11,marginBottom:8}}>Q : {q.question}</div>
-                    <div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 10px",fontSize:11,color:"#16a34a",border:"1px solid #bbf7d0",marginBottom:8}}>R : {q.reponse}</div>
-                    <button onClick={()=>supprimerQuestion(q)} style={{fontSize:11,padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer"}}>Supprimer</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* MODAL PROLONGEMENT */}
         {prolonContrat&&(()=>{

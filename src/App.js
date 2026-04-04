@@ -190,7 +190,10 @@ async function genererPDFBase64(html){
   }).from(iframe.contentDocument.body).outputPdf('blob');
   document.body.removeChild(iframe);
   const arrayBuffer=await pdfBlob.arrayBuffer();
-  const base64=btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+  const uint8=new Uint8Array(arrayBuffer);
+  let binary='';
+  for(let i=0;i<uint8.length;i+=8192)binary+=String.fromCharCode(...uint8.subarray(i,i+8192));
+  const base64=btoa(binary);
   return base64;
 }
 

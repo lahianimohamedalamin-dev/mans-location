@@ -1041,7 +1041,7 @@ function AppContent(){
   const[photosDepart,setPhotosDepart]=useState([]);
   const[photosVehicleModal,setPhotosVehicleModal]=useState(null);
   const[docsLocataire,setDocsLocataire]=useState({});
-  const[questions,setQuestions]=useState([]);
+  const[,setQuestions]=useState([]);
   const[touched,setTouched]=useState({});
   const[sigL,setSigL]=useState(null);
   const[sigLoc,setSigLoc]=useState(null);
@@ -1416,11 +1416,6 @@ function AppContent(){
     if(error){toast_("Erreur: "+error.message,"error");return;}
     setQuestions(qs=>qs.map(x=>x.id===q.id?{...x,reponse:reponseText,lu:true}:x));
     setReponseModal(null);setReponseText("");toast_("Réponse envoyée !");
-  }
-
-  async function supprimerQuestion(q){
-    setQuestions(qs=>qs.filter(x=>x.id!==q.id));
-    if(user)await supabase.from('questions').delete().eq('id',q.id).eq('user_id',user.id);
   }
 
   const tarifsVehicle=tarifsVehicleId?vehicles.find(v=>v.id===tarifsVehicleId):null;

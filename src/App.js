@@ -1,6 +1,5 @@
 import { supabase } from './supabase';
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
-import html2pdf from 'html2pdf.js';
 
 // Sécurité : validation des fichiers uploadés
 const ALLOWED_IMAGE_TYPES = ["image/jpeg","image/jpg","image/png","image/webp","image/gif"];
@@ -174,26 +173,18 @@ function dlPDF(html){
   setTimeout(()=>win.print(),600);
 }
 
+const SUPABASE_FUNCTIONS_URL="https://xubivjnyhdhhviqmwrkz.supabase.co/functions/v1";
 async function uploadContratEtEnvoyerMail(supabaseClient,html,contratId,locEmail,locNom){
   if(!locEmail)return{sent:false,reason:"no_email"};
   try{
-    // Générer un vrai PDF via iframe (pour que les styles <head> soient appliqués)
-    const iframe=document.createElement('iframe');
-    iframe.style.cssText='position:fixed;top:0;left:0;width:794px;height:1123px;opacity:0.001;border:none;z-index:-1;pointer-events:none;';
-    document.body.appendChild(iframe);
-    iframe.contentDocument.open();
-    iframe.contentDocument.write(html);
-    iframe.contentDocument.close();
-    await new Promise(r=>setTimeout(r,800));
-    const pdfBlob=await html2pdf().set({margin:0,filename:'contrat.pdf',image:{type:'jpeg',quality:0.92},html2canvas:{scale:2,useCORS:true,logging:false,windowWidth:794},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(iframe.contentDocument.body).outputPdf('blob');
-    document.body.removeChild(iframe);
-    // Uploader le PDF dans Storage
-    const fileName=`contrat_${contratId}_${Date.now()}.pdf`;
-    const{error:upErr}=await supabaseClient.storage.from('contrats').upload(fileName,pdfBlob,{contentType:"application/pdf",upsert:false});
+    // Uploader le HTML dans Storage
+    const fileName=`contrat_${contratId}_${Date.now()}.html`;
+    const blob=new Blob([html],{type:"text/html;charset=utf-8"});
+    const{error:upErr}=await supabaseClient.storage.from('contrats').upload(fileName,blob,{contentType:"text/html;charset=utf-8",upsert:false});
     if(upErr)throw upErr;
-    const{data:urlData}=supabaseClient.storage.from('contrats').getPublicUrl(fileName);
-    const contractUrl=urlData.publicUrl;
-    // Appel Edge Function
+    // URL via la Edge Function serve-contract (rendu HTML correct)
+    const contractUrl=`${SUPABASE_FUNCTIONS_URL}/serve-contract?file=${encodeURIComponent(fileName)}`;
+    // Envoi mail
     const{error:fnErr}=await supabaseClient.functions.invoke('send-contract-email',{body:{clientEmail:locEmail,clientName:locNom,contractUrl,contractId:String(contratId)}});
     if(fnErr)throw fnErr;
     return{sent:true,contractUrl};

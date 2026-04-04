@@ -1,4 +1,5 @@
 import nodemailer from "npm:nodemailer@6";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,24 +12,36 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { clientEmail, clientName, contractUrl, contractId } = await req.json();
+    const { clientEmail, clientName, contractId, fileName } = await req.json();
 
-    if (!clientEmail || !contractUrl) {
+    if (!clientEmail || !fileName) {
       return new Response(
-        JSON.stringify({ error: "clientEmail et contractUrl sont requis" }),
+        JSON.stringify({ error: "clientEmail et fileName sont requis" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const gmailUser = Deno.env.get("GMAIL_USER");
     const gmailPass = Deno.env.get("GMAIL_APP_PASSWORD");
-
     if (!gmailUser || !gmailPass) {
       return new Response(
         JSON.stringify({ error: "Variables GMAIL_USER / GMAIL_APP_PASSWORD manquantes" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Récupérer le HTML du contrat depuis Storage
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data: fileData, error: fileErr } = await supabase.storage
+      .from("contrats")
+      .download(fileName);
+    if (fileErr || !fileData) throw new Error("Impossible de récupérer le contrat : " + fileErr?.message);
+    const htmlContent = await fileData.text();
+
+    const prenom = (clientName || "").split(" ")[0] || "Client";
 
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
@@ -37,12 +50,10 @@ Deno.serve(async (req) => {
       auth: { user: gmailUser, pass: gmailPass },
     });
 
-    const prenom = (clientName || "").split(" ")[0] || clientName || "Client";
-
     await transporter.sendMail({
       from: `"Man's Location" <${gmailUser}>`,
       to: clientEmail,
-      subject: `Votre contrat de location — ${contractId}`,
+      subject: `Votre contrat de location — Man's Location`,
       html: `
 <!DOCTYPE html>
 <html lang="fr">
@@ -51,40 +62,28 @@ Deno.serve(async (req) => {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 0">
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="background:white;border-radius:16px;overflow:hidden;max-width:600px;width:100%">
-        <!-- Header -->
         <tr>
-          <td style="background:linear-gradient(135deg,#0a1940,#1e3a8a);padding:28px 32px;text-align:center">
-            <div style="color:white;font-size:22px;font-weight:800;letter-spacing:-0.5px">🚗 Man's Location</div>
+          <td style="background:#0a1940;padding:28px 32px;text-align:center">
+            <div style="color:white;font-size:22px;font-weight:800">🚗 Man's Location</div>
             <div style="color:rgba(255,255,255,0.7);font-size:13px;margin-top:6px">Location de véhicules</div>
           </td>
         </tr>
-        <!-- Body -->
         <tr>
           <td style="padding:32px">
             <p style="font-size:16px;color:#1e3a8a;font-weight:700;margin:0 0 12px">Bonjour ${prenom},</p>
             <p style="font-size:14px;color:#374151;line-height:1.6;margin:0 0 20px">
-              Votre contrat de location <strong>#${contractId}</strong> a bien été enregistré.<br>
-              Vous pouvez le consulter et le télécharger en cliquant sur le bouton ci-dessous.
+              Votre contrat de location a bien été enregistré.<br>
+              <strong>Votre contrat est joint à ce mail</strong> (fichier <code>contrat_${contractId}.html</code>).<br><br>
+              Pour l'ouvrir : double-cliquez sur la pièce jointe → il s'ouvre dans votre navigateur → faites <strong>Ctrl+P</strong> (ou Cmd+P sur Mac) → choisissez <strong>"Enregistrer en PDF"</strong>.
             </p>
-            <div style="text-align:center;margin:28px 0">
-              <a href="${contractUrl}" target="_blank"
-                style="display:inline-block;background:linear-gradient(135deg,#0a1940,#1e3a8a);color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:15px;font-weight:700;letter-spacing:0.3px">
-                📄 Télécharger mon contrat
-              </a>
+            <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:16px;margin:16px 0">
+              <p style="margin:0;font-size:13px;color:#16a34a;font-weight:700">✅ Pièce jointe : contrat_${contractId}.html</p>
             </div>
-            <p style="font-size:12px;color:#6b7280;line-height:1.6;margin:0">
-              Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
-              <a href="${contractUrl}" style="color:#1e3a8a;word-break:break-all">${contractUrl}</a>
-            </p>
           </td>
         </tr>
-        <!-- Footer -->
         <tr>
           <td style="background:#f8fafc;padding:18px 32px;border-top:1px solid #e5e7eb;text-align:center">
-            <p style="font-size:11px;color:#9ca3af;margin:0">
-              Ce mail a été envoyé automatiquement suite à la création de votre contrat de location.<br>
-              Conservez ce lien — il vous permet d'accéder à votre contrat à tout moment.
-            </p>
+            <p style="font-size:11px;color:#9ca3af;margin:0">Mail envoyé automatiquement par Man's Location</p>
           </td>
         </tr>
       </table>
@@ -92,6 +91,11 @@ Deno.serve(async (req) => {
   </table>
 </body>
 </html>`,
+      attachments: [{
+        filename: `contrat_${contractId}.html`,
+        content: htmlContent,
+        contentType: "text/html; charset=utf-8",
+      }],
     });
 
     return new Response(

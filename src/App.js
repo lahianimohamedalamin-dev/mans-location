@@ -176,17 +176,13 @@ function dlPDF(html){
 async function uploadContratEtEnvoyerMail(supabaseClient,html,contratId,locEmail,locNom){
   if(!locEmail)return{sent:false,reason:"no_email"};
   try{
-    // Uploader le HTML comme fichier public dans Storage
     const fileName=`contrat_${contratId}_${Date.now()}.html`;
     const blob=new Blob([html],{type:"text/html;charset=utf-8"});
     const{error:upErr}=await supabaseClient.storage.from('contrats').upload(fileName,blob,{contentType:"text/html;charset=utf-8",upsert:false});
     if(upErr)throw upErr;
-    const{data:urlData}=supabaseClient.storage.from('contrats').getPublicUrl(fileName);
-    const contractUrl=urlData.publicUrl;
-    // Appel Edge Function
-    const{error:fnErr}=await supabaseClient.functions.invoke('send-contract-email',{body:{clientEmail:locEmail,clientName:locNom,contractUrl,contractId:String(contratId)}});
+    const{error:fnErr}=await supabaseClient.functions.invoke('send-contract-email',{body:{clientEmail:locEmail,clientName:locNom,contractId:String(contratId),fileName}});
     if(fnErr)throw fnErr;
-    return{sent:true,contractUrl};
+    return{sent:true};
   }catch(e){
     console.error("uploadContratEtEnvoyerMail:",e);
     return{sent:false,reason:e.message||"erreur"};
@@ -2967,6 +2963,44 @@ function AuthPage(){
   );
 }
 
+function ContratViewer(){
+  const[html,setHtml]=useState('');
+  const[loading,setLoading]=useState(true);
+  const[err,setErr]=useState('');
+  const iframeRef=useRef(null);
+  useEffect(()=>{
+    const file=new URLSearchParams(window.location.search).get('contrat');
+    if(!file){setErr('Fichier introuvable');setLoading(false);return;}
+    supabase.storage.from('contrats').download(file)
+      .then(({data,error})=>{
+        if(error||!data){setErr('Contrat introuvable');setLoading(false);return;}
+        data.text().then(h=>{setHtml(h);setLoading(false);});
+      });
+  },[]);
+  function imprimerPDF(){
+    if(iframeRef.current)iframeRef.current.contentWindow.print();
+  }
+  function handleLoad(){
+    // Ouvre automatiquement la boîte d'impression au chargement
+    setTimeout(()=>{if(iframeRef.current)iframeRef.current.contentWindow.print();},800);
+  }
+  if(loading)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',fontFamily:'Arial',color:'#374151',fontSize:16}}>⏳ Chargement du contrat...</div>;
+  if(err)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',fontFamily:'Arial',color:'#ef4444',fontSize:16}}>❌ {err}</div>;
+  return(
+    <div style={{display:'flex',flexDirection:'column',height:'100vh',background:'#f1f5f9'}}>
+      <div style={{background:'linear-gradient(135deg,#0a1940,#1e3a8a)',padding:'12px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+        <div style={{color:'white',fontWeight:800,fontSize:15,fontFamily:'Arial'}}>🚗 Man's Location — Contrat de location</div>
+        <button onClick={imprimerPDF} style={{background:'white',color:'#0a1940',border:'none',borderRadius:8,padding:'9px 18px',fontSize:13,fontWeight:700,cursor:'pointer'}}>
+          📄 Télécharger en PDF
+        </button>
+      </div>
+      <iframe ref={iframeRef} srcDoc={html} onLoad={handleLoad} style={{flex:1,border:'none',width:'100%'}} title="Contrat de location"/>
+    </div>
+  );
+}
+
 export default function App(){
+  const isViewer=new URLSearchParams(window.location.search).has('contrat');
+  if(isViewer)return<ContratViewer/>;
   return <AppContent/>;
 }

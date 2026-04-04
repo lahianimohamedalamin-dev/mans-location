@@ -177,13 +177,16 @@ function dlPDF(html){
 async function uploadContratEtEnvoyerMail(supabaseClient,html,contratId,locEmail,locNom){
   if(!locEmail)return{sent:false,reason:"no_email"};
   try{
-    // Générer un vrai PDF depuis le HTML
-    const el=document.createElement('div');
-    el.innerHTML=html;
-    el.style.cssText='position:fixed;top:0;left:0;width:210mm;opacity:0.001;pointer-events:none;z-index:-1;';
-    document.body.appendChild(el);
-    const pdfBlob=await html2pdf().set({margin:0,filename:'contrat.pdf',image:{type:'jpeg',quality:0.92},html2canvas:{scale:2,useCORS:true,logging:false,windowWidth:794},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(el).outputPdf('blob');
-    document.body.removeChild(el);
+    // Générer un vrai PDF via iframe (pour que les styles <head> soient appliqués)
+    const iframe=document.createElement('iframe');
+    iframe.style.cssText='position:fixed;top:0;left:0;width:794px;height:1123px;opacity:0.001;border:none;z-index:-1;pointer-events:none;';
+    document.body.appendChild(iframe);
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(html);
+    iframe.contentDocument.close();
+    await new Promise(r=>setTimeout(r,800));
+    const pdfBlob=await html2pdf().set({margin:0,filename:'contrat.pdf',image:{type:'jpeg',quality:0.92},html2canvas:{scale:2,useCORS:true,logging:false,windowWidth:794},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(iframe.contentDocument.body).outputPdf('blob');
+    document.body.removeChild(iframe);
     // Uploader le PDF dans Storage
     const fileName=`contrat_${contratId}_${Date.now()}.pdf`;
     const{error:upErr}=await supabaseClient.storage.from('contrats').upload(fileName,pdfBlob,{contentType:"application/pdf",upsert:false});

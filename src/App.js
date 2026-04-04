@@ -184,8 +184,19 @@ async function genererPDFBase64(html){
   await new Promise(r=>setTimeout(r,800));
   const pdfBlob=await html2pdf().set({
     margin:0,filename:'contrat.pdf',
-    image:{type:'jpeg',quality:0.92},
-    html2canvas:{scale:2,useCORS:true,logging:false,windowWidth:794},
+    image:{type:'jpeg',quality:0.95},
+    html2canvas:{
+      scale:2,useCORS:true,logging:false,windowWidth:794,allowTaint:true,
+      onclone:(doc)=>{
+        // Forcer les couleurs de fond que html2canvas ignore via les classes CSS
+        doc.querySelectorAll('.header').forEach(el=>{el.style.backgroundColor='#0a1940';el.style.color='#fff';});
+        doc.querySelectorAll('.st').forEach(el=>{el.style.backgroundColor='#e8edf5';el.style.borderLeft='3px solid #0a1940';el.style.color='#0a1940';});
+        doc.querySelectorAll('.tot').forEach(el=>{el.style.backgroundColor='#0a1940';el.style.color='#fff';});
+        doc.querySelectorAll('.title').forEach(el=>{el.style.borderBottom='2px solid #0a1940';el.style.color='#0a1940';});
+        doc.querySelectorAll('table.ft tr:first-child').forEach(el=>{el.style.backgroundColor='#e8edf5';});
+        doc.querySelectorAll('.cg-t').forEach(el=>{el.style.color='#0a1940';});
+      }
+    },
     jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
   }).from(iframe.contentDocument.body).outputPdf('blob');
   document.body.removeChild(iframe);

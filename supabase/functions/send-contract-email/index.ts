@@ -1,5 +1,4 @@
 import nodemailer from "npm:nodemailer@6";
-import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,19 +11,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body = await req.json();
-    const { clientEmail, clientName, contractId } = body;
+    const { clientEmail, clientName, contractId, pdfBase64 } = await req.json();
 
-    // Accepte fileName OU contractUrl (rétrocompatibilité)
-    let storageFileName = body.fileName;
-    if (!storageFileName && body.contractUrl) {
-      const parts = body.contractUrl.split("/");
-      storageFileName = decodeURIComponent(parts[parts.length - 1]);
-    }
-
-    if (!clientEmail || !storageFileName) {
+    if (!clientEmail || !pdfBase64) {
       return new Response(
-        JSON.stringify({ error: "clientEmail et fileName/contractUrl sont requis" }),
+        JSON.stringify({ error: "clientEmail et pdfBase64 sont requis" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -38,21 +29,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Récupérer le HTML depuis Storage
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-    const { data: fileData, error: fileErr } = await supabase.storage
-      .from("contrats")
-      .download(storageFileName);
-    if (fileErr || !fileData) {
-      throw new Error("Fichier introuvable dans Storage : " + (fileErr?.message || storageFileName));
-    }
-    const htmlContent = await fileData.text();
-
     const prenom = (clientName || "").split(" ")[0] || "Client";
-    const id = contractId || storageFileName;
+    const id = contractId || "location";
 
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
@@ -79,15 +57,10 @@ Deno.serve(async (req) => {
       <tr><td style="padding:32px">
         <p style="font-size:16px;color:#1e3a8a;font-weight:700;margin:0 0 12px">Bonjour ${prenom},</p>
         <p style="font-size:14px;color:#374151;line-height:1.6;margin:0 0 16px">
-          Votre contrat de location est disponible en pièce jointe.<br><br>
-          <strong>Pour obtenir votre PDF :</strong><br>
-          1. Ouvrez la pièce jointe <code>contrat_${id}.html</code><br>
-          2. Elle s'ouvre dans votre navigateur<br>
-          3. Faites <strong>Ctrl+P</strong> (ou Cmd+P sur Mac)<br>
-          4. Choisissez <strong>"Enregistrer en PDF"</strong>
+          Votre contrat de location est disponible en pièce jointe (PDF).
         </p>
         <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px">
-          <p style="margin:0;font-size:13px;color:#16a34a;font-weight:700">📎 Pièce jointe : contrat_${id}.html</p>
+          <p style="margin:0;font-size:13px;color:#16a34a;font-weight:700">📎 contrat_${id}.pdf</p>
         </div>
       </td></tr>
       <tr><td style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e5e7eb;text-align:center">
@@ -98,9 +71,10 @@ Deno.serve(async (req) => {
 </table>
 </body></html>`,
       attachments: [{
-        filename: `contrat_${id}.html`,
-        content: htmlContent,
-        contentType: "text/html; charset=utf-8",
+        filename: `contrat_${id}.pdf`,
+        content: pdfBase64,
+        encoding: "base64",
+        contentType: "application/pdf",
       }],
     });
 

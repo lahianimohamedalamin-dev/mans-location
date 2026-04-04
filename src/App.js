@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
+import html2pdf from 'html2pdf.js';
 
 // Sécurité : validation des fichiers uploadés
 const ALLOWED_IMAGE_TYPES = ["image/jpeg","image/jpg","image/png","image/webp","image/gif"];
@@ -173,18 +174,37 @@ function dlPDF(html){
   setTimeout(()=>win.print(),600);
 }
 
-async function uploadContratEtEnvoyerMail(supabaseClient,html,contratId,locEmail,locNom){
+async function genererPDFBase64(html){
+  const iframe=document.createElement('iframe');
+  iframe.style.cssText='position:fixed;top:0;left:0;width:794px;height:1123px;opacity:0.001;border:none;z-index:-1;pointer-events:none;';
+  document.body.appendChild(iframe);
+  iframe.contentDocument.open();
+  iframe.contentDocument.write(html);
+  iframe.contentDocument.close();
+  await new Promise(r=>setTimeout(r,800));
+  const pdfBlob=await html2pdf().set({
+    margin:0,filename:'contrat.pdf',
+    image:{type:'jpeg',quality:0.92},
+    html2canvas:{scale:2,useCORS:true,logging:false,windowWidth:794},
+    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
+  }).from(iframe.contentDocument.body).outputPdf('blob');
+  document.body.removeChild(iframe);
+  const arrayBuffer=await pdfBlob.arrayBuffer();
+  const base64=btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+  return base64;
+}
+
+async function envoyerContratParMail(supabaseClient,html,contratId,locEmail,locNom){
   if(!locEmail)return{sent:false,reason:"no_email"};
   try{
-    const fileName=`contrat_${contratId}_${Date.now()}.html`;
-    const blob=new Blob([html],{type:"text/html;charset=utf-8"});
-    const{error:upErr}=await supabaseClient.storage.from('contrats').upload(fileName,blob,{contentType:"text/html;charset=utf-8",upsert:false});
-    if(upErr)throw upErr;
-    const{error:fnErr}=await supabaseClient.functions.invoke('send-contract-email',{body:{clientEmail:locEmail,clientName:locNom,contractId:String(contratId),fileName}});
+    const pdfBase64=await genererPDFBase64(html);
+    const{error:fnErr}=await supabaseClient.functions.invoke('send-contract-email',{
+      body:{clientEmail:locEmail,clientName:locNom,contractId:String(contratId),pdfBase64}
+    });
     if(fnErr)throw fnErr;
     return{sent:true};
   }catch(e){
-    console.error("uploadContratEtEnvoyerMail:",e);
+    console.error("envoyerContratParMail:",e);
     return{sent:false,reason:e.message||"erreur"};
   }
 }
@@ -1311,7 +1331,7 @@ function AppContent(){
       if(form.locEmail){
         const realId=(!err&&ins)?ins.id:c.id;
         setMailStatus("sending");
-        const{sent,reason}=await uploadContratEtEnvoyerMail(supabase,html,realId,form.locEmail,locNom);
+        const{sent,reason}=await envoyerContratParMail(supabase,html,realId,form.locEmail,locNom);
         setMailStatus(sent?"sent":"error");
         if(!sent)console.warn("Mail non envoyé:",reason);
       }

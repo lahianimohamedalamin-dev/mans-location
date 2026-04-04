@@ -176,19 +176,22 @@ function dlPDF(html){
 
 async function genererPDFBase64(html){
   const iframe=document.createElement('iframe');
-  iframe.style.cssText='position:fixed;top:0;left:0;width:794px;height:1123px;opacity:0.001;border:none;z-index:-1;pointer-events:none;';
+  iframe.style.cssText='position:fixed;top:-9999px;left:0;width:794px;height:1px;opacity:0;border:none;z-index:-9999;pointer-events:none;';
   document.body.appendChild(iframe);
   iframe.contentDocument.open();
   iframe.contentDocument.write(html);
   iframe.contentDocument.close();
-  await new Promise(r=>setTimeout(r,800));
+  await new Promise(r=>setTimeout(r,600));
+  // Mesurer la hauteur réelle du contenu avant capture
+  const contentH=Math.max(iframe.contentDocument.body.scrollHeight,500);
+  iframe.style.height=contentH+'px';
+  await new Promise(r=>setTimeout(r,300));
   const pdfBlob=await html2pdf().set({
-    margin:0,filename:'contrat.pdf',
-    image:{type:'jpeg',quality:0.95},
+    margin:[8,8,8,8],filename:'contrat.pdf',
+    image:{type:'jpeg',quality:0.92},
     html2canvas:{
-      scale:2,useCORS:true,logging:false,windowWidth:794,allowTaint:true,
+      scale:2,useCORS:true,logging:false,windowWidth:794,allowTaint:true,scrollY:0,
       onclone:(doc)=>{
-        // Forcer les couleurs de fond que html2canvas ignore via les classes CSS
         doc.querySelectorAll('.header').forEach(el=>{el.style.backgroundColor='#0a1940';el.style.color='#fff';});
         doc.querySelectorAll('.st').forEach(el=>{el.style.backgroundColor='#e8edf5';el.style.borderLeft='3px solid #0a1940';el.style.color='#0a1940';});
         doc.querySelectorAll('.tot').forEach(el=>{el.style.backgroundColor='#0a1940';el.style.color='#fff';});
@@ -197,6 +200,7 @@ async function genererPDFBase64(html){
         doc.querySelectorAll('.cg-t').forEach(el=>{el.style.color='#0a1940';});
       }
     },
+    pagebreak:{mode:['css','legacy'],avoid:['.st','.cg','.cl','.tot','.sig-area','.sig-box']},
     jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
   }).from(iframe.contentDocument.body).outputPdf('blob');
   document.body.removeChild(iframe);
@@ -366,7 +370,7 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
     // CONDITIONS PARTICULIERES (clauses vehicule)
     "<div style='margin-bottom:8px'><div class='st'>Conditions particulieres</div>"+clausesHtml+"</div>",
     // CONDITIONS GENERALES DE LOCATION
-    "<div style='margin-bottom:8px;page-break-before:always'><div class='st'>Conditions generales de location</div>",
+    "<div style='margin-bottom:8px'><div class='st'>Conditions generales de location</div>",
     "<div style='font-size:8px;color:#6b7280;margin-bottom:4px'>En signant ce contrat, le locataire reconnait avoir lu, compris et accepte sans reserve les conditions generales ci-dessous.</div>",
     cgHtml+"</div><hr>",
     // SIGNATURES

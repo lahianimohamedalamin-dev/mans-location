@@ -173,7 +173,6 @@ function dlPDF(html){
   setTimeout(()=>win.print(),600);
 }
 
-const APP_URL="https://mans-location.vercel.app";
 async function uploadContratEtEnvoyerMail(supabaseClient,html,contratId,locEmail,locNom){
   if(!locEmail)return{sent:false,reason:"no_email"};
   try{
@@ -181,11 +180,9 @@ async function uploadContratEtEnvoyerMail(supabaseClient,html,contratId,locEmail
     const blob=new Blob([html],{type:"text/html;charset=utf-8"});
     const{error:upErr}=await supabaseClient.storage.from('contrats').upload(fileName,blob,{contentType:"text/html;charset=utf-8",upsert:false});
     if(upErr)throw upErr;
-    // Lien vers le viewer intégré dans le site
-    const contractUrl=`${APP_URL}/?contrat=${encodeURIComponent(fileName)}`;
-    const{error:fnErr}=await supabaseClient.functions.invoke('send-contract-email',{body:{clientEmail:locEmail,clientName:locNom,contractUrl,contractId:String(contratId)}});
+    const{error:fnErr}=await supabaseClient.functions.invoke('send-contract-email',{body:{clientEmail:locEmail,clientName:locNom,contractId:String(contratId),fileName}});
     if(fnErr)throw fnErr;
-    return{sent:true,contractUrl};
+    return{sent:true};
   }catch(e){
     console.error("uploadContratEtEnvoyerMail:",e);
     return{sent:false,reason:e.message||"erreur"};

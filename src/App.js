@@ -1099,6 +1099,8 @@ function AppContent(){
   const[newDoc,setNewDoc]=useState({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});
   const[lastContrat,setLastContrat]=useState(null);
   const[mailStatus,setMailStatus]=useState(null); // null | "sending" | "sent" | "error"
+  const[lastPV,setLastPV]=useState(null);
+  const[pvMailStatus,setPvMailStatus]=useState(null); // null | "sending" | "sent" | "error"
   const[retourContratId,setRetourContratId]=useState(null);
   const[prolonContrat,setProlonContrat]=useState(null);
   const[prolonDateFin,setProlonDateFin]=useState("");
@@ -1393,11 +1395,21 @@ function AppContent(){
   async function saveRetour(contratId,data){
     setRetours(r=>({...r,[contratId]:data}));
     const ct=contrats.find(c=>c.id===contratId);
-    if(ct&&data.kmRetour)setVehicles(vs=>vs.map(v=>v.id===ct.vehicleId?{...v,km:parseFloat(data.kmRetour)}:v));
+    const v=vehicles.find(x=>x.id===ct?.vehicleId);
+    if(ct&&data.kmRetour)setVehicles(vs=>vs.map(x=>x.id===ct.vehicleId?{...x,km:parseFloat(data.kmRetour)}:x));
+    const pvHTML=buildPVRetourHTML(ct,v,data,data.sigRetourLoueur||null,data.sigRetourLocataire||null,profil);
+    setLastPV({contrat:ct,html:pvHTML});
+    setPvMailStatus(null);
     toast_("Retour enregistré + PV PDF généré !");setRetourContratId(null);
     if(user){
       await supabase.from('retours').insert([{user_id:user.id,contrat_id:contratId,km_retour:data.kmRetour||null,carburant_retour:data.carburantRetour??null,montant_retenu:data.montantRetenu||0,raison_retenue:data.raisonRetenue||'',rembourse:data.rembourse||0,km_sup:data.kmSup||0,surplus_km:data.surplusKm||0,caution_restituee:data.cautionRestituee,checks:data.checks||{},carro:data.carro||{},carro_photos:data.carroPhotos||{},carro_notes:data.carroNotes||{},photos:data.photos||{},notes:data.notes||'',remise_retour:data.remiseRetour||0,date:data.date||new Date().toISOString()}]);
       if(ct&&data.kmRetour)await supabase.from('vehicules').update({km:parseFloat(data.kmRetour)}).eq('id',ct.vehicleId).eq('user_id',user.id);
+      if(ct?.locEmail){
+        setPvMailStatus("sending");
+        const{sent,reason}=await envoyerContratParMail(supabase,pvHTML,contratId,ct.locEmail,ct.locNom);
+        setPvMailStatus(sent?"sent":"error");
+        if(!sent)console.warn("PV mail non envoyé:",reason);
+      }
     }
   }
 
@@ -2381,6 +2393,26 @@ function AppContent(){
               <button onClick={()=>setPagePersist("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Retours</h1>
             </div>
+            {lastPV&&(
+              <div style={{marginBottom:16,background:"#f0fdf4",borderRadius:14,padding:16,border:"2px solid #86efac"}}>
+                <div style={{fontWeight:700,color:"#16a34a",marginBottom:8}}>✅ PV retour créé pour {lastPV.contrat?.locNom}</div>
+                {lastPV.contrat?.locEmail&&(
+                  <div style={{marginBottom:10,padding:"8px 12px",borderRadius:8,fontSize:12,fontWeight:600,
+                    background:pvMailStatus==="sent"?"#dcfce7":pvMailStatus==="error"?"#fef2f2":pvMailStatus==="sending"?"#eff6ff":"#f1f5f9",
+                    color:pvMailStatus==="sent"?"#16a34a":pvMailStatus==="error"?"#ef4444":pvMailStatus==="sending"?"#2563eb":"#6b7280",
+                    border:`1px solid ${pvMailStatus==="sent"?"#86efac":pvMailStatus==="error"?"#fca5a5":pvMailStatus==="sending"?"#bfdbfe":"#e5e7eb"}`}}>
+                    {pvMailStatus==="sending"&&"⏳ Envoi du PV par mail..."}
+                    {pvMailStatus==="sent"&&`📧 PV envoyé à ${lastPV.contrat.locEmail}`}
+                    {pvMailStatus==="error"&&`⚠️ Mail non envoyé (vérifie les secrets Supabase)`}
+                    {!pvMailStatus&&`📧 ${lastPV.contrat.locEmail}`}
+                  </div>
+                )}
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  <button onClick={()=>dlPDF(lastPV.html)} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>📄 Imprimer / PDF</button>
+                  <button onClick={()=>{setLastPV(null);setPvMailStatus(null);}} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"8px 12px",fontSize:12,cursor:"pointer"}}>Fermer</button>
+                </div>
+              </div>
+            )}
             {contrats.filter(c=>!retours[c.id]).length>0&&(
               <div style={{marginBottom:16}}>
                 <h2 style={{fontSize:13,fontWeight:700,color:"#6b7280",marginBottom:8}}>En attente ({contrats.filter(c=>!retours[c.id]).length})</h2>

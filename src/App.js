@@ -180,9 +180,9 @@ async function uploadContratEtEnvoyerMail(supabaseClient,html,contratId,locEmail
     // Générer un vrai PDF depuis le HTML
     const el=document.createElement('div');
     el.innerHTML=html;
-    el.style.position='absolute';el.style.left='-9999px';
+    el.style.cssText='position:fixed;top:0;left:0;width:210mm;opacity:0.001;pointer-events:none;z-index:-1;';
     document.body.appendChild(el);
-    const pdfBlob=await html2pdf().set({margin:0,filename:'contrat.pdf',image:{type:'jpeg',quality:0.95},html2canvas:{scale:2,useCORS:true,logging:false},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(el).outputPdf('blob');
+    const pdfBlob=await html2pdf().set({margin:0,filename:'contrat.pdf',image:{type:'jpeg',quality:0.92},html2canvas:{scale:2,useCORS:true,logging:false,windowWidth:794},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(el).outputPdf('blob');
     document.body.removeChild(el);
     // Uploader le PDF dans Storage
     const fileName=`contrat_${contratId}_${Date.now()}.pdf`;

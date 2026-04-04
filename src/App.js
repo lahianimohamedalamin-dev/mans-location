@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
+import html2pdf from 'html2pdf.js';
 
 // Sécurité : validation des fichiers uploadés
 const ALLOWED_IMAGE_TYPES = ["image/jpeg","image/jpg","image/png","image/webp","image/gif"];
@@ -176,10 +177,16 @@ function dlPDF(html){
 async function uploadContratEtEnvoyerMail(supabaseClient,html,contratId,locEmail,locNom){
   if(!locEmail)return{sent:false,reason:"no_email"};
   try{
-    // Uploader le HTML comme fichier public dans Storage
-    const fileName=`contrat_${contratId}_${Date.now()}.html`;
-    const blob=new Blob([html],{type:"text/html;charset=utf-8"});
-    const{error:upErr}=await supabaseClient.storage.from('contrats').upload(fileName,blob,{contentType:"text/html;charset=utf-8",upsert:false});
+    // Générer un vrai PDF depuis le HTML
+    const el=document.createElement('div');
+    el.innerHTML=html;
+    el.style.position='absolute';el.style.left='-9999px';
+    document.body.appendChild(el);
+    const pdfBlob=await html2pdf().set({margin:0,filename:'contrat.pdf',image:{type:'jpeg',quality:0.95},html2canvas:{scale:2,useCORS:true,logging:false},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(el).outputPdf('blob');
+    document.body.removeChild(el);
+    // Uploader le PDF dans Storage
+    const fileName=`contrat_${contratId}_${Date.now()}.pdf`;
+    const{error:upErr}=await supabaseClient.storage.from('contrats').upload(fileName,pdfBlob,{contentType:"application/pdf",upsert:false});
     if(upErr)throw upErr;
     const{data:urlData}=supabaseClient.storage.from('contrats').getPublicUrl(fileName);
     const contractUrl=urlData.publicUrl;

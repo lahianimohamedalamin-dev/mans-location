@@ -2980,8 +2980,12 @@ function ContratViewer(){
         data.text().then(h=>{setHtml(h);setLoading(false);});
       });
   },[]);
-  function telechargerPDF(){
+  function imprimerPDF(){
     if(iframeRef.current)iframeRef.current.contentWindow.print();
+  }
+  function handleLoad(){
+    // Ouvre automatiquement la boîte d'impression au chargement
+    setTimeout(()=>{if(iframeRef.current)iframeRef.current.contentWindow.print();},800);
   }
   if(loading)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',fontFamily:'Arial',color:'#374151',fontSize:16}}>⏳ Chargement du contrat...</div>;
   if(err)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',fontFamily:'Arial',color:'#ef4444',fontSize:16}}>❌ {err}</div>;
@@ -2989,11 +2993,11 @@ function ContratViewer(){
     <div style={{display:'flex',flexDirection:'column',height:'100vh',background:'#f1f5f9'}}>
       <div style={{background:'linear-gradient(135deg,#0a1940,#1e3a8a)',padding:'12px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
         <div style={{color:'white',fontWeight:800,fontSize:15,fontFamily:'Arial'}}>🚗 Man's Location — Contrat de location</div>
-        <button onClick={telechargerPDF} style={{background:'#25D366',color:'white',border:'none',borderRadius:8,padding:'9px 18px',fontSize:13,fontWeight:700,cursor:'pointer'}}>
+        <button onClick={imprimerPDF} style={{background:'white',color:'#0a1940',border:'none',borderRadius:8,padding:'9px 18px',fontSize:13,fontWeight:700,cursor:'pointer'}}>
           📄 Télécharger en PDF
         </button>
       </div>
-      <iframe ref={iframeRef} srcDoc={html} style={{flex:1,border:'none',width:'100%'}} title="Contrat de location"/>
+      <iframe ref={iframeRef} srcDoc={html} onLoad={handleLoad} style={{flex:1,border:'none',width:'100%'}} title="Contrat de location"/>
     </div>
   );
 }

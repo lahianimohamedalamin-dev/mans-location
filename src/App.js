@@ -1273,7 +1273,6 @@ function AppContent(){
   const totalNet=Math.max(0,(tarifAuto.prix||0)-remise);
   const resteAPayer=Math.max(0,totalNet-accompte);
   const inv=k=>touched[k]&&!form[k];
-  const nbQSansReponse=questions.filter(q=>!q.reponse).length;
 
   const contratsFiltres=contrats.filter(c=>{
     const q=searchContrat.toLowerCase();
@@ -1481,7 +1480,6 @@ function AppContent(){
     {id:"contrats_hub",icon:"📋",label:"Contrats"},
     {id:"planning",icon:"📅",label:"Planning"},
     {id:"amendes",icon:"🚨",label:"Amendes"},
-    {id:"questions",icon:"❓",label:"Questions"},
     {id:"finances",icon:"💰",label:"Finances"},
     {id:"profil",icon:"👤",label:"Profil"},
   ];
@@ -1547,7 +1545,6 @@ function AppContent(){
               <button key={p.id} onClick={()=>setPagePersist(p.id)} style={{flexShrink:0,padding:isPhone?"4px 6px":"6px 10px",borderRadius:8,fontSize:10,fontWeight:page===p.id?700:400,background:page===p.id?"rgba(255,255,255,0.2)":"transparent",color:page===p.id?"white":"rgba(255,255,255,0.65)",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,position:"relative",minWidth:isPhone?44:54}}>
                 <span style={{fontSize:isPhone?16:18}}>{p.icon}</span>
                 <span style={{fontSize:isPhone?8:10,whiteSpace:"nowrap"}}>{p.label}</span>
-                {p.id==="questions"&&nbQSansReponse>0&&<span style={{position:"absolute",top:2,right:2,background:"#ef4444",color:"white",borderRadius:"50%",width:14,height:14,fontSize:8,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{nbQSansReponse}</span>}
               </button>
             ))}
           </div>
@@ -2502,44 +2499,6 @@ function AppContent(){
         )}
 
         {/* QUESTIONS */}
-        {page==="questions"&&(
-          <div>
-            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:4}}>Questions clients</h1>
-            <p style={{fontSize:12,color:"#6b7280",marginBottom:16}}>Questions posées depuis la vitrine.</p>
-            {questions.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:40,background:"white",borderRadius:14}}><div style={{fontSize:36,marginBottom:8}}>❓</div><p>Aucune question.</p></div>}
-            {questions.filter(q=>!q.reponse).length>0&&(
-              <div style={{marginBottom:20}}>
-                <h2 style={{fontSize:13,fontWeight:700,color:"#dc2626",marginBottom:8}}>Sans réponse ({questions.filter(q=>!q.reponse).length})</h2>
-                {questions.filter(q=>!q.reponse).map(q=>(
-                  <div key={q.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"2px solid #fde68a"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                      <div><div style={{fontWeight:700,fontSize:13,color:"#1e3a8a"}}>{q.vehicleLabel}</div><div style={{fontSize:10,color:"#9ca3af"}}>{new Date(q.createdAt).toLocaleDateString("fr-FR")}</div></div>
-                      <span style={{fontSize:10,background:"#fef3c7",color:"#d97706",borderRadius:99,padding:"2px 8px",fontWeight:700}}>En attente</span>
-                    </div>
-                    <div style={{background:"#f8fafc",borderRadius:8,padding:"10px 12px",fontSize:12,marginBottom:10,border:"1px solid #e5e7eb"}}>{q.question}</div>
-                    <div style={{display:"flex",gap:8}}>
-                      <button onClick={()=>{setReponseModal(q);setReponseText("");}} style={{padding:"7px 14px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>Répondre</button>
-                      <button onClick={()=>supprimerQuestion(q)} style={{padding:"7px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:12,cursor:"pointer"}}>Supprimer</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {questions.filter(q=>q.reponse).length>0&&(
-              <div>
-                <h2 style={{fontSize:13,fontWeight:700,color:"#16a34a",marginBottom:8}}>Répondues ({questions.filter(q=>q.reponse).length})</h2>
-                {questions.filter(q=>q.reponse).map(q=>(
-                  <div key={q.id} style={{background:"white",borderRadius:12,padding:14,marginBottom:8,border:"1px solid #bbf7d0"}}>
-                    <div style={{fontWeight:700,fontSize:13,color:"#1e3a8a",marginBottom:4}}>{q.vehicleLabel}</div>
-                    <div style={{background:"#f8fafc",borderRadius:8,padding:"8px 10px",fontSize:11,marginBottom:8}}>Q : {q.question}</div>
-                    <div style={{background:"#f0fdf4",borderRadius:8,padding:"8px 10px",fontSize:11,color:"#16a34a",border:"1px solid #bbf7d0",marginBottom:8}}>R : {q.reponse}</div>
-                    <button onClick={()=>supprimerQuestion(q)} style={{fontSize:11,padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:6,cursor:"pointer"}}>Supprimer</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         {/* MODAL PROLONGEMENT */}
         {prolonContrat&&(()=>{

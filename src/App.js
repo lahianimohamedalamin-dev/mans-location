@@ -173,6 +173,26 @@ function dlPDF(html){
   setTimeout(()=>win.print(),600);
 }
 
+async function uploadContratEtEnvoyerMail(supabaseClient,html,contratId,locEmail,locNom){
+  if(!locEmail)return{sent:false,reason:"no_email"};
+  try{
+    // Uploader le HTML comme fichier public dans Storage
+    const fileName=`contrat_${contratId}_${Date.now()}.html`;
+    const blob=new Blob([html],{type:"text/html;charset=utf-8"});
+    const{error:upErr}=await supabaseClient.storage.from('contrats').upload(fileName,blob,{contentType:"text/html;charset=utf-8",upsert:false});
+    if(upErr)throw upErr;
+    const{data:urlData}=supabaseClient.storage.from('contrats').getPublicUrl(fileName);
+    const contractUrl=urlData.publicUrl;
+    // Appel Edge Function
+    const{error:fnErr}=await supabaseClient.functions.invoke('send-contract-email',{body:{clientEmail:locEmail,clientName:locNom,contractUrl,contractId:String(contratId)}});
+    if(fnErr)throw fnErr;
+    return{sent:true,contractUrl};
+  }catch(e){
+    console.error("uploadContratEtEnvoyerMail:",e);
+    return{sent:false,reason:e.message||"erreur"};
+  }
+}
+
 function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
   const nb=contrat.nbJours||1,total=contrat.totalCalc||0,pm=contrat.paiement;
   const frais=vehicle.frais||DEF_FRAIS,clauses=vehicle.clauses||DEF_CLAUSES;
@@ -1044,6 +1064,7 @@ function AppContent(){
   const[contratModalId,setContratModalId]=useState(null);
   const[newDoc,setNewDoc]=useState({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});
   const[lastContrat,setLastContrat]=useState(null);
+  const[mailStatus,setMailStatus]=useState(null); // null | "sending" | "sent" | "error"
   const[retourContratId,setRetourContratId]=useState(null);
   const[prolonContrat,setProlonContrat]=useState(null);
   const[prolonDateFin,setProlonDateFin]=useState("");
@@ -1290,6 +1311,14 @@ function AppContent(){
       const{data:ins,error:err}=await supabase.from('contrats').insert([{user_id:user.id,loc_prenom:form.locPrenom||'',loc_nom:locNom,loc_adresse:form.locAdresse,loc_tel:form.locTel,loc_email:form.locEmail,loc_permis:form.locPermis,date_debut:form.dateDebut,heure_debut:form.heureDebut,date_fin:form.dateFin,heure_fin:form.heureFin,paiement:form.paiement,caution_mode:form.cautionMode,km_depart:form.kmDepart,nb_jours:form.nbJours,heures_loc:form.heuresLoc,carburant_depart:form.carburantDepart,exterieur_propre:form.exterieurPropre,interieur_propre:form.interieurPropre,vehicle_id:c.vehicleId,vehicle_label:c.vehicleLabel,immat:c.immat,sig_l:c.sigL,sig_loc:c.sigLoc,total_calc:c.totalCalc,tarif_label:c.tarifLabel,remise:c.remise||0,accompte:c.accompte||0,reste_a_payer:c.resteAPayer||0,prix_jour_modifie:form.prixJourModifie||null,photos_depart:c.photosDepart,docs_locataire:c.docsLocataire,frais_snap:c.fraisSnap,clauses_snap:c.clausesSnap,km_inclus:c.kmInclus,prix_km_sup:c.prixKmSup}]).select().single();
       if(!err&&ins)setContrats(p=>p.map(x=>x.id===c.id?{...x,id:ins.id}:x));
       if(err){console.error(err);toast_("Erreur sauvegarde contrat: "+err.message,"error");}
+      // Envoi mail automatique si email renseigné
+      if(form.locEmail){
+        const realId=(!err&&ins)?ins.id:c.id;
+        setMailStatus("sending");
+        const{sent,reason}=await uploadContratEtEnvoyerMail(supabase,html,realId,form.locEmail,locNom);
+        setMailStatus(sent?"sent":"error");
+        if(!sent)console.warn("Mail non envoyé:",reason);
+      }
     }
   }
 
@@ -2079,9 +2108,20 @@ function AppContent(){
             {lastContrat&&(
               <div style={{marginTop:16,background:"#f0fdf4",borderRadius:14,padding:16,border:"2px solid #86efac"}}>
                 <div style={{fontWeight:700,color:"#16a34a",marginBottom:8}}>✅ Contrat créé pour {lastContrat.contrat.locNom}</div>
+                {lastContrat.contrat.locEmail&&(
+                  <div style={{marginBottom:10,padding:"8px 12px",borderRadius:8,fontSize:12,fontWeight:600,
+                    background:mailStatus==="sent"?"#dcfce7":mailStatus==="error"?"#fef2f2":mailStatus==="sending"?"#eff6ff":"#f1f5f9",
+                    color:mailStatus==="sent"?"#16a34a":mailStatus==="error"?"#ef4444":mailStatus==="sending"?"#2563eb":"#6b7280",
+                    border:`1px solid ${mailStatus==="sent"?"#86efac":mailStatus==="error"?"#fca5a5":mailStatus==="sending"?"#bfdbfe":"#e5e7eb"}`}}>
+                    {mailStatus==="sending"&&"⏳ Envoi du contrat par mail..."}
+                    {mailStatus==="sent"&&`📧 Contrat envoyé à ${lastContrat.contrat.locEmail}`}
+                    {mailStatus==="error"&&`⚠️ Mail non envoyé (vérifie les secrets Supabase)`}
+                    {!mailStatus&&`📧 ${lastContrat.contrat.locEmail}`}
+                  </div>
+                )}
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                   <button onClick={()=>dlPDF(lastContrat.html)} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>📄 Imprimer / PDF</button>
-                  <button onClick={()=>setLastContrat(null)} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"8px 12px",fontSize:12,cursor:"pointer"}}>Fermer</button>
+                  <button onClick={()=>{setLastContrat(null);setMailStatus(null);}} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"8px 12px",fontSize:12,cursor:"pointer"}}>Fermer</button>
                 </div>
               </div>
             )}

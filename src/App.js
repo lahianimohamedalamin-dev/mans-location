@@ -2970,6 +2970,7 @@ function ContratViewer(){
   const[html,setHtml]=useState('');
   const[loading,setLoading]=useState(true);
   const[err,setErr]=useState('');
+  const iframeRef=useRef(null);
   useEffect(()=>{
     const file=new URLSearchParams(window.location.search).get('contrat');
     if(!file){setErr('Fichier introuvable');setLoading(false);return;}
@@ -2979,9 +2980,22 @@ function ContratViewer(){
         data.text().then(h=>{setHtml(h);setLoading(false);});
       });
   },[]);
-  if(loading)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',fontFamily:'Arial',color:'#374151'}}>Chargement du contrat...</div>;
-  if(err)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',fontFamily:'Arial',color:'#ef4444'}}>{err}</div>;
-  return<iframe srcDoc={html} style={{width:'100%',height:'100vh',border:'none'}} title="Contrat de location"/>;
+  function telechargerPDF(){
+    if(iframeRef.current)iframeRef.current.contentWindow.print();
+  }
+  if(loading)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',fontFamily:'Arial',color:'#374151',fontSize:16}}>⏳ Chargement du contrat...</div>;
+  if(err)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',fontFamily:'Arial',color:'#ef4444',fontSize:16}}>❌ {err}</div>;
+  return(
+    <div style={{display:'flex',flexDirection:'column',height:'100vh',background:'#f1f5f9'}}>
+      <div style={{background:'linear-gradient(135deg,#0a1940,#1e3a8a)',padding:'12px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+        <div style={{color:'white',fontWeight:800,fontSize:15,fontFamily:'Arial'}}>🚗 Man's Location — Contrat de location</div>
+        <button onClick={telechargerPDF} style={{background:'#25D366',color:'white',border:'none',borderRadius:8,padding:'9px 18px',fontSize:13,fontWeight:700,cursor:'pointer'}}>
+          📄 Télécharger en PDF
+        </button>
+      </div>
+      <iframe ref={iframeRef} srcDoc={html} style={{flex:1,border:'none',width:'100%'}} title="Contrat de location"/>
+    </div>
+  );
 }
 
 export default function App(){

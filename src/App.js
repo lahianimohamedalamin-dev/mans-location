@@ -173,18 +173,16 @@ function dlPDF(html){
   setTimeout(()=>win.print(),600);
 }
 
-const SUPABASE_FUNCTIONS_URL="https://xubivjnyhdhhviqmwrkz.supabase.co/functions/v1";
+const APP_URL="https://mans-location.vercel.app";
 async function uploadContratEtEnvoyerMail(supabaseClient,html,contratId,locEmail,locNom){
   if(!locEmail)return{sent:false,reason:"no_email"};
   try{
-    // Uploader le HTML dans Storage
     const fileName=`contrat_${contratId}_${Date.now()}.html`;
     const blob=new Blob([html],{type:"text/html;charset=utf-8"});
     const{error:upErr}=await supabaseClient.storage.from('contrats').upload(fileName,blob,{contentType:"text/html;charset=utf-8",upsert:false});
     if(upErr)throw upErr;
-    // URL via la Edge Function serve-contract (rendu HTML correct)
-    const contractUrl=`${SUPABASE_FUNCTIONS_URL}/serve-contract?file=${encodeURIComponent(fileName)}`;
-    // Envoi mail
+    // Lien vers le viewer intégré dans le site
+    const contractUrl=`${APP_URL}/?contrat=${encodeURIComponent(fileName)}`;
     const{error:fnErr}=await supabaseClient.functions.invoke('send-contract-email',{body:{clientEmail:locEmail,clientName:locNom,contractUrl,contractId:String(contratId)}});
     if(fnErr)throw fnErr;
     return{sent:true,contractUrl};
@@ -2968,6 +2966,26 @@ function AuthPage(){
   );
 }
 
+function ContratViewer(){
+  const[html,setHtml]=useState('');
+  const[loading,setLoading]=useState(true);
+  const[err,setErr]=useState('');
+  useEffect(()=>{
+    const file=new URLSearchParams(window.location.search).get('contrat');
+    if(!file){setErr('Fichier introuvable');setLoading(false);return;}
+    supabase.storage.from('contrats').download(file)
+      .then(({data,error})=>{
+        if(error||!data){setErr('Contrat introuvable');setLoading(false);return;}
+        data.text().then(h=>{setHtml(h);setLoading(false);});
+      });
+  },[]);
+  if(loading)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',fontFamily:'Arial',color:'#374151'}}>Chargement du contrat...</div>;
+  if(err)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',fontFamily:'Arial',color:'#ef4444'}}>{err}</div>;
+  return<iframe srcDoc={html} style={{width:'100%',height:'100vh',border:'none'}} title="Contrat de location"/>;
+}
+
 export default function App(){
+  const isViewer=new URLSearchParams(window.location.search).has('contrat');
+  if(isViewer)return<ContratViewer/>;
   return <AppContent/>;
 }

@@ -603,13 +603,10 @@ function DocsLocataire({docs,setDocs}){
   );
 }
 
-function DemandeVehicule({vehicle,profil,userId}){
+function DemandeVehicule({vehicle,profil}){
   const[open,setOpen]=useState(false);
-  const[tab,setTab]=useState("resa");
   const[form,setForm]=useState({prenom:"",nom:"",age:"",tel:"+33 ",email:"",dateDebut:"",dateFin:"",message:""});
-  const[question,setQuestion]=useState("");
   const[sent,setSent]=useState(false);
-  const[qSent,setQSent]=useState(false);
   const wa=(profil.whatsapp||profil.tel||"").replace(/\D/g,"");
   function sendWhatsApp(){
     const nbJ=form.dateDebut&&form.dateFin?Math.max(1,Math.ceil((new Date(form.dateFin)-new Date(form.dateDebut))/86400000)):null;
@@ -617,25 +614,17 @@ function DemandeVehicule({vehicle,profil,userId}){
     window.open("https://wa.me/"+wa+"?text="+encodeURIComponent(msg),"_blank");
     setSent(true);
   }
-  async function sendQuestion(){
-    if(!question.trim()){alert("Ecrivez votre question");return;}
-    if(userId)await supabase.from('questions').insert([{user_id:userId,vehicle_id:vehicle.id,vehicle_label:vehicle.marque+" "+vehicle.modele,client_nom:"Client vitrine",client_tel:"",question:question,lu:false}]);
-    setQSent(true);setQuestion("");
-  }
   if(!open)return(
     <div style={{display:"flex",gap:6,marginTop:6}}>
-      <button onClick={()=>{setOpen(true);setTab("resa");}} style={{flex:1,padding:"8px 0",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📅 Réserver</button>
-      <button onClick={()=>{setOpen(true);setTab("question");}} style={{flex:1,padding:"8px 0",background:"#f1f5f9",color:"#374151",border:"1px solid #e5e7eb",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>❓ Question</button>
+      <button onClick={()=>setOpen(true)} style={{flex:1,padding:"8px 0",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📅 Réserver</button>
     </div>
   );
   return(
     <div style={{marginTop:8,background:"#f8fafc",borderRadius:12,padding:14,border:"1px solid #e5e7eb"}}>
       <div style={{display:"flex",gap:6,marginBottom:12}}>
-        <button onClick={()=>setTab("resa")} style={{flex:1,padding:"7px 0",borderRadius:8,border:"none",cursor:"pointer",fontWeight:tab==="resa"?700:400,background:tab==="resa"?"#1e3a8a":"#e5e7eb",color:tab==="resa"?"white":"#374151",fontSize:12}}>📅 Réservation</button>
-        <button onClick={()=>setTab("question")} style={{flex:1,padding:"7px 0",borderRadius:8,border:"none",cursor:"pointer",fontWeight:tab==="question"?700:400,background:tab==="question"?"#7c3aed":"#e5e7eb",color:tab==="question"?"white":"#374151",fontSize:12}}>❓ Question</button>
         <button onClick={()=>setOpen(false)} style={{padding:"7px 10px",borderRadius:8,border:"none",cursor:"pointer",background:"#fef2f2",color:"#ef4444",fontSize:12,fontWeight:700}}>✕</button>
       </div>
-      {tab==="resa"&&(sent
+      {(sent
         ?<div style={{textAlign:"center",padding:"16px 0"}}>
           <div style={{fontSize:32,marginBottom:8}}>✅</div>
           <div style={{fontWeight:700,fontSize:14,color:"#16a34a",marginBottom:6}}>Demande envoyée !</div>
@@ -652,17 +641,8 @@ function DemandeVehicule({vehicle,profil,userId}){
             <div><div style={{fontSize:10,color:"#6b7280",marginBottom:3}}>Fin *</div><input type="date" value={form.dateFin} onChange={e=>setForm(f=>({...f,dateFin:e.target.value}))} style={{padding:"8px 10px",border:"1px solid #d1d5db",borderRadius:8,fontSize:13,width:"100%",boxSizing:"border-box"}}/></div>
           </div>
           <button onClick={()=>{if(!form.prenom||!form.nom||!form.tel||!form.dateDebut||!form.dateFin){alert("Champs * obligatoires");return;}sendWhatsApp();}} style={{width:"100%",padding:"10px 0",background:"#25D366",color:"white",border:"none",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>💬 Envoyer sur WhatsApp</button>
-        </div>)}
-      {tab==="question"&&(qSent
-        ?<div style={{textAlign:"center",padding:"16px 0"}}>
-          <div style={{fontSize:32,marginBottom:8}}>✅</div>
-          <div style={{fontWeight:700,fontSize:14,color:"#16a34a"}}>Question envoyée !</div>
-          <button onClick={()=>setQSent(false)} style={{padding:"8px 16px",background:"#e5e7eb",border:"none",borderRadius:8,fontSize:12,cursor:"pointer",marginTop:8}}>Nouvelle question</button>
-        </div>
-        :<div style={{display:"flex",flexDirection:"column",gap:10}}>
-          <textarea placeholder="Votre question..." value={question} onChange={e=>setQuestion(e.target.value)} rows={4} style={{padding:"10px",border:"1px solid #d1d5db",borderRadius:8,fontSize:13,resize:"none",fontFamily:"inherit"}}/>
-          <button onClick={sendQuestion} style={{width:"100%",padding:"10px 0",background:"#7c3aed",color:"white",border:"none",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Envoyer la question</button>
-        </div>)}
+        </div>)
+      }
     </div>
   );
 }
@@ -1041,7 +1021,6 @@ function AppContent(){
   const[photosDepart,setPhotosDepart]=useState([]);
   const[photosVehicleModal,setPhotosVehicleModal]=useState(null);
   const[docsLocataire,setDocsLocataire]=useState({});
-  const[,setQuestions]=useState([]);
   const[touched,setTouched]=useState({});
   const[sigL,setSigL]=useState(null);
   const[sigLoc,setSigLoc]=useState(null);
@@ -1053,7 +1032,6 @@ function AppContent(){
   const[planView,setPlanView]=useState("calendrier");
   const ganttRef=useRef(null);
   const[ganttStartDate,setGanttStartDate]=useState(()=>{const d=new Date();d.setDate(1);return d;});
-  const[reponseModal,setReponseModal]=useState(null);
   const[dForm,setDForm]=useState({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});
   const[showAddD,setShowAddD]=useState(false);
   const[finPeriode,setFinPeriode]=useState("6mois");
@@ -1080,7 +1058,6 @@ function AppContent(){
   const[amendeForm,setAmendeForm]=useState({vehicleId:"",contratRef:"",date:"",heure:"",montant:"",type:"Excès de vitesse",statut:"A traiter",notes:"",photoData:null});
   const TYPES_AMENDE=["Excès de vitesse","Stationnement","Feu rouge","Téléphone au volant","Non port ceinture","Autre"];
   const STATUTS_AMENDE=["A traiter","En cours","Confirmée","Payée","Contestée"];
-  const[reponseText,setReponseText]=useState("");
   const[searchContrat,setSearchContrat]=useState("");
   const[filterVehicleContrat,setFilterVehicleContrat]=useState("");
   const[filterDateDebut,setFilterDateDebut]=useState("");
@@ -1120,7 +1097,7 @@ function AppContent(){
   }
 
   const resetUserData=useCallback(()=>{
-    setVehicles([]);setContrats([]);setDepenses([]);setRetours({});setQuestions([]);setClients([]);setAmendes([]);
+    setVehicles([]);setContrats([]);setDepenses([]);setRetours({});setClients([]);setAmendes([]);
     setProfil(INIT_PROFIL);setProfilForm(INIT_PROFIL);
     setSelId(null);setDocsId(null);setContratModalId(null);
     setLastContrat(null);setRetourContratId(null);setTarifsVehicleId(null);
@@ -1162,7 +1139,6 @@ function AppContent(){
         if(d.contrats)setContrats(d.contrats);
         if(d.depenses)setDepenses(d.depenses);
         if(d.retours)setRetours(d.retours);
-        if(d.questions)setQuestions(d.questions);
         if(d.amendes)setAmendes(d.amendes);
         if(d.profil){setProfil(d.profil);setProfilForm(d.profil);}
         if(d.clients)setClients(d.clients);
@@ -1173,13 +1149,12 @@ function AppContent(){
     // Afficher le loading seulement s'il n'y a pas de cache
     if(!hasCachedData)setDataLoaded(false);
     try{
-      const[profRes,vehRes,conRes,depRes,retRes,qRes,amenRes]=await Promise.all([
+      const[profRes,vehRes,conRes,depRes,retRes,amenRes]=await Promise.all([
         supabase.from('profils').select('*').eq('user_id',uid).maybeSingle(),
         supabase.from('vehicules').select('*').eq('user_id',uid),
         supabase.from('contrats').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('depenses').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('retours').select('*').eq('user_id',uid),
-        supabase.from('questions').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('amendes').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
       ]);
       if(activeUserIdRef.current!==uid)return;
@@ -1207,8 +1182,6 @@ function AppContent(){
         retRes.data.forEach(r=>{rMap[r.contrat_id]={id:r.id,kmRetour:r.km_retour||'',carburantRetour:r.carburant_retour??100,montantRetenu:r.montant_retenu||0,raisonRetenue:r.raison_retenue||'',rembourse:r.rembourse||0,kmSup:r.km_sup||0,surplusKm:r.surplus_km||0,cautionRestituee:r.caution_restituee,checks:r.checks||{},carro:r.carro||{},carroPhotos:r.carro_photos||{},carroNotes:r.carro_notes||{},photos:r.photos||{},notes:r.notes||{},remiseRetour:r.remise_retour||0,date:r.date||''};});
         setRetours(rMap);
       }
-      const mappedQ=qRes.data?qRes.data.map(q=>({id:q.id,vehicleLabel:q.vehicle_label||'',clientNom:q.client_nom||'',question:q.question||'',reponse:q.reponse||'',lu:q.lu||false,createdAt:q.created_at||''})):[];
-      setQuestions(mappedQ);
       const mappedA=amenRes.data?amenRes.data.map(a=>({id:a.id,vehicleId:a.vehicle_id||'',vehicleLabel:a.vehicle_label||'',contratId:a.contrat_id||null,locNom:a.loc_nom||'',locTel:a.loc_tel||'',date:a.date||'',heure:a.heure||'',montant:a.montant||'',type:a.type||'',statut:a.statut||'A traiter',notes:a.notes||'',photoData:a.photo_data||null})):[];
       setAmendes(mappedA);
       // Sauvegarder en cache (sans les photos base64 pour éviter le quota)
@@ -1222,7 +1195,6 @@ function AppContent(){
           contrats:loadedContrats.map(stripContrPhotos),
           retours:retRes.data?Object.fromEntries(retRes.data.map(r=>[r.contrat_id,stripRetourPhotos({id:r.id,kmRetour:r.km_retour||'',carburantRetour:r.carburant_retour??100,montantRetenu:r.montant_retenu||0,raisonRetenue:r.raison_retenue||'',rembourse:r.rembourse||0,kmSup:r.km_sup||0,surplusKm:r.surplus_km||0,cautionRestituee:r.caution_restituee,checks:r.checks||{},carro:r.carro||{},carroNotes:r.carro_notes||{},notes:r.notes||{},remiseRetour:r.remise_retour||0,date:r.date||''})])):{ },
           depenses:depRes.data?depRes.data.map(d=>({id:d.id,label:d.label||'',montant:d.montant||0,categorie:d.categorie||'Carburant',date:d.date||'',vehicleId:d.vehicle_id||''})):[],
-          questions:mappedQ,
           amendes:mappedA.map(a=>({...a,photoData:null})),
           clients:Object.values(clientMap).map(c=>({...c,docs:{}})),
         };
@@ -1410,14 +1382,6 @@ function AppContent(){
     if(user)await supabase.from('vehicules').update({publie:newVal}).eq('id',v.id).eq('user_id',user.id);
   }
 
-  async function repondreQuestion(q){
-    if(!reponseText.trim()||!user)return;
-    const{error}=await supabase.from('questions').update({reponse:reponseText,lu:true}).eq('id',q.id).eq('user_id',user.id);
-    if(error){toast_("Erreur: "+error.message,"error");return;}
-    setQuestions(qs=>qs.map(x=>x.id===q.id?{...x,reponse:reponseText,lu:true}:x));
-    setReponseModal(null);setReponseText("");toast_("Réponse envoyée !");
-  }
-
   const tarifsVehicle=tarifsVehicleId?vehicles.find(v=>v.id===tarifsVehicleId):null;
   const isExp=exp=>exp&&new Date(exp)<new Date();
   const isSoon=exp=>{if(!exp)return false;const d=new Date(exp),n=new Date();return(d-n)/86400000<30&&(d-n)>0;};
@@ -1549,19 +1513,6 @@ function AppContent(){
       {toast&&<div style={{position:"fixed",zIndex:10000,padding:"10px 16px",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,.15)",color:"white",fontSize:13,fontWeight:600,background:toast.type==="error"?"#ef4444":"#16a34a",maxWidth:"calc(100vw - 32px)",left:isPhone?"50%":"auto",transform:isPhone?"translateX(-50%)":"none",bottom:isPhone?20:"auto",top:isPhone?"auto":14,right:isPhone?"auto":14,whiteSpace:"nowrap"}}>{toast.msg}</div>}
 
       {/* Modals */}
-      {reponseModal&&(
-        <div onClick={e=>{if(e.target===e.currentTarget){setReponseModal(null);setReponseText("");}}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-          <div style={{background:"white",borderRadius:16,width:"100%",maxWidth:480,padding:20}}>
-            <div style={{fontWeight:700,fontSize:14,marginBottom:4}}>Répondre à la question</div>
-            <div style={{background:"#f1f5f9",borderRadius:8,padding:10,fontSize:12,marginBottom:12,border:"1px solid #e5e7eb"}}>{reponseModal.question}</div>
-            <textarea placeholder="Votre réponse..." value={reponseText} onChange={e=>setReponseText(e.target.value)} rows={4} style={{width:"100%",padding:"8px",border:"1px solid #d1d5db",borderRadius:8,fontSize:12,resize:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>repondreQuestion(reponseModal)} style={{flex:1,background:"#16a34a",color:"white",border:"none",borderRadius:10,padding:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Envoyer</button>
-              <button onClick={()=>{setReponseModal(null);setReponseText("");}} style={{padding:"10px 16px",background:"#e5e7eb",border:"none",borderRadius:10,fontSize:13,cursor:"pointer"}}>Annuler</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {photosVehicleModal&&<PhotosVehiculeModal vehicle={photosVehicleModal} onClose={()=>setPhotosVehicleModal(null)} onSave={async(photos)=>{setVehicles(vs=>vs.map(v=>v.id===photosVehicleModal.id?{...v,photosVehicule:photos}:v));setPhotosVehicleModal(null);toast_("Photos enregistrées !");if(user)await supabase.from('vehicules').update({photos_vehicule:photos}).eq('id',photosVehicleModal.id).eq('user_id',user.id);}}/>}
       {contratModalId&&contratV&&<ContratModal vehicle={contratV} onClose={()=>setContratModalId(null)} onSave={async(fr,cl)=>{setVehicles(vs=>vs.map(v=>v.id===contratModalId?{...v,frais:fr,clauses:cl}:v));setContratModalId(null);toast_("Mis à jour !");if(user)await supabase.from('vehicules').update({frais:fr,clauses:cl}).eq('id',contratModalId).eq('user_id',user.id);}}/>}

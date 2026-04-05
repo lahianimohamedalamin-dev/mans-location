@@ -67,7 +67,7 @@ const DOC_TYPES=["Carte grise","Assurance","Contrôle technique","Permis de cond
 const TARIFS_PRESETS=[
   {type:"Tarif horaire",heures:0},
   {type:"Journée (24h)",heures:24},{type:"Week-end (48h)",heures:48},
-  {type:"Week-end (72h)",heures:72},{type:"Semaine (7j)",heures:168},{type:"Mois (30j)",heures:720},
+  {type:"Week-end (72h)",heures:72},{type:"Semaine (7j)",heures:168},{type:"Mois (30j)",heures:744},
 ];
 const INIT_PROFIL={nom:"",entreprise:"",siren:"",siret:"",kbis:"",tel:"",whatsapp:"",snap:"",email:"",adresse:"",ville:"",iban:"",devise:"EUR"};
 const CAR_BRANDS={
@@ -1027,7 +1027,7 @@ function calcTarifAuto(vehicle,nbJours,heuresLoc,prixJourModifie){
     }
   }
   // Fallback standard — s'applique aussi pour les durées > dernier palier configuré
-  // ex : 31 jours avec un palier Mois (30j) → tarif journalier × 31
+  // ex : 32+ jours sans palier configuré → tarif journalier × nbJours
   return{prix:(vehicle.tarif||0)*nbJours,label:`Standard — ${vehicle.tarif} €/j x ${nbJours}j`};
 }
 

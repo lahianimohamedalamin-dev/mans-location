@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
+import html2pdf from 'html2pdf.js';
 
 // Sécurité : validation des fichiers uploadés
 const ALLOWED_IMAGE_TYPES = ["image/jpeg","image/jpg","image/png","image/webp","image/gif"];
@@ -64,8 +65,9 @@ const RETOUR_CHECKS=[
 const CAT_DEP=["Carburant","Assurance","Entretien","Réparation","Nettoyage","Péage","Amende","Retenue caution","Autre"];
 const DOC_TYPES=["Carte grise","Assurance","Contrôle technique","Permis de conduire","CNI / Passeport","Contrat","Autre"];
 const TARIFS_PRESETS=[
+  {type:"Tarif horaire",heures:0},
   {type:"Journée (24h)",heures:24},{type:"Week-end (48h)",heures:48},
-  {type:"Week-end (72h)",heures:72},{type:"Semaine (7j)",heures:168},{type:"Mois (30j)",heures:720},
+  {type:"Week-end (72h)",heures:72},{type:"Semaine (7j)",heures:168},{type:"Mois (30j)",heures:744},
 ];
 const INIT_PROFIL={nom:"",entreprise:"",siren:"",siret:"",kbis:"",tel:"",whatsapp:"",snap:"",email:"",adresse:"",ville:"",iban:"",devise:"EUR"};
 const CAR_BRANDS={
@@ -173,18 +175,55 @@ function dlPDF(html){
   setTimeout(()=>win.print(),600);
 }
 
-async function uploadContratEtEnvoyerMail(supabaseClient,html,contratId,locEmail,locNom){
+async function genererPDFBase64(html){
+  const iframe=document.createElement('iframe');
+  iframe.style.cssText='position:fixed;top:-9999px;left:0;width:794px;height:1px;opacity:0;border:none;z-index:-9999;pointer-events:none;';
+  document.body.appendChild(iframe);
+  iframe.contentDocument.open();
+  iframe.contentDocument.write(html);
+  iframe.contentDocument.close();
+  await new Promise(r=>setTimeout(r,600));
+  // Mesurer la hauteur réelle du contenu avant capture
+  const contentH=Math.max(iframe.contentDocument.body.scrollHeight,500);
+  iframe.style.height=contentH+'px';
+  await new Promise(r=>setTimeout(r,300));
+  const pdfBlob=await html2pdf().set({
+    margin:[8,8,8,8],filename:'contrat.pdf',
+    image:{type:'jpeg',quality:0.92},
+    html2canvas:{
+      scale:2,useCORS:true,logging:false,windowWidth:794,allowTaint:true,scrollY:0,
+      onclone:(doc)=>{
+        doc.querySelectorAll('.header').forEach(el=>{el.style.backgroundColor='#0a1940';el.style.color='#fff';});
+        doc.querySelectorAll('.st').forEach(el=>{el.style.backgroundColor='#e8edf5';el.style.borderLeft='3px solid #0a1940';el.style.color='#0a1940';});
+        doc.querySelectorAll('.tot').forEach(el=>{el.style.backgroundColor='#0a1940';el.style.color='#fff';});
+        doc.querySelectorAll('.title').forEach(el=>{el.style.borderBottom='2px solid #0a1940';el.style.color='#0a1940';});
+        doc.querySelectorAll('table.ft tr:first-child').forEach(el=>{el.style.backgroundColor='#e8edf5';});
+        doc.querySelectorAll('.cg-t').forEach(el=>{el.style.color='#0a1940';});
+      }
+    },
+    pagebreak:{mode:['css','legacy'],avoid:['.st','.cg','.cl','.tot','.sig-area','.sig-box']},
+    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
+  }).from(iframe.contentDocument.body).outputPdf('blob');
+  document.body.removeChild(iframe);
+  const arrayBuffer=await pdfBlob.arrayBuffer();
+  const uint8=new Uint8Array(arrayBuffer);
+  let binary='';
+  for(let i=0;i<uint8.length;i+=8192)binary+=String.fromCharCode(...uint8.subarray(i,i+8192));
+  const base64=btoa(binary);
+  return base64;
+}
+
+async function envoyerContratParMail(supabaseClient,html,contratId,locEmail,locNom){
   if(!locEmail)return{sent:false,reason:"no_email"};
   try{
-    const fileName=`contrat_${contratId}_${Date.now()}.html`;
-    const blob=new Blob([html],{type:"text/html;charset=utf-8"});
-    const{error:upErr}=await supabaseClient.storage.from('contrats').upload(fileName,blob,{contentType:"text/html;charset=utf-8",upsert:false});
-    if(upErr)throw upErr;
-    const{error:fnErr}=await supabaseClient.functions.invoke('send-contract-email',{body:{clientEmail:locEmail,clientName:locNom,contractId:String(contratId),fileName}});
+    const pdfBase64=await genererPDFBase64(html);
+    const{error:fnErr}=await supabaseClient.functions.invoke('send-contract-email',{
+      body:{clientEmail:locEmail,clientName:locNom,contractId:String(contratId),pdfBase64}
+    });
     if(fnErr)throw fnErr;
     return{sent:true};
   }catch(e){
-    console.error("uploadContratEtEnvoyerMail:",e);
+    console.error("envoyerContratParMail:",e);
     return{sent:false,reason:e.message||"erreur"};
   }
 }
@@ -332,7 +371,7 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
     // CONDITIONS PARTICULIERES (clauses vehicule)
     "<div style='margin-bottom:8px'><div class='st'>Conditions particulieres</div>"+clausesHtml+"</div>",
     // CONDITIONS GENERALES DE LOCATION
-    "<div style='margin-bottom:8px;page-break-before:always'><div class='st'>Conditions generales de location</div>",
+    "<div style='margin-bottom:8px'><div class='st'>Conditions generales de location</div>",
     "<div style='font-size:8px;color:#6b7280;margin-bottom:4px'>En signant ce contrat, le locataire reconnait avoir lu, compris et accepte sans reserve les conditions generales ci-dessous.</div>",
     cgHtml+"</div><hr>",
     // SIGNATURES
@@ -964,19 +1003,31 @@ function calcTarifAuto(vehicle,nbJours,heuresLoc,prixJourModifie){
     const p=parseFloat(prixJourModifie)*nbJours;
     return{prix:p,label:`Personnalisé — ${prixJourModifie} €/j x ${nbJours}j`};
   }
-  const h=heuresLoc||nbJours*24;
-  const specials=(vehicle.tarifsSpeciaux||[]).slice().sort((a,b)=>{
+  const specials=(vehicle.tarifsSpeciaux||[]).slice();
+  // Tarif horaire : s'applique pour les locations < 24h
+  const horaireT=specials.find(t=>t.type==="Tarif horaire");
+  if(horaireT&&(heuresLoc||nbJours*24)<24){
+    const h=Math.max(heuresLoc||1,1);
+    const prix=parseFloat(horaireT.prix)*h;
+    return{prix,label:`${horaireT.label||"Horaire"} — ${horaireT.prix} €/h × ${h}h`};
+  }
+  // Tarifs paliers (journée/WE/semaine/mois) — comparaison sur nbJours*24
+  // pour éviter le bug des minutes résiduelles (Math.ceil 24h28 = 25h)
+  const h=nbJours*24;
+  const paliers=specials.filter(t=>t.type!=="Tarif horaire").sort((a,b)=>{
     const ha=TARIFS_PRESETS.find(p=>p.type===a.type)?.heures||9999;
     const hb=TARIFS_PRESETS.find(p=>p.type===b.type)?.heures||9999;
     return ha-hb;
   });
-  for(const t of specials){
+  for(const t of paliers){
     const preset=TARIFS_PRESETS.find(p=>p.type===t.type);
     if(preset&&h<=preset.heures){
       const prix=t.unite==="forfait"?parseFloat(t.prix):parseFloat(t.prix)*nbJours;
       return{prix,label:`${t.label||t.type} — ${t.prix} €`};
     }
   }
+  // Fallback standard — s'applique aussi pour les durées > dernier palier configuré
+  // ex : 32+ jours sans palier configuré → tarif journalier × nbJours
   return{prix:(vehicle.tarif||0)*nbJours,label:`Standard — ${vehicle.tarif} €/j x ${nbJours}j`};
 }
 
@@ -1032,8 +1083,8 @@ function AppContent(){
   const[page,setPage]=useState(()=>{try{return localStorage.getItem("ml_page")||"vitrine";}catch{return "vitrine";}});
   const setPagePersist=useCallback(p=>{setPage(p);try{localStorage.setItem("ml_page",p);}catch{}},[]);
   const[selId,setSelId]=useState(null);
-  const FORM0={locPrenom:"",locNom:"",locEntreprise:"",locAdresse:"",locCodePostal:"",locVille:"",locTel:"+33 ",locEmail:"",locPermis:"",locReseaux:"",loc2Prenom:"",loc2Nom:"",dateDebut:"",heureDebut:"10:00",dateFin:"",heureFin:"10:00",paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null,prixJourModifie:"",accompte:"",remise:"",codePromo:""};
-  const[form,setForm]=useState(FORM0);
+  function makeForm0(){const n=new Date(),hh=String(n.getHours()).padStart(2,"0"),mm=String(n.getMinutes()).padStart(2,"0");return{locPrenom:"",locNom:"",locEntreprise:"",locAdresse:"",locCodePostal:"",locVille:"",locTel:"+33 ",locEmail:"",locPermis:"",locReseaux:"",loc2Prenom:"",loc2Nom:"",dateDebut:"",heureDebut:`${hh}:${mm}`,dateFin:"",heureFin:"10:00",paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null,prixJourModifie:"",accompte:"",remise:"",codePromo:""};};
+  const[form,setForm]=useState(makeForm0);
   const[photosDepart,setPhotosDepart]=useState([]);
   const[photosVehicleModal,setPhotosVehicleModal]=useState(null);
   const[docsLocataire,setDocsLocataire]=useState({});
@@ -1061,6 +1112,8 @@ function AppContent(){
   const[newDoc,setNewDoc]=useState({type:"Carte grise",nom:"",expiration:"",file:null,fileData:null});
   const[lastContrat,setLastContrat]=useState(null);
   const[mailStatus,setMailStatus]=useState(null); // null | "sending" | "sent" | "error"
+  const[lastPV,setLastPV]=useState(null);
+  const[pvMailStatus,setPvMailStatus]=useState(null); // null | "sending" | "sent" | "error"
   const[retourContratId,setRetourContratId]=useState(null);
   const[prolonContrat,setProlonContrat]=useState(null);
   const[prolonDateFin,setProlonDateFin]=useState("");
@@ -1302,7 +1355,7 @@ function AppContent(){
     const html=buildContratHTML(c,sel,sigL,sigLoc,profil);
     setLastContrat({contrat:c,vehicle:sel,html});
     toast_("Contrat créé !");
-    setForm(FORM0);setTouched({});setSelId(null);setSigL(null);setSigLoc(null);setPhotosDepart([]);setDocsLocataire({});setSearchClientContrat("");
+    setForm(makeForm0());setTouched({});setSelId(null);setSigL(null);setSigLoc(null);setPhotosDepart([]);setDocsLocataire({});setSearchClientContrat("");
     if(user){
       const{data:ins,error:err}=await supabase.from('contrats').insert([{user_id:user.id,loc_prenom:form.locPrenom||'',loc_nom:locNom,loc_adresse:form.locAdresse,loc_tel:form.locTel,loc_email:form.locEmail,loc_permis:form.locPermis,date_debut:form.dateDebut,heure_debut:form.heureDebut,date_fin:form.dateFin,heure_fin:form.heureFin,paiement:form.paiement,caution_mode:form.cautionMode,km_depart:form.kmDepart,nb_jours:form.nbJours,heures_loc:form.heuresLoc,carburant_depart:form.carburantDepart,exterieur_propre:form.exterieurPropre,interieur_propre:form.interieurPropre,vehicle_id:c.vehicleId,vehicle_label:c.vehicleLabel,immat:c.immat,sig_l:c.sigL,sig_loc:c.sigLoc,total_calc:c.totalCalc,tarif_label:c.tarifLabel,remise:c.remise||0,accompte:c.accompte||0,reste_a_payer:c.resteAPayer||0,prix_jour_modifie:form.prixJourModifie||null,photos_depart:c.photosDepart,docs_locataire:c.docsLocataire,frais_snap:c.fraisSnap,clauses_snap:c.clausesSnap,km_inclus:c.kmInclus,prix_km_sup:c.prixKmSup}]).select().single();
       if(!err&&ins)setContrats(p=>p.map(x=>x.id===c.id?{...x,id:ins.id}:x));
@@ -1311,7 +1364,7 @@ function AppContent(){
       if(form.locEmail){
         const realId=(!err&&ins)?ins.id:c.id;
         setMailStatus("sending");
-        const{sent,reason}=await uploadContratEtEnvoyerMail(supabase,html,realId,form.locEmail,locNom);
+        const{sent,reason}=await envoyerContratParMail(supabase,html,realId,form.locEmail,locNom);
         setMailStatus(sent?"sent":"error");
         if(!sent)console.warn("Mail non envoyé:",reason);
       }
@@ -1355,11 +1408,21 @@ function AppContent(){
   async function saveRetour(contratId,data){
     setRetours(r=>({...r,[contratId]:data}));
     const ct=contrats.find(c=>c.id===contratId);
-    if(ct&&data.kmRetour)setVehicles(vs=>vs.map(v=>v.id===ct.vehicleId?{...v,km:parseFloat(data.kmRetour)}:v));
+    const v=vehicles.find(x=>x.id===ct?.vehicleId);
+    if(ct&&data.kmRetour)setVehicles(vs=>vs.map(x=>x.id===ct.vehicleId?{...x,km:parseFloat(data.kmRetour)}:x));
+    const pvHTML=buildPVRetourHTML(ct,v,data,data.sigRetourLoueur||null,data.sigRetourLocataire||null,profil);
+    setLastPV({contrat:ct,html:pvHTML});
+    setPvMailStatus(null);
     toast_("Retour enregistré + PV PDF généré !");setRetourContratId(null);
     if(user){
       await supabase.from('retours').insert([{user_id:user.id,contrat_id:contratId,km_retour:data.kmRetour||null,carburant_retour:data.carburantRetour??null,montant_retenu:data.montantRetenu||0,raison_retenue:data.raisonRetenue||'',rembourse:data.rembourse||0,km_sup:data.kmSup||0,surplus_km:data.surplusKm||0,caution_restituee:data.cautionRestituee,checks:data.checks||{},carro:data.carro||{},carro_photos:data.carroPhotos||{},carro_notes:data.carroNotes||{},photos:data.photos||{},notes:data.notes||'',remise_retour:data.remiseRetour||0,date:data.date||new Date().toISOString()}]);
       if(ct&&data.kmRetour)await supabase.from('vehicules').update({km:parseFloat(data.kmRetour)}).eq('id',ct.vehicleId).eq('user_id',user.id);
+      if(ct?.locEmail){
+        setPvMailStatus("sending");
+        const{sent,reason}=await envoyerContratParMail(supabase,pvHTML,contratId,ct.locEmail,ct.locNom);
+        setPvMailStatus(sent?"sent":"error");
+        if(!sent)console.warn("PV mail non envoyé:",reason);
+      }
     }
   }
 
@@ -1676,21 +1739,27 @@ function AppContent(){
             <div style={{flex:1,overflowY:"auto",padding:14}}>
               {tarifsTemp.map(t=>(
                 <div key={t.id} style={{display:"flex",gap:8,alignItems:"center",padding:10,background:"#f9fafb",borderRadius:10,marginBottom:7,border:"1px solid #e5e7eb"}}>
-                  <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13}}>{t.label||t.type}</div><div style={{fontSize:11,color:"#6b7280"}}>{t.type} · {t.unite==="forfait"?"Forfait":"Par jour"}</div></div>
-                  <input type="number" style={{width:75,border:"1px solid #d1d5db",borderRadius:6,padding:"5px 7px",fontSize:13,fontWeight:700}} value={t.prix} onChange={e=>setTarifsTemp(ts=>ts.map(x=>x.id===t.id?{...x,prix:e.target.value}:x))}/>
-                  <span style={{fontSize:12,color:"#6b7280"}}>{sym}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,fontSize:13}}>{t.label||t.type}</div>
+                    <div style={{fontSize:11,color:"#6b7280"}}>
+                      {t.type==="Tarif horaire"?"À l'heure (< 24h)":t.type+" · "+(t.unite==="forfait"?"Forfait":"Par jour")}
+                    </div>
+                  </div>
+                  <input type="number" step="0.01" style={{width:75,border:"1px solid #d1d5db",borderRadius:6,padding:"5px 7px",fontSize:13,fontWeight:700}} value={t.prix} onChange={e=>setTarifsTemp(ts=>ts.map(x=>x.id===t.id?{...x,prix:e.target.value}:x))}/>
+                  <span style={{fontSize:12,color:"#6b7280"}}>{t.type==="Tarif horaire"?"€/h":sym}</span>
                   <button onClick={()=>setTarifsTemp(ts=>ts.filter(x=>x.id!==t.id))} style={{padding:"4px 8px",background:"#fef2f2",color:"#ef4444",border:"none",borderRadius:6,cursor:"pointer"}}>X</button>
                 </div>
               ))}
               <div style={{background:"#eff6ff",borderRadius:12,padding:14,border:"1px solid #bfdbfe",marginTop:8}}>
                 <p style={{fontSize:12,fontWeight:700,color:"#1d4ed8",marginBottom:10}}>+ Nouveau tarif</p>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                  <div><label style={LBL_STYLE}>Durée</label><select style={INP_STYLE()} value={ntarif.type} onChange={e=>setNtarif(x=>({...x,type:e.target.value}))}>{TARIFS_PRESETS.map(p=><option key={p.type}>{p.type}</option>)}</select></div>
+                  <div><label style={LBL_STYLE}>Type</label><select style={INP_STYLE()} value={ntarif.type} onChange={e=>setNtarif(x=>({...x,type:e.target.value,unite:e.target.value==="Tarif horaire"?"heure":x.unite}))}>{TARIFS_PRESETS.map(p=><option key={p.type}>{p.type}</option>)}</select></div>
                   <div><label style={LBL_STYLE}>Nom affiché</label><input style={INP_STYLE()} placeholder="ex: WE 48h" value={ntarif.label} onChange={e=>setNtarif(x=>({...x,label:e.target.value}))}/></div>
-                  <div><label style={LBL_STYLE}>Prix ({sym})</label><input type="number" style={INP_STYLE()} placeholder="ex: 130" value={ntarif.prix} onChange={e=>setNtarif(x=>({...x,prix:e.target.value}))}/></div>
-                  <div><label style={LBL_STYLE}>Unité</label><select style={INP_STYLE()} value={ntarif.unite} onChange={e=>setNtarif(x=>({...x,unite:e.target.value}))}><option value="forfait">Forfait total</option><option value="jour">Par jour</option></select></div>
+                  <div><label style={LBL_STYLE}>Prix ({ntarif.type==="Tarif horaire"?"€/h":sym})</label><input type="number" step="0.01" style={INP_STYLE()} placeholder={ntarif.type==="Tarif horaire"?"ex: 15":"ex: 130"} value={ntarif.prix} onChange={e=>setNtarif(x=>({...x,prix:e.target.value}))}/></div>
+                  {ntarif.type!=="Tarif horaire"&&<div><label style={LBL_STYLE}>Unité</label><select style={INP_STYLE()} value={ntarif.unite} onChange={e=>setNtarif(x=>({...x,unite:e.target.value}))}><option value="forfait">Forfait total</option><option value="jour">Par jour</option></select></div>}
+                  {ntarif.type==="Tarif horaire"&&<div style={{display:"flex",alignItems:"center",padding:"8px 10px",background:"#fef3c7",borderRadius:8,fontSize:11,color:"#92400e",border:"1px solid #fde68a"}}>⏱ S'applique si durée &lt; 24h</div>}
                 </div>
-                <button onClick={()=>{if(!ntarif.prix||parseFloat(ntarif.prix)<=0){toast_("Prix invalide","error");return;}setTarifsTemp(ts=>[...ts,{id:Date.now(),...ntarif,label:ntarif.label||ntarif.type}]);setNtarif({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});}} style={{width:"100%",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
+                <button onClick={()=>{if(!ntarif.prix||parseFloat(ntarif.prix)<=0){toast_("Prix invalide","error");return;}setTarifsTemp(ts=>[...ts,{id:Date.now(),...ntarif,label:ntarif.label||ntarif.type}]);setNtarif({type:"Journée (24h)",label:"",prix:"",unite:"forfait"});}} style={{width:"100%",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
               </div>
             </div>
             <div style={{padding:"12px 16px",borderTop:"1px solid #e5e7eb",display:"flex",gap:8,background:"white"}}>
@@ -1882,9 +1951,10 @@ function AppContent(){
                   <div><label style={LBL_STYLE}>Nb portes</label><input type="number" style={INP_STYLE()} placeholder="5" value={vForm.nbPortes||""} onChange={e=>setVForm(f=>({...f,nbPortes:e.target.value}))}/></div>
                   <div><label style={LBL_STYLE}>Nb places</label><input type="number" style={INP_STYLE()} placeholder="5" value={vForm.nbPlaces||""} onChange={e=>setVForm(f=>({...f,nbPlaces:e.target.value}))}/></div>
                   <div><label style={LBL_STYLE}>N° parc</label><input style={INP_STYLE()} placeholder="001" value={vForm.numParc||""} onChange={e=>setVForm(f=>({...f,numParc:e.target.value}))}/></div>
-                  {[["km","Km actuel"],["tarif","Tarif "+sym+"/j"],["caution","Caution "+sym],["kmInclus","Km inclus"],["prixKmSup","Prix km sup "+sym]].map(([k,l])=>(
-                    <div key={k}><label style={LBL_STYLE}>{l}</label><input type="number" style={INP_STYLE()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:e.target.value.replace(/\D/g,"")}))} inputMode="numeric"/></div>
-                  ))}
+                  {[["km","Km actuel"],["tarif","Tarif "+sym+"/j"],["caution","Caution "+sym],["kmInclus","Km inclus"],["prixKmSup","Prix km sup "+sym]].map(([k,l])=>{
+                    const isDecimal=k==="prixKmSup"||k==="tarif";
+                    return <div key={k}><label style={LBL_STYLE}>{l}</label><input type="number" step={isDecimal?"0.01":"1"} style={INP_STYLE()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:isDecimal?e.target.value.replace(/[^0-9.]/g,""):e.target.value.replace(/\D/g,"")}))} inputMode={isDecimal?"decimal":"numeric"}/></div>;
+                  })}
                 </div>
                 <div style={{marginTop:10}}>
                   <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,cursor:"pointer"}}><input type="checkbox" checked={vForm.kmIllimite} onChange={e=>setVForm(f=>({...f,kmIllimite:e.target.checked}))}/><span>Km illimité</span></label>
@@ -1935,12 +2005,6 @@ function AppContent(){
                   <div style={{fontSize:12,color:"#6b7280"}}>{x.desc}</div>
                 </div>
               ))}
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:20}}>
-              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #1e3a8a"}}><div style={{fontSize:10,color:"#6b7280"}}>Total contrats</div><div style={{fontSize:22,fontWeight:800}}>{contrats.length}</div></div>
-              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #16a34a"}}><div style={{fontSize:10,color:"#6b7280"}}>Retours effectués</div><div style={{fontSize:22,fontWeight:800}}>{Object.keys(retours).length}</div></div>
-              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #d97706"}}><div style={{fontSize:10,color:"#6b7280"}}>En attente</div><div style={{fontSize:22,fontWeight:800,color:"#d97706"}}>{contrats.filter(c=>!retours[c.id]).length}</div></div>
-              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #2563eb"}}><div style={{fontSize:10,color:"#6b7280"}}>CA total</div><div style={{fontSize:22,fontWeight:800,color:"#2563eb"}}>{caT} {sym}</div></div>
             </div>
             {contrats.filter(c=>!retours[c.id]).length>0&&(
               <div style={{background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #fde68a"}}>
@@ -2144,26 +2208,26 @@ function AppContent(){
           return(
           <div>
             {/* Header */}
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
-              <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Planning</h1>
-              <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+            <div style={{marginBottom:12}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Planning</h1>
                 <div style={{display:"flex",background:"white",borderRadius:8,border:"1px solid #e5e7eb",overflow:"hidden"}}>
-                  <button onClick={()=>setPlanView("calendrier")} style={{padding:"6px 14px",fontSize:11,fontWeight:600,background:planView==="calendrier"?"#1e3a8a":"white",color:planView==="calendrier"?"white":"#374151",border:"none",cursor:"pointer"}}>📅 Calendrier</button>
-                  <button onClick={()=>setPlanView("gantt")} style={{padding:"6px 14px",fontSize:11,fontWeight:600,background:planView==="gantt"?"#1e3a8a":"white",color:planView==="gantt"?"white":"#374151",border:"none",cursor:"pointer"}}>📊 Gantt</button>
+                  <button onClick={()=>setPlanView("calendrier")} style={{padding:"6px 12px",fontSize:11,fontWeight:600,background:planView==="calendrier"?"#1e3a8a":"white",color:planView==="calendrier"?"white":"#374151",border:"none",cursor:"pointer"}}>📅 Cal.</button>
+                  <button onClick={()=>setPlanView("gantt")} style={{padding:"6px 12px",fontSize:11,fontWeight:600,background:planView==="gantt"?"#1e3a8a":"white",color:planView==="gantt"?"white":"#374151",border:"none",cursor:"pointer"}}>📊 Gantt</button>
                 </div>
-                {planView==="calendrier"&&<>
-                  <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()-1);setPlanMonth(new Date(d));}} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>◀</button>
-                  <span style={{fontWeight:700,fontSize:13,minWidth:120,textAlign:"center",textTransform:"capitalize"}}>{planMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</span>
-                  <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()+1);setPlanMonth(new Date(d));}} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>▶</button>
-                  <button onClick={()=>setPlanMonth(new Date())} style={{padding:"6px 10px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700}}>Aujourd'hui</button>
-                </>}
-                {planView==="gantt"&&<>
-                  <button onClick={ganttPrevMonth} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>◀</button>
-                  <span style={{fontWeight:700,fontSize:13,minWidth:120,textAlign:"center",textTransform:"capitalize"}}>{MONTH_NAMES[ganttStartDate.getMonth()]} {ganttStartDate.getFullYear()}</span>
-                  <button onClick={ganttNextMonth} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>▶</button>
-                  <button onClick={ganttGoToday} style={{padding:"6px 10px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700}}>Aujourd'hui</button>
-                </>}
               </div>
+              {planView==="calendrier"&&<div style={{display:"flex",alignItems:"center",gap:6}}>
+                <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()-1);setPlanMonth(new Date(d));}} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13,flexShrink:0}}>◀</button>
+                <span style={{fontWeight:700,fontSize:13,textAlign:"center",textTransform:"capitalize",flex:1}}>{planMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</span>
+                <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()+1);setPlanMonth(new Date(d));}} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13,flexShrink:0}}>▶</button>
+                <button onClick={()=>setPlanMonth(new Date())} style={{padding:"6px 10px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700,flexShrink:0}}>Auj.</button>
+              </div>}
+              {planView==="gantt"&&<div style={{display:"flex",alignItems:"center",gap:6}}>
+                <button onClick={ganttPrevMonth} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13,flexShrink:0}}>◀</button>
+                <span style={{fontWeight:700,fontSize:13,textAlign:"center",textTransform:"capitalize",flex:1}}>{MONTH_NAMES[ganttStartDate.getMonth()]} {ganttStartDate.getFullYear()}</span>
+                <button onClick={ganttNextMonth} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13,flexShrink:0}}>▶</button>
+                <button onClick={ganttGoToday} style={{padding:"6px 10px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700,flexShrink:0}}>Auj.</button>
+              </div>}
             </div>
 
             {/* Légende véhicules */}
@@ -2179,33 +2243,51 @@ function AppContent(){
 
             {/* VUE CALENDRIER */}
             {planView==="calendrier"&&(
-              <div style={{background:"white",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+              <div style={{background:"white",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)",width:"100%"}}>
                 {/* Jours semaine */}
                 <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:"#1e3a8a"}}>
-                  {["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].map(j=>(
-                    <div key={j} style={{textAlign:"center",padding:"8px 0",fontSize:11,fontWeight:700,color:"white",opacity:j==="Sam"||j==="Dim"?.6:1}}>{j}</div>
+                  {["L","M","Me","J","V","S","D"].map((j,ji)=>(
+                    <div key={j} style={{textAlign:"center",padding:"7px 0",fontSize:11,fontWeight:700,color:"white",opacity:ji>=5?.6:1}}>{j}</div>
                   ))}
                 </div>
                 {/* Semaines */}
                 {calWeeks.map((week,wi)=>(
-                  <div key={wi} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",borderTop:"1px solid #f0f0f0"}}>
+                  <div key={wi} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",borderTop:"1px solid #f0f0f0",minWidth:0}}>
                     {week.map((d,di)=>{
                       const isToday=d&&d.toDateString()===todayStr;
                       const isWE=di>=5;
+                      const dStr=d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`:"";
                       const reservations=d?contrats.filter(c=>{
-                        const dStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-                        return dStr>=c.dateDebut&&dStr<=c.dateFin;
+                        // Règle midi : départ ≥ 12h → on commence à colorier le lendemain
+                        const hDep=parseInt((c.heureDebut||"10:00").split(":")[0]);
+                        const hRet=parseInt((c.heureFin||"10:00").split(":")[0]);
+                        let effStart=c.dateDebut;
+                        if(hDep>=12){const ds=new Date(c.dateDebut+"T12:00");ds.setDate(ds.getDate()+1);effStart=ds.toISOString().slice(0,10);}
+                        // Retour < 12h → on arrête de colorier la veille du retour
+                        let effEnd=c.dateFin;
+                        if(hRet<12){const de=new Date(c.dateFin+"T12:00");de.setDate(de.getDate()-1);effEnd=de.toISOString().slice(0,10);}
+                        return dStr>=effStart&&dStr<=effEnd;
+                      }):[];
+                      // Retours ce jour-là avec heure < 12h (exclus du coloriage mais à afficher)
+                      const retoursMatin=d?contrats.filter(c=>{
+                        const hRet=parseInt((c.heureFin||"10:00").split(":")[0]);
+                        return c.dateFin===dStr&&hRet<12&&!reservations.includes(c);
                       }):[];
                       return(
-                        <div key={di} style={{minHeight:72,padding:"4px",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:di>0?"1px solid #f0f0f0":"none",position:"relative"}}>
-                          {d&&<div style={{fontSize:12,fontWeight:isToday?800:400,marginBottom:3,width:22,height:22,borderRadius:"50%",background:isToday?"#2563eb":"transparent",color:isToday?"white":isWE?"#9ca3af":"#374151",display:"flex",alignItems:"center",justifyContent:"center"}}>{d.getDate()}</div>}
-                          <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                            {reservations.slice(0,3).map((c,ci)=>{
+                        <div key={di} style={{minHeight:64,padding:"3px 2px",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:di>0?"1px solid #f0f0f0":"none",position:"relative",minWidth:0,overflow:"hidden"}}>
+                          {d&&<div style={{fontSize:11,fontWeight:isToday?800:400,marginBottom:2,width:20,height:20,borderRadius:"50%",background:isToday?"#2563eb":"transparent",color:isToday?"white":isWE?"#9ca3af":"#374151",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{d.getDate()}</div>}
+                          <div style={{display:"flex",flexDirection:"column",gap:1,minWidth:0}}>
+                            {reservations.slice(0,2).map((c)=>{
                               const vi=vehicles.findIndex(v=>v.id===c.vehicleId);
                               const col=ganttColors[vi%ganttColors.length];
-                              return <div key={c.id} style={{background:col,borderRadius:3,padding:"1px 4px",fontSize:9,fontWeight:700,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={c.locNom+" — "+c.vehicleLabel}>{c.locNom||c.vehicleLabel}</div>;
+                              const prenom=(c.locNom||c.vehicleLabel||"").split(" ")[0];
+                              return <div key={c.id} style={{background:col,borderRadius:3,padding:"1px 3px",fontSize:8,fontWeight:700,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}} title={c.locNom+" — "+c.vehicleLabel}>{prenom}</div>;
                             })}
-                            {reservations.length>3&&<div style={{fontSize:9,color:"#6b7280",fontWeight:600}}>+{reservations.length-3} autres</div>}
+                            {reservations.length>2&&<div style={{fontSize:8,color:"#6b7280",fontWeight:700,lineHeight:"1.2"}}>+{reservations.length-2}</div>}
+                            {retoursMatin.map((c)=>{
+                              const prenom=(c.locNom||c.vehicleLabel||"").split(" ")[0];
+                              return <div key={"ret-"+c.id} style={{background:"#fef2f2",borderRadius:3,padding:"1px 3px",fontSize:8,fontWeight:700,color:"#dc2626",border:"1px solid #fca5a5",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}} title={`Retour ${c.heureFin} — ${c.locNom}`}>↩ {prenom}</div>;
+                            })}
                           </div>
                         </div>
                       );
@@ -2263,10 +2345,12 @@ function AppContent(){
                               const clampedRight=Math.min(w+off,ganttDays);
                               const barW=Math.max(clampedRight-clampedLeft,1)*GDW-3;
                               return(
-                                <div key={c.id} style={{position:"absolute",left:clampedLeft*GDW+1,top:8,height:40,width:barW,background:vColor,borderRadius:7,display:"flex",alignItems:"center",padding:"0 8px",overflow:"hidden",zIndex:1,cursor:"pointer",boxShadow:"0 2px 6px rgba(0,0,0,.25)"}} title={`${c.locNom} — ${c.dateDebut} → ${c.dateFin} — ${c.totalCalc}€`}>
-                                  <div style={{overflow:"hidden"}}>
+                                <div key={c.id} style={{position:"absolute",left:clampedLeft*GDW+1,top:8,height:40,width:barW,background:vColor,borderRadius:7,display:"flex",alignItems:"center",padding:"0 8px",overflow:"hidden",zIndex:1,cursor:"pointer",boxShadow:"0 2px 6px rgba(0,0,0,.25)"}} title={`${c.locNom} — ${c.dateDebut} ${c.heureDebut||""} → ${c.dateFin} ${c.heureFin||""} — ${c.totalCalc}€`}>
+                                  <div style={{overflow:"hidden",minWidth:0}}>
                                     <div style={{color:"white",fontSize:11,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.locNom}</div>
-                                    {barW>60&&<div style={{color:"rgba(255,255,255,.75)",fontSize:9,whiteSpace:"nowrap"}}>{c.dateDebut} → {c.dateFin}</div>}
+                                    {barW>70&&<div style={{color:"rgba(255,255,255,.85)",fontSize:9,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                                      {c.dateDebut} {(c.heureDebut||"").slice(0,5)} → {c.dateFin} {(c.heureFin||"").slice(0,5)}
+                                    </div>}
                                   </div>
                                 </div>
                               );
@@ -2343,6 +2427,26 @@ function AppContent(){
               <button onClick={()=>setPagePersist("contrats_hub")} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>← Retour</button>
               <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Retours</h1>
             </div>
+            {lastPV&&(
+              <div style={{marginBottom:16,background:"#f0fdf4",borderRadius:14,padding:16,border:"2px solid #86efac"}}>
+                <div style={{fontWeight:700,color:"#16a34a",marginBottom:8}}>✅ PV retour créé pour {lastPV.contrat?.locNom}</div>
+                {lastPV.contrat?.locEmail&&(
+                  <div style={{marginBottom:10,padding:"8px 12px",borderRadius:8,fontSize:12,fontWeight:600,
+                    background:pvMailStatus==="sent"?"#dcfce7":pvMailStatus==="error"?"#fef2f2":pvMailStatus==="sending"?"#eff6ff":"#f1f5f9",
+                    color:pvMailStatus==="sent"?"#16a34a":pvMailStatus==="error"?"#ef4444":pvMailStatus==="sending"?"#2563eb":"#6b7280",
+                    border:`1px solid ${pvMailStatus==="sent"?"#86efac":pvMailStatus==="error"?"#fca5a5":pvMailStatus==="sending"?"#bfdbfe":"#e5e7eb"}`}}>
+                    {pvMailStatus==="sending"&&"⏳ Envoi du PV par mail..."}
+                    {pvMailStatus==="sent"&&`📧 PV envoyé à ${lastPV.contrat.locEmail}`}
+                    {pvMailStatus==="error"&&`⚠️ Mail non envoyé (vérifie les secrets Supabase)`}
+                    {!pvMailStatus&&`📧 ${lastPV.contrat.locEmail}`}
+                  </div>
+                )}
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  <button onClick={()=>dlPDF(lastPV.html)} style={{background:"#1e3a8a",color:"white",border:"none",borderRadius:8,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>📄 Imprimer / PDF</button>
+                  <button onClick={()=>{setLastPV(null);setPvMailStatus(null);}} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"8px 12px",fontSize:12,cursor:"pointer"}}>Fermer</button>
+                </div>
+              </div>
+            )}
             {contrats.filter(c=>!retours[c.id]).length>0&&(
               <div style={{marginBottom:16}}>
                 <h2 style={{fontSize:13,fontWeight:700,color:"#6b7280",marginBottom:8}}>En attente ({contrats.filter(c=>!retours[c.id]).length})</h2>

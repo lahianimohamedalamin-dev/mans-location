@@ -2262,8 +2262,8 @@ function AppContent(){
                     {week.map((d,di)=>{
                       const isToday=d&&d.toDateString()===todayStr;
                       const isWE=di>=5;
+                      const dStr=d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`:"";
                       const reservations=d?contrats.filter(c=>{
-                        const dStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
                         // Règle midi : départ ≥ 12h → on commence à colorier le lendemain
                         const hDep=parseInt((c.heureDebut||"10:00").split(":")[0]);
                         const hRet=parseInt((c.heureFin||"10:00").split(":")[0]);
@@ -2274,17 +2274,28 @@ function AppContent(){
                         if(hRet<12){const de=new Date(c.dateFin+"T12:00");de.setDate(de.getDate()-1);effEnd=de.toISOString().slice(0,10);}
                         return dStr>=effStart&&dStr<=effEnd;
                       }):[];
+                      // Retours ce jour-là avec heure < 12h (exclus du coloriage mais à afficher)
+                      const retoursMatin=d?contrats.filter(c=>{
+                        const hRet=parseInt((c.heureFin||"10:00").split(":")[0]);
+                        return c.dateFin===dStr&&hRet<12&&!reservations.includes(c);
+                      }):[];
                       return(
                         <div key={di} style={{minHeight:64,padding:"3px 2px",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:di>0?"1px solid #f0f0f0":"none",position:"relative",minWidth:0,overflow:"hidden"}}>
                           {d&&<div style={{fontSize:11,fontWeight:isToday?800:400,marginBottom:2,width:20,height:20,borderRadius:"50%",background:isToday?"#2563eb":"transparent",color:isToday?"white":isWE?"#9ca3af":"#374151",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{d.getDate()}</div>}
                           <div style={{display:"flex",flexDirection:"column",gap:1,minWidth:0}}>
-                            {reservations.slice(0,2).map((c,ci)=>{
+                            {reservations.slice(0,2).map((c)=>{
                               const vi=vehicles.findIndex(v=>v.id===c.vehicleId);
                               const col=ganttColors[vi%ganttColors.length];
                               const prenom=(c.locNom||c.vehicleLabel||"").split(" ")[0];
                               return <div key={c.id} style={{background:col,borderRadius:3,padding:"1px 3px",fontSize:8,fontWeight:700,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}} title={c.locNom+" — "+c.vehicleLabel}>{prenom}</div>;
                             })}
                             {reservations.length>2&&<div style={{fontSize:8,color:"#6b7280",fontWeight:700,lineHeight:"1.2"}}>+{reservations.length-2}</div>}
+                            {retoursMatin.map((c)=>{
+                              const vi=vehicles.findIndex(v=>v.id===c.vehicleId);
+                              const col=ganttColors[vi%ganttColors.length];
+                              const prenom=(c.locNom||c.vehicleLabel||"").split(" ")[0];
+                              return <div key={"ret-"+c.id} style={{background:"white",borderRadius:3,padding:"1px 3px",fontSize:8,fontWeight:700,color:col,border:`1px solid ${col}`,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}} title={`Retour ${c.heureFin} — ${c.locNom}`}>↩ {prenom}</div>;
+                            })}
                           </div>
                         </div>
                       );

@@ -69,7 +69,7 @@ const TARIFS_PRESETS=[
   {type:"Journée (24h)",heures:24},{type:"Week-end (48h)",heures:48},
   {type:"Week-end (72h)",heures:72},{type:"Semaine (7j)",heures:168},{type:"Mois (30j)",heures:744},
 ];
-const INIT_PROFIL={nom:"",entreprise:"",siren:"",siret:"",kbis:"",tel:"",whatsapp:"",snap:"",email:"",adresse:"",ville:"",iban:"",devise:"EUR"};
+const INIT_PROFIL={nom:"",entreprise:"",siren:"",siret:"",kbis:"",tel:"",whatsapp:"",snap:"",email:"",adresse:"",ville:"",iban:"",devise:"EUR",logo:""};
 const CAR_BRANDS={
   // === VOITURES ===
   "Alfa Romeo":["Giulia","Stelvio","Tonale","Giulietta","MiTo","4C"],
@@ -294,6 +294,7 @@ function buildContratHTML(contrat,vehicle,sigL,sigLoc,profil){
     "@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>",
     // EN-TÊTE LOUEUR
     "<div class='header'>",
+    profil.logo?"<div style='text-align:center;margin-bottom:6px'><img src='"+profil.logo+"' style='max-height:54px;width:auto;border-radius:4px'></div>":"",
     "<h1>"+escHtml(profil.entreprise||"MAN'S LOCATION")+"</h1>",
     "<p>SIRET : "+escHtml(profil.siret||profil.siren||"—")+" | Tel : "+escHtml(profil.tel||"—")+(profil.email?" | "+escHtml(profil.email):"")+"</p>",
     "<p>"+escHtml(profil.adresse||"")+(profil.ville?", "+escHtml(profil.ville):"")+"</p>",
@@ -405,7 +406,7 @@ table th{background:#e8edf5;font-weight:700}
 .br{display:flex;justify-content:space-between;font-size:12px;padding:3px 0}
 .sig-area{display:flex;justify-content:space-between;margin-top:16px;gap:30px}.sig-box{flex:1;text-align:center}.sig-box p{font-size:10px;font-weight:bold;margin-bottom:6px}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>
-<div class='hd'><h1>${profil.entreprise||"MAN'S LOCATION"}</h1><p>SIRET : ${profil.siret||profil.siren} | Tel : ${profil.tel}</p></div>
+<div class='hd'>${profil.logo?"<div style='text-align:center;margin-bottom:6px'><img src='"+profil.logo+"' style='max-height:50px;width:auto;border-radius:4px'></div>":""}<h1>${profil.entreprise||"MAN'S LOCATION"}</h1><p>SIRET : ${profil.siret||profil.siren} | Tel : ${profil.tel}</p></div>
 <div class='bd'><div class='title'>Proces-Verbal de Retour</div>
 <div style='margin-bottom:10px'><div class='st'>Véhicule & Dates</div>
   <div><span class='lbl'>Vehicule : </span><span class='val'>${vehicle?.marque||""} ${vehicle?.modele||""} - ${vehicle?.immat||""}</span></div>
@@ -1094,6 +1095,9 @@ function AppContent(){
   const[vForm,setVForm]=useState({typeVehicule:"voiture",marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false,motorisation:"Essence",boite:"Manuelle",puissanceFiscale:"",vin:"",nbPortes:"",nbPlaces:"",numParc:"",description:"",locationMin48:false});
   const[showAddV,setShowAddV]=useState(false);
   const[editV,setEditV]=useState(null);
+  const[quickKmId,setQuickKmId]=useState(null);
+  const[quickKmVal,setQuickKmVal]=useState("");
+  const heureDebutManualRef=useRef(false);
   const[toast,setToast]=useState(null);
   const[planMonth,setPlanMonth]=useState(new Date());
   const[planView,setPlanView]=useState("calendrier");
@@ -1153,6 +1157,15 @@ function AppContent(){
   const[sw,setSW]=useState(typeof window!=="undefined"?window.innerWidth:390);
   useEffect(()=>{const h=()=>setSW(window.innerWidth);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
   const isPhone=sw<600;const isTablet=sw>=600&&sw<1024;
+
+  // Horloge en direct pour heureDebut dans le formulaire nouveau contrat
+  useEffect(()=>{
+    if(page!=="nouveau")return;
+    const tick=()=>{if(heureDebutManualRef.current)return;const n=new Date(),hh=String(n.getHours()).padStart(2,"0"),mm=String(n.getMinutes()).padStart(2,"0");setForm(f=>({...f,heureDebut:`${hh}:${mm}`}));};
+    tick();
+    const id=setInterval(tick,30000);
+    return()=>clearInterval(id);
+  },[page]);
 
   function findContratForAmende(vehicleId,date,heure){
     if(!vehicleId||!date)return null;
@@ -1232,7 +1245,8 @@ function AppContent(){
       ]);
       if(activeUserIdRef.current!==uid)return;
       const p=profRes.data||{};
-      const profData={nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||'',devise:p.devise||'EUR'};
+      const storedLogo=(()=>{try{return localStorage.getItem("ml_logo_"+(uid||""))||"";}catch{return "";}})();
+      const profData={nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||'',devise:p.devise||'EUR',logo:storedLogo};
       setProfil(profData);setProfilForm(profData);
       if(vehRes.data){
         setVehicles(vehRes.data.map(v=>({id:v.id,typeVehicule:v.type_vehicule||'voiture',marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,vin:v.vin||'',nbPortes:v.nb_portes||'',nbPlaces:v.nb_places||'',numParc:v.num_parc||'',docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],indisponibilites:v.indisponibilites||[],photosVehicule:v.photos_vehicule||[],publie:v.publie||false})));
@@ -1360,7 +1374,7 @@ function AppContent(){
     const html=buildContratHTML(c,sel,sigL,sigLoc,profil);
     setLastContrat({contrat:c,vehicle:sel,html});
     toast_("Contrat créé !");
-    setForm(makeForm0());setTouched({});setSelId(null);setSigL(null);setSigLoc(null);setPhotosDepart([]);setDocsLocataire({});setSearchClientContrat("");
+    setForm(makeForm0());heureDebutManualRef.current=false;setTouched({});setSelId(null);setSigL(null);setSigLoc(null);setPhotosDepart([]);setDocsLocataire({});setSearchClientContrat("");
     if(user){
       const{data:ins,error:err}=await supabase.from('contrats').insert([{user_id:user.id,loc_prenom:form.locPrenom||'',loc_nom:locNom,loc_adresse:form.locAdresse,loc_tel:form.locTel,loc_email:form.locEmail,loc_permis:form.locPermis,date_debut:form.dateDebut,heure_debut:form.heureDebut,date_fin:form.dateFin,heure_fin:form.heureFin,paiement:form.paiement,caution_mode:form.cautionMode,km_depart:form.kmDepart,nb_jours:form.nbJours,heures_loc:form.heuresLoc,carburant_depart:form.carburantDepart,exterieur_propre:form.exterieurPropre,interieur_propre:form.interieurPropre,vehicle_id:c.vehicleId,vehicle_label:c.vehicleLabel,immat:c.immat,sig_l:c.sigL,sig_loc:c.sigLoc,total_calc:c.totalCalc,tarif_label:c.tarifLabel,remise:c.remise||0,accompte:c.accompte||0,reste_a_payer:c.resteAPayer||0,prix_jour_modifie:form.prixJourModifie||null,photos_depart:c.photosDepart,docs_locataire:c.docsLocataire,frais_snap:c.fraisSnap,clauses_snap:c.clausesSnap,km_inclus:c.kmInclus,prix_km_sup:c.prixKmSup}]).select().single();
       if(!err&&ins)setContrats(p=>p.map(x=>x.id===c.id?{...x,id:ins.id}:x));
@@ -1444,7 +1458,7 @@ function AppContent(){
     const base={...vForm,km:+vForm.km,tarif:+vForm.tarif,caution:+vForm.caution||1000,kmInclus:+vForm.kmInclus||0,prixKmSup:+vForm.prixKmSup||0};
     if(editV){
       setVehicles(vs=>vs.map(x=>x.id===editV.id?{...x,...base}:x));toast_("Mis à jour");
-      if(user)await supabase.from('vehicules').update({marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc}).eq('id',editV.id).eq('user_id',user.id);
+      if(user){const{error:upErr}=await supabase.from('vehicules').update({marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc}).eq('id',editV.id).eq('user_id',user.id);if(upErr)toast_("Erreur sauvegarde: "+upErr.message,"error");}
     }else{
       const localId=Date.now();
       setVehicles(vs=>[...vs,{id:localId,...base,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[],indisponibilites:[],photosVehicule:[],publie:false}]);
@@ -1457,6 +1471,17 @@ function AppContent(){
     }
     setVForm({typeVehicule:"voiture",marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false,motorisation:"Essence",boite:"Manuelle",puissanceFiscale:"",vin:"",nbPortes:"",nbPlaces:"",numParc:"",description:"",locationMin48:false});
     setShowAddV(false);setEditV(null);
+  }
+
+  async function saveQuickKm(){
+    if(!quickKmId)return;
+    const km=parseFloat(quickKmVal)||0;
+    setVehicles(vs=>vs.map(v=>v.id===quickKmId?{...v,km}:v));
+    setQuickKmId(null);setQuickKmVal("");
+    if(user){
+      const{error}=await supabase.from('vehicules').update({km}).eq('id',quickKmId).eq('user_id',user.id);
+      if(error)toast_("Erreur km: "+error.message,"error");else toast_("Km mis à jour !");
+    }else toast_("Km mis à jour !");
   }
 
   function openTarifs(v){setTarifsVehicleId(v.id);setTarifsTemp((v.tarifsSpeciaux||[]).map(t=>({...t})));setNtarif({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});}
@@ -2024,9 +2049,19 @@ function AppContent(){
                   </div>
                   <div style={{padding:14}}>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-                      {[["Tarif",v.tarif+" "+sym+"/j"],["Caution",v.caution+" "+sym],["Km inclus",v.kmInclus+" km"],["Km sup",v.prixKmSup+" "+sym+"/km"],["Km actuel",(v.km||0).toLocaleString()+" km"]].map(([l,val])=>(
+                      {[["Tarif",v.tarif+" "+sym+"/j"],["Caution",v.caution+" "+sym],["Km inclus",v.kmInclus+" km"],["Km sup",v.prixKmSup+" "+sym+"/km"]].map(([l,val])=>(
                         <div key={l} style={{background:"#f8fafc",borderRadius:8,padding:"7px 10px"}}><div style={{fontSize:9,color:"#9ca3af"}}>{l}</div><div style={{fontWeight:700,fontSize:12}}>{val}</div></div>
                       ))}
+                    {quickKmId===v.id
+                      ?<div style={{background:"#eff6ff",borderRadius:8,padding:"7px 10px",display:"flex",gap:4,alignItems:"center"}}>
+                          <input type="text" inputMode="numeric" autoFocus style={{flex:1,border:"1px solid #93c5fd",borderRadius:6,padding:"3px 6px",fontSize:12,fontWeight:700,width:"70px"}} placeholder={(v.km||0).toLocaleString()} value={quickKmVal} onChange={e=>setQuickKmVal(e.target.value.replace(/\D/g,""))} onKeyDown={e=>{if(e.key==="Enter")saveQuickKm();if(e.key==="Escape"){setQuickKmId(null);setQuickKmVal("");}}}/>
+                          <button onClick={saveQuickKm} style={{background:"#2563eb",color:"white",border:"none",borderRadius:5,padding:"3px 7px",fontSize:11,fontWeight:700,cursor:"pointer"}}>OK</button>
+                        </div>
+                      :<div onClick={()=>{setQuickKmId(v.id);setQuickKmVal(String(v.km||0));}} style={{background:"#f8fafc",borderRadius:8,padding:"7px 10px",cursor:"pointer",border:"1px dashed #93c5fd"}} title="Cliquer pour modifier">
+                          <div style={{fontSize:9,color:"#9ca3af"}}>Km actuel ✏️</div>
+                          <div style={{fontWeight:700,fontSize:12,color:"#2563eb"}}>{(v.km||0).toLocaleString()} km</div>
+                        </div>
+                    }
                     </div>
                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                       <button onClick={()=>setPhotosVehicleModal(v)} style={{flex:1,padding:"6px 0",background:"#fdf4ff",color:"#9333ea",border:"1px solid #e9d5ff",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Photos{(v.photosVehicule||[]).length>0?" ("+(v.photosVehicule.length)+")":""}</button>
@@ -2159,7 +2194,7 @@ function AppContent(){
                   <h3 style={{fontWeight:700,fontSize:13,marginBottom:12}}>Durée</h3>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                     <div><label style={LBL_STYLE}>Début *</label><input type="date" style={INP_STYLE(inv("dateDebut")?{borderColor:"#f87171",background:"#fef2f2"}:{})} value={form.dateDebut} onChange={e=>setForm(f=>({...f,dateDebut:e.target.value}))} onBlur={()=>setTouched(t=>({...t,dateDebut:true}))}/></div>
-                    <div><label style={LBL_STYLE}>Heure départ</label><input type="time" style={INP_STYLE()} value={form.heureDebut} onChange={e=>setForm(f=>({...f,heureDebut:e.target.value}))}/></div>
+                    <div><label style={LBL_STYLE}>Heure départ</label><input type="time" style={INP_STYLE()} value={form.heureDebut} onChange={e=>{heureDebutManualRef.current=true;setForm(f=>({...f,heureDebut:e.target.value}));}}/></div>
                     <div><label style={LBL_STYLE}>Fin *</label><input type="date" style={INP_STYLE(inv("dateFin")?{borderColor:"#f87171",background:"#fef2f2"}:{})} value={form.dateFin} onChange={e=>setForm(f=>({...f,dateFin:e.target.value}))} onBlur={()=>setTouched(t=>({...t,dateFin:true}))}/></div>
                     <div><label style={LBL_STYLE}>Heure retour</label><input type="time" style={INP_STYLE()} value={form.heureFin} onChange={e=>setForm(f=>({...f,heureFin:e.target.value}))}/></div>
                   </div>
@@ -2931,11 +2966,20 @@ function AppContent(){
                 ))}
                 <div style={{marginBottom:10}}><label style={LBL_STYLE}>Snapchat</label><input style={INP_STYLE()} value={profilForm.snap||""} onChange={e=>setProfilForm(p=>({...p,snap:e.target.value}))}/></div>
                 <div style={{marginBottom:14}}><label style={LBL_STYLE}>💱 Devise</label><select style={INP_STYLE()} value={profilForm.devise||"EUR"} onChange={e=>setProfilForm(p=>({...p,devise:e.target.value}))}>{DEVISES.map(d=><option key={d.code} value={d.code}>{d.label}</option>)}</select></div>
+                <div style={{marginBottom:16,padding:12,background:"#f8fafc",borderRadius:10,border:"1px solid #e5e7eb"}}>
+                  <label style={LBL_STYLE}>Logo de l'entreprise (affiché sur les contrats)</label>
+                  {profil.logo&&<div style={{marginBottom:8,textAlign:"center"}}><img src={profil.logo} alt="Logo" style={{maxHeight:64,maxWidth:180,objectFit:"contain",borderRadius:8,border:"1px solid #e5e7eb"}}/></div>}
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>{const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{const d=ev.target.result;setProfil(p=>({...p,logo:d}));setProfilForm(p=>({...p,logo:d}));try{localStorage.setItem("ml_logo_"+(user?.id||""),d);}catch{}};r.readAsDataURL(f);};i.click();}} style={{padding:"7px 12px",background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📁 Importer logo</button>
+                    {profil.logo&&<button onClick={()=>{setProfil(p=>({...p,logo:""}));setProfilForm(p=>({...p,logo:""}));try{localStorage.removeItem("ml_logo_"+(user?.id||""));}catch{}}} style={{padding:"7px 12px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:12,cursor:"pointer"}}>Supprimer</button>}
+                  </div>
+                </div>
                 <button onClick={async()=>{
-                  const pf={...profilForm,tel:profilForm.tel||null,whatsapp:profilForm.whatsapp||null,snap:profilForm.snap||null,email:profilForm.email||null,adresse:profilForm.adresse||null,ville:profilForm.ville||null,iban:profilForm.iban||null};
-                  setProfil(pf);setProfilEdit(false);
+                  const{logo:_l,...profilWithoutLogo}=profilForm;
+                  const pf={...profilWithoutLogo,tel:profilWithoutLogo.tel||null,whatsapp:profilWithoutLogo.whatsapp||null,snap:profilWithoutLogo.snap||null,email:profilWithoutLogo.email||null,adresse:profilWithoutLogo.adresse||null,ville:profilWithoutLogo.ville||null,iban:profilWithoutLogo.iban||null};
+                  setProfil(p=>({...p,...pf}));setProfilEdit(false);
                   if(user){
-                    // Essai complet d'abord
+                    // Essai complet d'abord (sans logo)
                     let{error:e1}=await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...pf},{onConflict:'user_id'});
                     // Si colonne inconnue → retry sans les champs optionnels (devise/snap/iban)
                     if(e1&&(e1.message.includes('column')||e1.code==='42703')){
@@ -2951,7 +2995,7 @@ function AppContent(){
               </div>
               :<div style={{background:"white",borderRadius:14,padding:18,boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
                 <div style={{textAlign:"center",marginBottom:16}}>
-                  <div style={{width:60,height:60,borderRadius:"50%",background:"#1e3a8a",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:24}}>👤</div>
+                  {profil.logo?<img src={profil.logo} alt="Logo" style={{maxHeight:80,maxWidth:200,objectFit:"contain",borderRadius:8,marginBottom:8,display:"block",margin:"0 auto 8px"}}/>:<div style={{width:60,height:60,borderRadius:"50%",background:"#1e3a8a",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:24}}>👤</div>}
                   <div style={{fontWeight:800,fontSize:16}}>{profil.nom}</div>
                   <div style={{color:"#6b7280",fontSize:12}}>{profil.entreprise}</div>
                 </div>

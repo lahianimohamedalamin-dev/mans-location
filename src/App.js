@@ -1002,7 +1002,9 @@ function calcTarifAuto(vehicle,nbJours,heuresLoc,prixJourModifie){
     const p=parseFloat(prixJourModifie)*nbJours;
     return{prix:p,label:`Personnalisé — ${prixJourModifie} €/j x ${nbJours}j`};
   }
-  const h=heuresLoc||nbJours*24;
+  // Utiliser nbJours*24 pour le matching : évite les décalages de minutes
+  // qui font passer Math.ceil(24h28) = 25h et rater le seuil "Journée 24h"
+  const h=nbJours*24;
   const specials=(vehicle.tarifsSpeciaux||[]).slice().sort((a,b)=>{
     const ha=TARIFS_PRESETS.find(p=>p.type===a.type)?.heures||9999;
     const hb=TARIFS_PRESETS.find(p=>p.type===b.type)?.heures||9999;

@@ -2353,10 +2353,15 @@ function AppContent(){
                               const clampedRight=Math.min(w+off,ganttDays);
                               const barW=Math.max(clampedRight-clampedLeft,1)*GDW-3;
                               return(
-                                <div key={c.id} style={{position:"absolute",left:clampedLeft*GDW+1,top:8,height:40,width:barW,background:vColor,borderRadius:7,display:"flex",alignItems:"center",padding:"0 8px",overflow:"hidden",zIndex:1,cursor:"pointer",boxShadow:"0 2px 6px rgba(0,0,0,.25)"}} title={`${c.locNom} — ${c.dateDebut} → ${c.dateFin} — ${c.totalCalc}€`}>
-                                  <div style={{overflow:"hidden"}}>
+                                <div key={c.id} style={{position:"absolute",left:clampedLeft*GDW+1,top:8,height:40,width:barW,background:vColor,borderRadius:7,display:"flex",alignItems:"center",padding:"0 8px",overflow:"hidden",zIndex:1,cursor:"pointer",boxShadow:"0 2px 6px rgba(0,0,0,.25)"}} title={`${c.locNom} — ${c.dateDebut} ${c.heureDebut||""} → ${c.dateFin} ${c.heureFin||""} — ${c.totalCalc}€`}>
+                                  <div style={{overflow:"hidden",minWidth:0}}>
                                     <div style={{color:"white",fontSize:11,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{c.locNom}</div>
-                                    {barW>60&&<div style={{color:"rgba(255,255,255,.75)",fontSize:9,whiteSpace:"nowrap"}}>{c.dateDebut} → {c.dateFin}</div>}
+                                    {barW>50&&<div style={{color:"rgba(255,255,255,.85)",fontSize:9,whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:3}}>
+                                      <span style={{background:"rgba(0,0,0,.2)",borderRadius:3,padding:"0 3px"}}>{(c.heureDebut||"?").slice(0,5)}</span>
+                                      <span>→</span>
+                                      <span style={{background:"rgba(0,0,0,.2)",borderRadius:3,padding:"0 3px"}}>{(c.heureFin||"?").slice(0,5)}</span>
+                                      {barW>120&&<span style={{opacity:.7}}>· {c.nbJours}j</span>}
+                                    </div>}
                                   </div>
                                 </div>
                               );

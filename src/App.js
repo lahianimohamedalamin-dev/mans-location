@@ -2006,12 +2006,6 @@ function AppContent(){
                 </div>
               ))}
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:20}}>
-              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #1e3a8a"}}><div style={{fontSize:10,color:"#6b7280"}}>Total contrats</div><div style={{fontSize:22,fontWeight:800}}>{contrats.length}</div></div>
-              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #16a34a"}}><div style={{fontSize:10,color:"#6b7280"}}>Retours effectués</div><div style={{fontSize:22,fontWeight:800}}>{Object.keys(retours).length}</div></div>
-              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #d97706"}}><div style={{fontSize:10,color:"#6b7280"}}>En attente</div><div style={{fontSize:22,fontWeight:800,color:"#d97706"}}>{contrats.filter(c=>!retours[c.id]).length}</div></div>
-              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 6px rgba(0,0,0,.06)",borderLeft:"4px solid #2563eb"}}><div style={{fontSize:10,color:"#6b7280"}}>CA total</div><div style={{fontSize:22,fontWeight:800,color:"#2563eb"}}>{caT} {sym}</div></div>
-            </div>
             {contrats.filter(c=>!retours[c.id]).length>0&&(
               <div style={{background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 8px rgba(0,0,0,.07)",border:"1px solid #fde68a"}}>
                 <div style={{fontWeight:800,fontSize:13,color:"#b45309",marginBottom:10}}>🔄 Contrats en cours ({contrats.filter(c=>!retours[c.id]).length})</div>
@@ -2291,10 +2285,8 @@ function AppContent(){
                             })}
                             {reservations.length>2&&<div style={{fontSize:8,color:"#6b7280",fontWeight:700,lineHeight:"1.2"}}>+{reservations.length-2}</div>}
                             {retoursMatin.map((c)=>{
-                              const vi=vehicles.findIndex(v=>v.id===c.vehicleId);
-                              const col=ganttColors[vi%ganttColors.length];
                               const prenom=(c.locNom||c.vehicleLabel||"").split(" ")[0];
-                              return <div key={"ret-"+c.id} style={{background:"white",borderRadius:3,padding:"1px 3px",fontSize:8,fontWeight:700,color:col,border:`1px solid ${col}`,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}} title={`Retour ${c.heureFin} — ${c.locNom}`}>↩ {prenom}</div>;
+                              return <div key={"ret-"+c.id} style={{background:"#fef2f2",borderRadius:3,padding:"1px 3px",fontSize:8,fontWeight:700,color:"#dc2626",border:"1px solid #fca5a5",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}} title={`Retour ${c.heureFin} — ${c.locNom}`}>↩ {prenom}</div>;
                             })}
                           </div>
                         </div>

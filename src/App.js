@@ -1122,6 +1122,9 @@ function AppContent(){
   const[tarifsVehicleId,setTarifsVehicleId]=useState(null);
   const[tarifsTemp,setTarifsTemp]=useState([]);
   const[ntarif,setNtarif]=useState({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});
+  const[bloqVehicleId,setBloqVehicleId]=useState(null);
+  const[bloqTemp,setBloqTemp]=useState([]);
+  const[nBloq,setNBloq]=useState({dateDebut:"",dateFin:"",raison:"Révision",note:""});
   const[dataLoaded,setDataLoaded]=useState(false);
   const[amendes,setAmendes]=useState([]);
   const[showAddAmende,setShowAddAmende]=useState(false);
@@ -1232,7 +1235,7 @@ function AppContent(){
       const profData={nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||'',devise:p.devise||'EUR'};
       setProfil(profData);setProfilForm(profData);
       if(vehRes.data){
-        setVehicles(vehRes.data.map(v=>({id:v.id,typeVehicule:v.type_vehicule||'voiture',marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,vin:v.vin||'',nbPortes:v.nb_portes||'',nbPlaces:v.nb_places||'',numParc:v.num_parc||'',docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],photosVehicule:v.photos_vehicule||[],publie:v.publie||false})));
+        setVehicles(vehRes.data.map(v=>({id:v.id,typeVehicule:v.type_vehicule||'voiture',marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,vin:v.vin||'',nbPortes:v.nb_portes||'',nbPlaces:v.nb_places||'',numParc:v.num_parc||'',docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],indisponibilites:v.indisponibilites||[],photosVehicule:v.photos_vehicule||[],publie:v.publie||false})));
       }
       let loadedContrats=[];
       const clientMap={};
@@ -1261,7 +1264,7 @@ function AppContent(){
         const stripRetourPhotos=r=>({...r,carroPhotos:{},photos:{}});
         const cache={
           profil:profData,
-          vehicles:vehRes.data?vehRes.data.map(v=>stripPhotos({id:v.id,typeVehicule:v.type_vehicule||'voiture',marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,vin:v.vin||'',frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],publie:v.publie||false})):[],
+          vehicles:vehRes.data?vehRes.data.map(v=>stripPhotos({id:v.id,typeVehicule:v.type_vehicule||'voiture',marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,vin:v.vin||'',frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],indisponibilites:v.indisponibilites||[],publie:v.publie||false})):[],
           contrats:loadedContrats.map(stripContrPhotos),
           retours:retRes.data?Object.fromEntries(retRes.data.map(r=>[r.contrat_id,stripRetourPhotos({id:r.id,kmRetour:r.km_retour||'',carburantRetour:r.carburant_retour??100,montantRetenu:r.montant_retenu||0,raisonRetenue:r.raison_retenue||'',rembourse:r.rembourse||0,kmSup:r.km_sup||0,surplusKm:r.surplus_km||0,cautionRestituee:r.caution_restituee,checks:r.checks||{},carro:r.carro||{},carroNotes:r.carro_notes||{},notes:r.notes||{},remiseRetour:r.remise_retour||0,date:r.date||''})])):{ },
           depenses:depRes.data?depRes.data.map(d=>({id:d.id,label:d.label||'',montant:d.montant||0,categorie:d.categorie||'Carburant',date:d.date||'',vehicleId:d.vehicle_id||''})):[],
@@ -1348,6 +1351,8 @@ function AppContent(){
     if(!sel||miss.length>0){const t={};req.forEach(k=>t[k]=true);setTouched(t);toast_("Remplissez tous les champs obligatoires","error");return;}
     const conflict=contrats.find(c=>c.vehicleId===sel.id&&c.dateDebut&&c.dateFin&&form.dateDebut&&form.dateFin&&form.dateDebut<=c.dateFin&&form.dateFin>=c.dateDebut);
     if(conflict){toast_(`⚠️ Conflit ! ${sel.marque} ${sel.modele} est déjà réservé du ${conflict.dateDebut} au ${conflict.dateFin} par ${conflict.locNom}`,"error");return;}
+    const bloqConflict=sel&&(sel.indisponibilites||[]).find(b=>form.dateDebut&&form.dateFin&&form.dateDebut<=b.dateFin&&form.dateFin>=b.dateDebut);
+    if(bloqConflict){toast_(`⚠️ ${sel.marque} ${sel.modele} est indisponible du ${bloqConflict.dateDebut} au ${bloqConflict.dateFin} (${bloqConflict.raison})`,"error");return;}
     const locNom=`${form.locPrenom} ${form.locNom}`.trim();
     const c={id:Date.now(),...form,locNom,vehicleId:sel.id,vehicleLabel:sel.marque+" "+sel.modele,immat:sel.immat,sigL,sigLoc,totalCalc:totalNet,tarifLabel:tarifAuto.label,remise,accompte,resteAPayer,photosDepart:[...photosDepart],docsLocataire:{...docsLocataire},fraisSnap:(sel.frais||DEF_FRAIS).map(f=>({...f})),clausesSnap:(sel.clauses||DEF_CLAUSES).map(cl=>({...cl})),kmInclus:sel.kmInclus,prixKmSup:sel.prixKmSup};
     setContrats(p=>[c,...p]);
@@ -1442,7 +1447,7 @@ function AppContent(){
       if(user)await supabase.from('vehicules').update({marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc}).eq('id',editV.id).eq('user_id',user.id);
     }else{
       const localId=Date.now();
-      setVehicles(vs=>[...vs,{id:localId,...base,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[],photosVehicule:[],publie:false}]);
+      setVehicles(vs=>[...vs,{id:localId,...base,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[],indisponibilites:[],photosVehicule:[],publie:false}]);
       toast_("Véhicule ajouté !");
       if(user){
         const{data:ins,error:err}=await supabase.from('vehicules').insert([{user_id:user.id,marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifs_speciaux:[],photos_vehicule:[],publie:false}]).select().single();
@@ -1461,6 +1466,14 @@ function AppContent(){
     setVehicles(vs=>vs.map(v=>v.id===tarifsVehicleId?{...v,tarifsSpeciaux:[...tarifsTemp]}:v));
     setTarifsVehicleId(null);toast_("Tarifs enregistrés !");
     if(user)await supabase.from('vehicules').update({tarifs_speciaux:[...tarifsTemp]}).eq('id',tarifsVehicleId).eq('user_id',user.id);
+  }
+
+  function openBloq(v){setBloqVehicleId(v.id);setBloqTemp((v.indisponibilites||[]).map(b=>({...b})));setNBloq({dateDebut:"",dateFin:"",raison:"Révision",note:""});}
+  async function saveBloq(){
+    if(!bloqVehicleId)return;
+    setVehicles(vs=>vs.map(v=>v.id===bloqVehicleId?{...v,indisponibilites:[...bloqTemp]}:v));
+    setBloqVehicleId(null);toast_("Indisponibilités enregistrées !");
+    if(user)await supabase.from('vehicules').update({indisponibilites:[...bloqTemp]}).eq('id',bloqVehicleId).eq('user_id',user.id);
   }
 
   async function togglePublier(v){
@@ -1770,6 +1783,48 @@ function AppContent(){
         </div>
       )}
 
+      {/* Modal indisponibilités */}
+      {bloqVehicleId&&(()=>{
+        const bloqV=vehicles.find(v=>v.id===bloqVehicleId);
+        const RAISONS=["Révision","Réparation","Contrôle technique","Nettoyage","Sinistre","Réservé","Autre"];
+        return(
+          <div onClick={e=>{if(e.target===e.currentTarget)setBloqVehicleId(null);}} style={{position:"fixed",inset:0,zIndex:9999,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+            <div style={{background:"white",borderRadius:18,width:"100%",maxWidth:480,maxHeight:"88vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+              <div style={{background:"linear-gradient(135deg,#dc2626,#b91c1c)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div><div style={{color:"white",fontWeight:800,fontSize:15}}>🔧 Indisponibilités</div><div style={{color:"rgba(255,255,255,.7)",fontSize:11}}>{bloqV?.marque} {bloqV?.modele} · {bloqV?.immat}</div></div>
+                <button onClick={()=>setBloqVehicleId(null)} style={{fontSize:22,background:"none",border:"none",cursor:"pointer",color:"white"}}>x</button>
+              </div>
+              <div style={{flex:1,overflowY:"auto",padding:14}}>
+                {bloqTemp.length===0&&<div style={{textAlign:"center",color:"#9ca3af",padding:"20px 0",fontSize:13}}>Aucune indisponibilité</div>}
+                {bloqTemp.map(b=>(
+                  <div key={b.id} style={{display:"flex",gap:8,alignItems:"center",padding:10,background:"#fef2f2",borderRadius:10,marginBottom:7,border:"1px solid #fca5a5"}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,fontSize:13,color:"#dc2626"}}>{b.raison}</div>
+                      <div style={{fontSize:11,color:"#6b7280"}}>{b.dateDebut} → {b.dateFin}{b.note&&" · "+b.note}</div>
+                    </div>
+                    <button onClick={()=>setBloqTemp(ts=>ts.filter(x=>x.id!==b.id))} style={{padding:"4px 8px",background:"#fef2f2",color:"#ef4444",border:"none",borderRadius:6,cursor:"pointer",flexShrink:0}}>X</button>
+                  </div>
+                ))}
+                <div style={{background:"#fff5f5",borderRadius:12,padding:14,border:"1px solid #fca5a5",marginTop:8}}>
+                  <p style={{fontSize:12,fontWeight:700,color:"#dc2626",marginBottom:10}}>+ Nouvelle indisponibilité</p>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                    <div><label style={LBL_STYLE}>Du</label><input type="date" style={INP_STYLE()} value={nBloq.dateDebut} onChange={e=>setNBloq(x=>({...x,dateDebut:e.target.value}))}/></div>
+                    <div><label style={LBL_STYLE}>Au</label><input type="date" style={INP_STYLE()} value={nBloq.dateFin} onChange={e=>setNBloq(x=>({...x,dateFin:e.target.value}))}/></div>
+                    <div><label style={LBL_STYLE}>Raison</label><select style={INP_STYLE()} value={nBloq.raison} onChange={e=>setNBloq(x=>({...x,raison:e.target.value}))}>{RAISONS.map(r=><option key={r}>{r}</option>)}</select></div>
+                    <div><label style={LBL_STYLE}>Note (optionnel)</label><input style={INP_STYLE()} placeholder="ex: Vidange + pneus" value={nBloq.note} onChange={e=>setNBloq(x=>({...x,note:e.target.value}))}/></div>
+                  </div>
+                  <button onClick={()=>{if(!nBloq.dateDebut||!nBloq.dateFin){toast_("Dates requises","error");return;}if(nBloq.dateFin<nBloq.dateDebut){toast_("Date fin avant date début","error");return;}setBloqTemp(ts=>[...ts,{id:Date.now(),...nBloq}]);setNBloq({dateDebut:"",dateFin:"",raison:"Révision",note:""});}} style={{width:"100%",background:"#dc2626",color:"white",border:"none",borderRadius:8,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
+                </div>
+              </div>
+              <div style={{padding:"12px 16px",borderTop:"1px solid #e5e7eb",display:"flex",gap:8,background:"white"}}>
+                <button onClick={saveBloq} style={{flex:1,background:"#dc2626",color:"white",border:"none",borderRadius:10,padding:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+                <button onClick={()=>setBloqVehicleId(null)} style={{padding:"10px 16px",background:"#e5e7eb",border:"none",borderRadius:10,fontSize:13,cursor:"pointer"}}>Annuler</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Modal docs véhicule */}
       {docsId&&docsV&&(
         <div style={{position:"fixed",inset:0,zIndex:9998,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
@@ -1815,11 +1870,6 @@ function AppContent(){
             <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",borderRadius:14,padding:"14px 16px",marginBottom:14,color:"white"}}>
               <div style={{fontSize:16,fontWeight:800,marginBottom:2}}>Bonjour, {profil.nom.split(" ")[0]} 👋</div>
               <div style={{fontSize:11,opacity:.7,textTransform:"capitalize"}}>{new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(80px,1fr))",gap:8,marginTop:12}}>
-                <div style={{background:"rgba(255,255,255,.12)",borderRadius:10,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,opacity:.7}}>CA total</div><div style={{fontWeight:800,fontSize:14}}>{caT} {sym}</div></div>
-                <div style={{background:"rgba(255,255,255,.12)",borderRadius:10,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,opacity:.7}}>Véhicules</div><div style={{fontWeight:800,fontSize:14}}>{vehicles.length}</div></div>
-                <div style={{background:"rgba(255,255,255,.12)",borderRadius:10,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:9,opacity:.7}}>Contrats</div><div style={{fontWeight:800,fontSize:14}}>{contrats.length}</div></div>
-              </div>
             </div>
             {vehicles.some(v=>v.publie)&&(
               <div style={{background:"linear-gradient(135deg,#0a1940,#1e3a8a)",borderRadius:14,padding:16,marginBottom:16,color:"white"}}>
@@ -1981,6 +2031,7 @@ function AppContent(){
                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                       <button onClick={()=>setPhotosVehicleModal(v)} style={{flex:1,padding:"6px 0",background:"#fdf4ff",color:"#9333ea",border:"1px solid #e9d5ff",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Photos{(v.photosVehicule||[]).length>0?" ("+(v.photosVehicule.length)+")":""}</button>
                       <button onClick={()=>openTarifs(v)} style={{flex:1,padding:"6px 0",background:"#fff7ed",color:"#d97706",border:"1px solid #fed7aa",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Tarifs</button>
+                      <button onClick={()=>openBloq(v)} style={{flex:1,padding:"6px 0",background:(v.indisponibilites||[]).length>0?"#fef2f2":"#f9fafb",color:(v.indisponibilites||[]).length>0?"#dc2626":"#6b7280",border:`1px solid ${(v.indisponibilites||[]).length>0?"#fca5a5":"#e5e7eb"}`,borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>🔧{(v.indisponibilites||[]).length>0?" ("+v.indisponibilites.length+")":""}</button>
                       <button onClick={()=>setContratModalId(v.id)} style={{flex:1,padding:"6px 0",background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Clauses</button>
                       <button onClick={()=>setDocsId(v.id)} style={{flex:1,padding:"6px 0",background:"#f0fdf4",color:"#16a34a",border:"1px solid #bbf7d0",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Docs</button>
                       <button onClick={()=>{setEditV(v);setVForm({typeVehicule:v.typeVehicule||"voiture",marque:v.marque,modele:v.modele,immat:v.immat,couleur:v.couleur||"",annee:v.annee||"",km:v.km,tarif:v.tarif,caution:v.caution,kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0,kmIllimite:v.kmIllimite||false,motorisation:"Essence",boite:"Manuelle",puissanceFiscale:"",vin:v.vin||"",nbPortes:v.nbPortes||"",nbPlaces:v.nbPlaces||"",numParc:v.numParc||"",description:"",locationMin48:false});setShowAddV(true);}} style={{padding:"6px 10px",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Editer</button>
@@ -1996,7 +2047,13 @@ function AppContent(){
         {/* CONTRATS HUB */}
         {page==="contrats_hub"&&(
           <div>
-            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:20}}>Contrats</h1>
+            <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937",marginBottom:16}}>Contrats</h1>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:20}}>
+              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 8px rgba(0,0,0,.06)",borderLeft:"4px solid #1e3a8a"}}><div style={{fontSize:11,color:"#6b7280",marginBottom:4}}>Total contrats</div><div style={{fontWeight:800,fontSize:22,color:"#1e3a8a"}}>{contrats.length}</div></div>
+              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 8px rgba(0,0,0,.06)",borderLeft:"4px solid #16a34a"}}><div style={{fontSize:11,color:"#6b7280",marginBottom:4}}>Retours effectués</div><div style={{fontWeight:800,fontSize:22,color:"#16a34a"}}>{Object.keys(retours).length}</div></div>
+              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 8px rgba(0,0,0,.06)",borderLeft:"4px solid #d97706"}}><div style={{fontSize:11,color:"#6b7280",marginBottom:4}}>En attente</div><div style={{fontWeight:800,fontSize:22,color:"#d97706"}}>{contrats.filter(c=>!retours[c.id]).length}</div></div>
+              <div style={{background:"white",borderRadius:12,padding:"12px 16px",boxShadow:"0 2px 8px rgba(0,0,0,.06)",borderLeft:"4px solid #2563eb"}}><div style={{fontSize:11,color:"#6b7280",marginBottom:4}}>CA total</div><div style={{fontWeight:800,fontSize:22,color:"#2563eb"}}>{caT} {sym}</div></div>
+            </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:16,marginBottom:24}}>
               {[{id:"nouveau",icon:"📝",label:"Nouveau contrat",desc:"Créer un contrat de location",color:"#1e3a8a",bg:"#eff6ff",border:"#bfdbfe"},{id:"retours",icon:"🔄",label:"Retours",desc:"Gérer les retours de véhicules",color:"#16a34a",bg:"#f0fdf4",border:"#bbf7d0"},{id:"contrats",icon:"📋",label:"Historique",desc:"Voir tous les contrats",color:"#7c3aed",bg:"#f5f3ff",border:"#ddd6fe"}].map(x=>(
                 <div key={x.id} onClick={()=>setPagePersist(x.id)} style={{background:x.bg,borderRadius:16,padding:24,border:`2px solid ${x.border}`,cursor:"pointer",boxShadow:"0 2px 8px rgba(0,0,0,.06)"}} onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.12)";}} onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
@@ -2273,6 +2330,8 @@ function AppContent(){
                         const hRet=parseInt((c.heureFin||"10:00").split(":")[0]);
                         return c.dateFin===dStr&&hRet<12&&!reservations.includes(c);
                       }):[];
+                      // Indisponibilités ce jour
+                      const indispos=d?vehicles.flatMap(v=>(v.indisponibilites||[]).filter(b=>dStr>=b.dateDebut&&dStr<=b.dateFin).map(b=>({...b,vLabel:v.marque+" "+v.modele}))):[];
                       return(
                         <div key={di} style={{minHeight:64,padding:"3px 2px",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:di>0?"1px solid #f0f0f0":"none",position:"relative",minWidth:0,overflow:"hidden"}}>
                           {d&&<div style={{fontSize:11,fontWeight:isToday?800:400,marginBottom:2,width:20,height:20,borderRadius:"50%",background:isToday?"#2563eb":"transparent",color:isToday?"white":isWE?"#9ca3af":"#374151",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{d.getDate()}</div>}
@@ -2288,6 +2347,9 @@ function AppContent(){
                               const prenom=(c.locNom||c.vehicleLabel||"").split(" ")[0];
                               return <div key={"ret-"+c.id} style={{background:"#fef2f2",borderRadius:3,padding:"1px 3px",fontSize:8,fontWeight:700,color:"#dc2626",border:"1px solid #fca5a5",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}} title={`Retour ${c.heureFin} — ${c.locNom}`}>↩ {prenom}</div>;
                             })}
+                            {indispos.map((b)=>(
+                              <div key={"ind-"+b.id} style={{background:"#f3f4f6",borderRadius:3,padding:"1px 3px",fontSize:8,fontWeight:700,color:"#6b7280",border:"1px solid #d1d5db",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}} title={`${b.raison}${b.note?" — "+b.note:""} (${b.vLabel})`}>🔧 {b.raison}</div>
+                            ))}
                           </div>
                         </div>
                       );
@@ -2335,6 +2397,22 @@ function AppContent(){
                             {ganttDates.map((d,i)=>{
                               const isWE=d.getDay()===0||d.getDay()===6;
                               return <div key={i} style={{position:"absolute",left:i*GDW,top:0,width:GDW,height:"100%",background:isWE?"rgba(0,0,0,.04)":"transparent",borderLeft:"1px solid #f0f0f0"}}/>;
+                            })}
+                            {(v.indisponibilites||[]).map((b)=>{
+                              const s=new Date(b.dateDebut),e=new Date(b.dateFin);
+                              const off=Math.floor((s-ganttStartDate)/86400000);
+                              const w=Math.max(Math.ceil((e-s)/86400000)+1,1);
+                              if(off>ganttDays||off+w<0)return null;
+                              const cl=Math.max(0,off),cr=Math.min(w+off,ganttDays);
+                              const bW=Math.max(cr-cl,1)*GDW-3;
+                              return(
+                                <div key={"b-"+b.id} style={{position:"absolute",left:cl*GDW+1,top:4,height:48,width:bW,background:"repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 4px,#f3f4f6 4px,#f3f4f6 8px)",borderRadius:7,display:"flex",alignItems:"center",padding:"0 6px",overflow:"hidden",zIndex:1,border:"1px solid #d1d5db"}} title={`${b.raison}${b.note?" — "+b.note:""}`}>
+                                  <div style={{overflow:"hidden",minWidth:0}}>
+                                    <div style={{color:"#374151",fontSize:10,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>🔧 {b.raison}</div>
+                                    {bW>80&&<div style={{color:"#6b7280",fontSize:9,whiteSpace:"nowrap"}}>{b.dateDebut} → {b.dateFin}</div>}
+                                  </div>
+                                </div>
+                              );
                             })}
                             {vContrats.map((c,ci)=>{
                               const s=new Date(c.dateDebut),e=new Date(c.dateFin);

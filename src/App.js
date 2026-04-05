@@ -1932,9 +1932,10 @@ function AppContent(){
                   <div><label style={LBL_STYLE}>Nb portes</label><input type="number" style={INP_STYLE()} placeholder="5" value={vForm.nbPortes||""} onChange={e=>setVForm(f=>({...f,nbPortes:e.target.value}))}/></div>
                   <div><label style={LBL_STYLE}>Nb places</label><input type="number" style={INP_STYLE()} placeholder="5" value={vForm.nbPlaces||""} onChange={e=>setVForm(f=>({...f,nbPlaces:e.target.value}))}/></div>
                   <div><label style={LBL_STYLE}>N° parc</label><input style={INP_STYLE()} placeholder="001" value={vForm.numParc||""} onChange={e=>setVForm(f=>({...f,numParc:e.target.value}))}/></div>
-                  {[["km","Km actuel"],["tarif","Tarif "+sym+"/j"],["caution","Caution "+sym],["kmInclus","Km inclus"],["prixKmSup","Prix km sup "+sym]].map(([k,l])=>(
-                    <div key={k}><label style={LBL_STYLE}>{l}</label><input type="number" style={INP_STYLE()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:e.target.value.replace(/\D/g,"")}))} inputMode="numeric"/></div>
-                  ))}
+                  {[["km","Km actuel"],["tarif","Tarif "+sym+"/j"],["caution","Caution "+sym],["kmInclus","Km inclus"],["prixKmSup","Prix km sup "+sym]].map(([k,l])=>{
+                    const isDecimal=k==="prixKmSup"||k==="tarif";
+                    return <div key={k}><label style={LBL_STYLE}>{l}</label><input type="number" step={isDecimal?"0.01":"1"} style={INP_STYLE()} value={vForm[k]} onChange={e=>setVForm(f=>({...f,[k]:isDecimal?e.target.value.replace(/[^0-9.]/g,""):e.target.value.replace(/\D/g,"")}))} inputMode={isDecimal?"decimal":"numeric"}/></div>;
+                  })}
                 </div>
                 <div style={{marginTop:10}}>
                   <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,cursor:"pointer"}}><input type="checkbox" checked={vForm.kmIllimite} onChange={e=>setVForm(f=>({...f,kmIllimite:e.target.checked}))}/><span>Km illimité</span></label>

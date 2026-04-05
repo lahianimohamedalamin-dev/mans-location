@@ -65,6 +65,7 @@ const RETOUR_CHECKS=[
 const CAT_DEP=["Carburant","Assurance","Entretien","Réparation","Nettoyage","Péage","Amende","Retenue caution","Autre"];
 const DOC_TYPES=["Carte grise","Assurance","Contrôle technique","Permis de conduire","CNI / Passeport","Contrat","Autre"];
 const TARIFS_PRESETS=[
+  {type:"Tarif horaire",heures:0},
   {type:"Journée (24h)",heures:24},{type:"Week-end (48h)",heures:48},
   {type:"Week-end (72h)",heures:72},{type:"Semaine (7j)",heures:168},{type:"Mois (30j)",heures:720},
 ];
@@ -1002,21 +1003,31 @@ function calcTarifAuto(vehicle,nbJours,heuresLoc,prixJourModifie){
     const p=parseFloat(prixJourModifie)*nbJours;
     return{prix:p,label:`Personnalisé — ${prixJourModifie} €/j x ${nbJours}j`};
   }
-  // Utiliser nbJours*24 pour le matching : évite les décalages de minutes
-  // qui font passer Math.ceil(24h28) = 25h et rater le seuil "Journée 24h"
+  const specials=(vehicle.tarifsSpeciaux||[]).slice();
+  // Tarif horaire : s'applique pour les locations < 24h
+  const horaireT=specials.find(t=>t.type==="Tarif horaire");
+  if(horaireT&&(heuresLoc||nbJours*24)<24){
+    const h=Math.max(heuresLoc||1,1);
+    const prix=parseFloat(horaireT.prix)*h;
+    return{prix,label:`${horaireT.label||"Horaire"} — ${horaireT.prix} €/h × ${h}h`};
+  }
+  // Tarifs paliers (journée/WE/semaine/mois) — comparaison sur nbJours*24
+  // pour éviter le bug des minutes résiduelles (Math.ceil 24h28 = 25h)
   const h=nbJours*24;
-  const specials=(vehicle.tarifsSpeciaux||[]).slice().sort((a,b)=>{
+  const paliers=specials.filter(t=>t.type!=="Tarif horaire").sort((a,b)=>{
     const ha=TARIFS_PRESETS.find(p=>p.type===a.type)?.heures||9999;
     const hb=TARIFS_PRESETS.find(p=>p.type===b.type)?.heures||9999;
     return ha-hb;
   });
-  for(const t of specials){
+  for(const t of paliers){
     const preset=TARIFS_PRESETS.find(p=>p.type===t.type);
     if(preset&&h<=preset.heures){
       const prix=t.unite==="forfait"?parseFloat(t.prix):parseFloat(t.prix)*nbJours;
       return{prix,label:`${t.label||t.type} — ${t.prix} €`};
     }
   }
+  // Fallback standard — s'applique aussi pour les durées > dernier palier configuré
+  // ex : 31 jours avec un palier Mois (30j) → tarif journalier × 31
   return{prix:(vehicle.tarif||0)*nbJours,label:`Standard — ${vehicle.tarif} €/j x ${nbJours}j`};
 }
 
@@ -1728,21 +1739,27 @@ function AppContent(){
             <div style={{flex:1,overflowY:"auto",padding:14}}>
               {tarifsTemp.map(t=>(
                 <div key={t.id} style={{display:"flex",gap:8,alignItems:"center",padding:10,background:"#f9fafb",borderRadius:10,marginBottom:7,border:"1px solid #e5e7eb"}}>
-                  <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13}}>{t.label||t.type}</div><div style={{fontSize:11,color:"#6b7280"}}>{t.type} · {t.unite==="forfait"?"Forfait":"Par jour"}</div></div>
-                  <input type="number" style={{width:75,border:"1px solid #d1d5db",borderRadius:6,padding:"5px 7px",fontSize:13,fontWeight:700}} value={t.prix} onChange={e=>setTarifsTemp(ts=>ts.map(x=>x.id===t.id?{...x,prix:e.target.value}:x))}/>
-                  <span style={{fontSize:12,color:"#6b7280"}}>{sym}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,fontSize:13}}>{t.label||t.type}</div>
+                    <div style={{fontSize:11,color:"#6b7280"}}>
+                      {t.type==="Tarif horaire"?"À l'heure (< 24h)":t.type+" · "+(t.unite==="forfait"?"Forfait":"Par jour")}
+                    </div>
+                  </div>
+                  <input type="number" step="0.01" style={{width:75,border:"1px solid #d1d5db",borderRadius:6,padding:"5px 7px",fontSize:13,fontWeight:700}} value={t.prix} onChange={e=>setTarifsTemp(ts=>ts.map(x=>x.id===t.id?{...x,prix:e.target.value}:x))}/>
+                  <span style={{fontSize:12,color:"#6b7280"}}>{t.type==="Tarif horaire"?"€/h":sym}</span>
                   <button onClick={()=>setTarifsTemp(ts=>ts.filter(x=>x.id!==t.id))} style={{padding:"4px 8px",background:"#fef2f2",color:"#ef4444",border:"none",borderRadius:6,cursor:"pointer"}}>X</button>
                 </div>
               ))}
               <div style={{background:"#eff6ff",borderRadius:12,padding:14,border:"1px solid #bfdbfe",marginTop:8}}>
                 <p style={{fontSize:12,fontWeight:700,color:"#1d4ed8",marginBottom:10}}>+ Nouveau tarif</p>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                  <div><label style={LBL_STYLE}>Durée</label><select style={INP_STYLE()} value={ntarif.type} onChange={e=>setNtarif(x=>({...x,type:e.target.value}))}>{TARIFS_PRESETS.map(p=><option key={p.type}>{p.type}</option>)}</select></div>
+                  <div><label style={LBL_STYLE}>Type</label><select style={INP_STYLE()} value={ntarif.type} onChange={e=>setNtarif(x=>({...x,type:e.target.value,unite:e.target.value==="Tarif horaire"?"heure":x.unite}))}>{TARIFS_PRESETS.map(p=><option key={p.type}>{p.type}</option>)}</select></div>
                   <div><label style={LBL_STYLE}>Nom affiché</label><input style={INP_STYLE()} placeholder="ex: WE 48h" value={ntarif.label} onChange={e=>setNtarif(x=>({...x,label:e.target.value}))}/></div>
-                  <div><label style={LBL_STYLE}>Prix ({sym})</label><input type="number" style={INP_STYLE()} placeholder="ex: 130" value={ntarif.prix} onChange={e=>setNtarif(x=>({...x,prix:e.target.value}))}/></div>
-                  <div><label style={LBL_STYLE}>Unité</label><select style={INP_STYLE()} value={ntarif.unite} onChange={e=>setNtarif(x=>({...x,unite:e.target.value}))}><option value="forfait">Forfait total</option><option value="jour">Par jour</option></select></div>
+                  <div><label style={LBL_STYLE}>Prix ({ntarif.type==="Tarif horaire"?"€/h":sym})</label><input type="number" step="0.01" style={INP_STYLE()} placeholder={ntarif.type==="Tarif horaire"?"ex: 15":"ex: 130"} value={ntarif.prix} onChange={e=>setNtarif(x=>({...x,prix:e.target.value}))}/></div>
+                  {ntarif.type!=="Tarif horaire"&&<div><label style={LBL_STYLE}>Unité</label><select style={INP_STYLE()} value={ntarif.unite} onChange={e=>setNtarif(x=>({...x,unite:e.target.value}))}><option value="forfait">Forfait total</option><option value="jour">Par jour</option></select></div>}
+                  {ntarif.type==="Tarif horaire"&&<div style={{display:"flex",alignItems:"center",padding:"8px 10px",background:"#fef3c7",borderRadius:8,fontSize:11,color:"#92400e",border:"1px solid #fde68a"}}>⏱ S'applique si durée &lt; 24h</div>}
                 </div>
-                <button onClick={()=>{if(!ntarif.prix||parseFloat(ntarif.prix)<=0){toast_("Prix invalide","error");return;}setTarifsTemp(ts=>[...ts,{id:Date.now(),...ntarif,label:ntarif.label||ntarif.type}]);setNtarif({type:"Week-end (48h)",label:"",prix:"",unite:"forfait"});}} style={{width:"100%",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
+                <button onClick={()=>{if(!ntarif.prix||parseFloat(ntarif.prix)<=0){toast_("Prix invalide","error");return;}setTarifsTemp(ts=>[...ts,{id:Date.now(),...ntarif,label:ntarif.label||ntarif.type}]);setNtarif({type:"Journée (24h)",label:"",prix:"",unite:"forfait"});}} style={{width:"100%",background:"#1d4ed8",color:"white",border:"none",borderRadius:8,padding:"8px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>+ Ajouter</button>
               </div>
             </div>
             <div style={{padding:"12px 16px",borderTop:"1px solid #e5e7eb",display:"flex",gap:8,background:"white"}}>

@@ -2194,26 +2194,26 @@ function AppContent(){
           return(
           <div>
             {/* Header */}
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
-              <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Planning</h1>
-              <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+            <div style={{marginBottom:12}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <h1 style={{fontSize:18,fontWeight:800,color:"#1f2937"}}>Planning</h1>
                 <div style={{display:"flex",background:"white",borderRadius:8,border:"1px solid #e5e7eb",overflow:"hidden"}}>
-                  <button onClick={()=>setPlanView("calendrier")} style={{padding:"6px 14px",fontSize:11,fontWeight:600,background:planView==="calendrier"?"#1e3a8a":"white",color:planView==="calendrier"?"white":"#374151",border:"none",cursor:"pointer"}}>📅 Calendrier</button>
-                  <button onClick={()=>setPlanView("gantt")} style={{padding:"6px 14px",fontSize:11,fontWeight:600,background:planView==="gantt"?"#1e3a8a":"white",color:planView==="gantt"?"white":"#374151",border:"none",cursor:"pointer"}}>📊 Gantt</button>
+                  <button onClick={()=>setPlanView("calendrier")} style={{padding:"6px 12px",fontSize:11,fontWeight:600,background:planView==="calendrier"?"#1e3a8a":"white",color:planView==="calendrier"?"white":"#374151",border:"none",cursor:"pointer"}}>📅 Cal.</button>
+                  <button onClick={()=>setPlanView("gantt")} style={{padding:"6px 12px",fontSize:11,fontWeight:600,background:planView==="gantt"?"#1e3a8a":"white",color:planView==="gantt"?"white":"#374151",border:"none",cursor:"pointer"}}>📊 Gantt</button>
                 </div>
-                {planView==="calendrier"&&<>
-                  <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()-1);setPlanMonth(new Date(d));}} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>◀</button>
-                  <span style={{fontWeight:700,fontSize:13,minWidth:120,textAlign:"center",textTransform:"capitalize"}}>{planMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</span>
-                  <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()+1);setPlanMonth(new Date(d));}} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>▶</button>
-                  <button onClick={()=>setPlanMonth(new Date())} style={{padding:"6px 10px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700}}>Aujourd'hui</button>
-                </>}
-                {planView==="gantt"&&<>
-                  <button onClick={ganttPrevMonth} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>◀</button>
-                  <span style={{fontWeight:700,fontSize:13,minWidth:120,textAlign:"center",textTransform:"capitalize"}}>{MONTH_NAMES[ganttStartDate.getMonth()]} {ganttStartDate.getFullYear()}</span>
-                  <button onClick={ganttNextMonth} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13}}>▶</button>
-                  <button onClick={ganttGoToday} style={{padding:"6px 10px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700}}>Aujourd'hui</button>
-                </>}
               </div>
+              {planView==="calendrier"&&<div style={{display:"flex",alignItems:"center",gap:6}}>
+                <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()-1);setPlanMonth(new Date(d));}} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13,flexShrink:0}}>◀</button>
+                <span style={{fontWeight:700,fontSize:13,textAlign:"center",textTransform:"capitalize",flex:1}}>{planMonth.toLocaleDateString("fr-FR",{month:"long",year:"numeric"})}</span>
+                <button onClick={()=>{const d=new Date(planMonth);d.setMonth(d.getMonth()+1);setPlanMonth(new Date(d));}} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13,flexShrink:0}}>▶</button>
+                <button onClick={()=>setPlanMonth(new Date())} style={{padding:"6px 10px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700,flexShrink:0}}>Auj.</button>
+              </div>}
+              {planView==="gantt"&&<div style={{display:"flex",alignItems:"center",gap:6}}>
+                <button onClick={ganttPrevMonth} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13,flexShrink:0}}>◀</button>
+                <span style={{fontWeight:700,fontSize:13,textAlign:"center",textTransform:"capitalize",flex:1}}>{MONTH_NAMES[ganttStartDate.getMonth()]} {ganttStartDate.getFullYear()}</span>
+                <button onClick={ganttNextMonth} style={{padding:"6px 10px",background:"white",border:"1px solid #e5e7eb",borderRadius:8,cursor:"pointer",fontWeight:700,fontSize:13,flexShrink:0}}>▶</button>
+                <button onClick={ganttGoToday} style={{padding:"6px 10px",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700,flexShrink:0}}>Auj.</button>
+              </div>}
             </div>
 
             {/* Légende véhicules */}
@@ -2229,16 +2229,16 @@ function AppContent(){
 
             {/* VUE CALENDRIER */}
             {planView==="calendrier"&&(
-              <div style={{background:"white",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)"}}>
+              <div style={{background:"white",borderRadius:14,overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.07)",width:"100%"}}>
                 {/* Jours semaine */}
                 <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:"#1e3a8a"}}>
-                  {["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].map(j=>(
-                    <div key={j} style={{textAlign:"center",padding:"8px 0",fontSize:11,fontWeight:700,color:"white",opacity:j==="Sam"||j==="Dim"?.6:1}}>{j}</div>
+                  {["L","M","Me","J","V","S","D"].map((j,ji)=>(
+                    <div key={j} style={{textAlign:"center",padding:"7px 0",fontSize:11,fontWeight:700,color:"white",opacity:ji>=5?.6:1}}>{j}</div>
                   ))}
                 </div>
                 {/* Semaines */}
                 {calWeeks.map((week,wi)=>(
-                  <div key={wi} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",borderTop:"1px solid #f0f0f0"}}>
+                  <div key={wi} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",borderTop:"1px solid #f0f0f0",minWidth:0}}>
                     {week.map((d,di)=>{
                       const isToday=d&&d.toDateString()===todayStr;
                       const isWE=di>=5;
@@ -2247,15 +2247,16 @@ function AppContent(){
                         return dStr>=c.dateDebut&&dStr<=c.dateFin;
                       }):[];
                       return(
-                        <div key={di} style={{minHeight:72,padding:"4px",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:di>0?"1px solid #f0f0f0":"none",position:"relative"}}>
-                          {d&&<div style={{fontSize:12,fontWeight:isToday?800:400,marginBottom:3,width:22,height:22,borderRadius:"50%",background:isToday?"#2563eb":"transparent",color:isToday?"white":isWE?"#9ca3af":"#374151",display:"flex",alignItems:"center",justifyContent:"center"}}>{d.getDate()}</div>}
-                          <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                            {reservations.slice(0,3).map((c,ci)=>{
+                        <div key={di} style={{minHeight:64,padding:"3px 2px",background:isToday?"#eff6ff":isWE?"#fafafa":"white",borderLeft:di>0?"1px solid #f0f0f0":"none",position:"relative",minWidth:0,overflow:"hidden"}}>
+                          {d&&<div style={{fontSize:11,fontWeight:isToday?800:400,marginBottom:2,width:20,height:20,borderRadius:"50%",background:isToday?"#2563eb":"transparent",color:isToday?"white":isWE?"#9ca3af":"#374151",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{d.getDate()}</div>}
+                          <div style={{display:"flex",flexDirection:"column",gap:1,minWidth:0}}>
+                            {reservations.slice(0,2).map((c,ci)=>{
                               const vi=vehicles.findIndex(v=>v.id===c.vehicleId);
                               const col=ganttColors[vi%ganttColors.length];
-                              return <div key={c.id} style={{background:col,borderRadius:3,padding:"1px 4px",fontSize:9,fontWeight:700,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={c.locNom+" — "+c.vehicleLabel}>{c.locNom||c.vehicleLabel}</div>;
+                              const prenom=(c.locNom||c.vehicleLabel||"").split(" ")[0];
+                              return <div key={c.id} style={{background:col,borderRadius:3,padding:"1px 3px",fontSize:8,fontWeight:700,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",minWidth:0}} title={c.locNom+" — "+c.vehicleLabel}>{prenom}</div>;
                             })}
-                            {reservations.length>3&&<div style={{fontSize:9,color:"#6b7280",fontWeight:600}}>+{reservations.length-3} autres</div>}
+                            {reservations.length>2&&<div style={{fontSize:8,color:"#6b7280",fontWeight:700,lineHeight:"1.2"}}>+{reservations.length-2}</div>}
                           </div>
                         </div>
                       );

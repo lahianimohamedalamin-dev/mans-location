@@ -78,7 +78,43 @@ ALTER TABLE profils ADD COLUMN IF NOT EXISTS docs jsonb DEFAULT '[]';
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS devise text DEFAULT 'EUR';
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS snap text;
 ALTER TABLE profils ADD COLUMN IF NOT EXISTS iban text;
--- Recharge le cache schema Supabase (nécessaire après ajout de colonnes)
+
+-- ============================================================
+-- MIGRATION : Champs véhicule manquants (motorisation, boite, etc.)
+-- ============================================================
+ALTER TABLE vehicules ADD COLUMN IF NOT EXISTS motorisation      text;
+ALTER TABLE vehicules ADD COLUMN IF NOT EXISTS boite             text;
+ALTER TABLE vehicules ADD COLUMN IF NOT EXISTS puissance_fiscale text;
+ALTER TABLE vehicules ADD COLUMN IF NOT EXISTS description       text;
+ALTER TABLE vehicules ADD COLUMN IF NOT EXISTS location_min_48   boolean DEFAULT false;
+
+-- ============================================================
+-- MIGRATION : Table clients persistante
+-- ============================================================
+CREATE TABLE IF NOT EXISTS clients (
+  id          uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     uuid        REFERENCES auth.users NOT NULL,
+  cle         text        NOT NULL,
+  nom         text,
+  tel         text,
+  adresse     text,
+  email       text,
+  permis      text,
+  docs        jsonb       DEFAULT '{}'::jsonb,
+  created_at  timestamptz DEFAULT now(),
+  updated_at  timestamptz DEFAULT now(),
+  UNIQUE (user_id, cle)
+);
+
+ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "clients_owner" ON clients;
+CREATE POLICY "clients_owner" ON clients
+  USING  (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS clients_user_id_idx ON clients (user_id);
+
+-- Recharge le cache schema Supabase (nécessaire après ajout de colonnes/tables)
 NOTIFY pgrst, 'reload schema';
 
 -- ============================================================

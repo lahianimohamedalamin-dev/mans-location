@@ -1157,13 +1157,16 @@ function AppContent(){
     return contrats.find(c=>c.vehicleId===vehicleId&&new Date(c.dateDebut)<=dt&&new Date(c.dateFin)>=dt)||null;
   }
 
-  function upsertClient(contrat,docs){
+  async function upsertClient(contrat,docs){
     const key=(contrat.locNom||"").trim().toLowerCase()+"_"+(contrat.locTel||"").replace(/\D/g,"").slice(-6);
     setClients(prev=>{
       const existing=prev.find(c=>c.key===key);
       if(existing){return prev.map(c=>c.key===key?{...c,nom:contrat.locNom,tel:contrat.locTel,adresse:contrat.locAdresse,email:contrat.locEmail,permis:contrat.locPermis,docs:{...c.docs,...docs},updatedAt:new Date().toISOString()}:c);}
       return[...prev,{id:Date.now(),key,nom:contrat.locNom,tel:contrat.locTel,adresse:contrat.locAdresse,email:contrat.locEmail||"",permis:contrat.locPermis||"",docs:{...docs},createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}];
     });
+    if(!user)return;
+    const{error}=await supabase.from('clients').upsert({user_id:user.id,cle:key,nom:contrat.locNom,tel:contrat.locTel,adresse:contrat.locAdresse||null,email:contrat.locEmail||null,permis:contrat.locPermis||null,docs:docs||{},updated_at:new Date().toISOString()},{onConflict:'user_id,cle'});
+    if(error)console.error('[upsertClient]',error);
   }
 
   const resetUserData=useCallback(()=>{
@@ -1219,32 +1222,38 @@ function AppContent(){
     // Afficher le loading seulement s'il n'y a pas de cache
     if(!hasCachedData)setDataLoaded(false);
     try{
-      const[profRes,vehRes,conRes,depRes,retRes,amenRes]=await Promise.all([
+      const[profRes,vehRes,conRes,depRes,retRes,amenRes,cliRes]=await Promise.all([
         supabase.from('profils').select('*').eq('user_id',uid).maybeSingle(),
         supabase.from('vehicules').select('*').eq('user_id',uid),
         supabase.from('contrats').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('depenses').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
         supabase.from('retours').select('*').eq('user_id',uid),
         supabase.from('amendes').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
+        supabase.from('clients').select('*').eq('user_id',uid).order('updated_at',{ascending:false}),
       ]);
       if(activeUserIdRef.current!==uid)return;
       const p=profRes.data||{};
       const profData={nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||'',devise:p.devise||'EUR',reseaux:p.reseaux||'',docs:p.docs||[]};
       setProfil(profData);setProfilForm(profData);
       if(vehRes.data){
-        setVehicles(vehRes.data.map(v=>({id:v.id,typeVehicule:v.type_vehicule||'voiture',marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,vin:v.vin||'',nbPortes:v.nb_portes||'',nbPlaces:v.nb_places||'',numParc:v.num_parc||'',docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],photosVehicule:v.photos_vehicule||[],publie:v.publie||false})));
+        setVehicles(vehRes.data.map(v=>({id:v.id,typeVehicule:v.type_vehicule||'voiture',marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,vin:v.vin||'',nbPortes:v.nb_portes||'',nbPlaces:v.nb_places||'',numParc:v.num_parc||'',motorisation:v.motorisation||'',boite:v.boite||'',puissanceFiscale:v.puissance_fiscale||'',description:v.description||'',locationMin48:v.location_min_48||false,docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],photosVehicule:v.photos_vehicule||[],publie:v.publie||false})));
       }
       let loadedContrats=[];
       const clientMap={};
       if(conRes.data){
         loadedContrats=conRes.data.map(c=>({id:c.id,locNom:c.loc_nom||'',locPrenom:c.loc_prenom||'',locAdresse:c.loc_adresse||'',locTel:c.loc_tel||'',locEmail:c.loc_email||'',locPermis:c.loc_permis||'',dateDebut:c.date_debut||'',heureDebut:c.heure_debut||'10:00',dateFin:c.date_fin||'',heureFin:c.heure_fin||'10:00',paiement:c.paiement||'especes',cautionMode:c.caution_mode||'especes',kmDepart:c.km_depart||'',nbJours:c.nb_jours||1,heuresLoc:c.heures_loc||24,carburantDepart:c.carburant_depart??100,exterieurPropre:c.exterieur_propre,interieurPropre:c.interieur_propre,vehicleId:c.vehicle_id,vehicleLabel:c.vehicle_label||'',immat:c.immat||'',sigL:c.sig_l||null,sigLoc:c.sig_loc||null,totalCalc:c.total_calc||0,tarifLabel:c.tarif_label||'',remise:c.remise||0,accompte:c.accompte||0,resteAPayer:c.reste_a_payer||0,prixJourModifie:c.prix_jour_modifie||'',photosDepart:c.photos_depart||[],docsLocataire:c.docs_locataire||{},fraisSnap:c.frais_snap||[],clausesSnap:c.clauses_snap||[],kmInclus:c.km_inclus,prixKmSup:c.prix_km_sup}));
         setContrats(loadedContrats);
-        loadedContrats.forEach(c=>{
-          const key=(c.locNom||"").trim().toLowerCase()+"_"+(c.locTel||"").replace(/\D/g,"").slice(-6);
-          if(!clientMap[key]){clientMap[key]={id:key,key,nom:c.locNom,tel:c.locTel,adresse:c.locAdresse,email:c.locEmail||"",permis:c.locPermis||"",docs:c.docsLocataire||{},createdAt:c.dateDebut,updatedAt:c.dateDebut};}
-          else{clientMap[key]={...clientMap[key],docs:{...clientMap[key].docs,...(c.docsLocataire||{})}};}
-        });
-        setClients(Object.values(clientMap));
+        // Clients depuis Supabase (table dédiée) — fallback reconstruction depuis contrats si table vide
+        if(cliRes.data&&cliRes.data.length>0){
+          setClients(cliRes.data.map(c=>({id:c.id,key:c.cle,nom:c.nom||'',tel:c.tel||'',adresse:c.adresse||'',email:c.email||'',permis:c.permis||'',docs:c.docs||{},createdAt:c.created_at,updatedAt:c.updated_at})));
+        }else{
+          loadedContrats.forEach(c=>{
+            const key=(c.locNom||"").trim().toLowerCase()+"_"+(c.locTel||"").replace(/\D/g,"").slice(-6);
+            if(!clientMap[key]){clientMap[key]={id:key,key,nom:c.locNom,tel:c.locTel,adresse:c.locAdresse,email:c.locEmail||"",permis:c.locPermis||"",docs:c.docsLocataire||{},createdAt:c.dateDebut,updatedAt:c.dateDebut};}
+            else{clientMap[key]={...clientMap[key],docs:{...clientMap[key].docs,...(c.docsLocataire||{})}};}
+          });
+          setClients(Object.values(clientMap));
+        }
       }
       if(depRes.data){setDepenses(depRes.data.map(d=>({id:d.id,label:d.label||'',montant:d.montant||0,categorie:d.categorie||'Carburant',date:d.date||'',vehicleId:d.vehicle_id||''})));}
       if(retRes.data){
@@ -1462,13 +1471,13 @@ function AppContent(){
     const base={...vForm,km:+vForm.km,tarif:+vForm.tarif,caution:+vForm.caution||1000,kmInclus:+vForm.kmInclus||0,prixKmSup:+vForm.prixKmSup||0};
     if(editV){
       setVehicles(vs=>vs.map(x=>x.id===editV.id?{...x,...base}:x));toast_("Mis à jour");
-      if(user)await supabase.from('vehicules').update({marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc}).eq('id',editV.id).eq('user_id',user.id);
+      if(user)await supabase.from('vehicules').update({marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc,motorisation:base.motorisation||null,boite:base.boite||null,puissance_fiscale:base.puissanceFiscale||null,description:base.description||null,location_min_48:base.locationMin48||false}).eq('id',editV.id).eq('user_id',user.id);
     }else{
       const localId=Date.now();
       setVehicles(vs=>[...vs,{id:localId,...base,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[],photosVehicule:[],publie:false}]);
       toast_("Véhicule ajouté !");
       if(user){
-        const{data:ins,error:err}=await supabase.from('vehicules').insert([{user_id:user.id,marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifs_speciaux:[],photos_vehicule:[],publie:false}]).select().single();
+        const{data:ins,error:err}=await supabase.from('vehicules').insert([{user_id:user.id,marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc,motorisation:base.motorisation||null,boite:base.boite||null,puissance_fiscale:base.puissanceFiscale||null,description:base.description||null,location_min_48:base.locationMin48||false,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifs_speciaux:[],photos_vehicule:[],publie:false}]).select().single();
         if(err){
           console.error('[addV] Erreur DB:',err);
           toast_("Erreur sauvegarde véhicule: "+err.message,"error");

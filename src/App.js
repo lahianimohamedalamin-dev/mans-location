@@ -1470,11 +1470,29 @@ function AppContent(){
       const eid=editV.id;
       setVehicles(vs=>vs.map(x=>x.id===eid?{...x,...base}:x));
       if(user){
-        const{error:upErr}=await supabase.from('vehicules').update({marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc}).eq('id',eid).eq('user_id',user.id);
-        if(upErr){toast_("Erreur sauvegarde: "+upErr.message,"error");console.error("addV update error:",upErr);}
-        else{
+        console.log("Saving vehicle id=",eid,"user_id=",user.id);
+        const{data:updRows,error:upErr}=await supabase.from('vehicules')
+          .update({marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc})
+          .eq('id',eid).eq('user_id',user.id)
+          .select('id');
+        if(upErr){
+          toast_("Erreur sauvegarde: "+upErr.message,"error");
+          console.error("addV update error:",upErr);
+        }else if(!updRows||updRows.length===0){
+          // 0 lignes mises à jour → l'ID n'a pas été trouvé dans Supabase
+          // Essai sans filtre user_id (au cas où user_id ne correspond pas)
+          const{data:r2,error:e2}=await supabase.from('vehicules')
+            .update({marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc})
+            .eq('id',eid).select('id');
+          if(e2||!r2||r2.length===0){
+            console.error("Vehicle not found in Supabase either. id=",eid,e2);
+            toast_("Véhicule introuvable en base — rechargez la page","error");
+          }else{
+            toast_("Mis à jour !");
+            try{const c=localStorage.getItem('ml_data_'+user.id);if(c){const d=JSON.parse(c);if(d.vehicles)d.vehicles=d.vehicles.map(v=>v.id===eid?{...v,...base}:v);localStorage.setItem('ml_data_'+user.id,JSON.stringify(d));}}catch{}
+          }
+        }else{
           toast_("Mis à jour !");
-          // Mettre à jour le cache localStorage pour éviter l'ancienne version au rechargement
           try{const c=localStorage.getItem('ml_data_'+user.id);if(c){const d=JSON.parse(c);if(d.vehicles)d.vehicles=d.vehicles.map(v=>v.id===eid?{...v,...base}:v);localStorage.setItem('ml_data_'+user.id,JSON.stringify(d));}}catch{}
         }
       }else toast_("Mis à jour !");

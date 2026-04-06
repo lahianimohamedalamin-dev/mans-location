@@ -69,7 +69,7 @@ const TARIFS_PRESETS=[
   {type:"Journée (24h)",heures:24},{type:"Week-end (48h)",heures:48},
   {type:"Week-end (72h)",heures:72},{type:"Semaine (7j)",heures:168},{type:"Mois (30j)",heures:744},
 ];
-const INIT_PROFIL={nom:"",entreprise:"",siren:"",siret:"",kbis:"",tel:"",whatsapp:"",snap:"",email:"",adresse:"",ville:"",iban:"",devise:"EUR"};
+const INIT_PROFIL={nom:"",entreprise:"",siren:"",siret:"",kbis:"",tel:"",whatsapp:"",snap:"",email:"",adresse:"",ville:"",iban:"",devise:"EUR",reseaux:"",docs:[]};
 const CAR_BRANDS={
   // === VOITURES ===
   "Alfa Romeo":["Giulia","Stelvio","Tonale","Giulietta","MiTo","4C"],
@@ -1229,7 +1229,7 @@ function AppContent(){
       ]);
       if(activeUserIdRef.current!==uid)return;
       const p=profRes.data||{};
-      const profData={nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||'',devise:p.devise||'EUR'};
+      const profData={nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||'',devise:p.devise||'EUR',reseaux:p.reseaux||'',docs:p.docs||[]};
       setProfil(profData);setProfilForm(profData);
       if(vehRes.data){
         setVehicles(vehRes.data.map(v=>({id:v.id,typeVehicule:v.type_vehicule||'voiture',marque:v.marque||'',modele:v.modele||'',immat:v.immat||'',couleur:v.couleur||'',annee:v.annee||'',km:v.km||0,tarif:v.tarif||0,caution:v.caution||1000,kmInclus:v.km_inclus||0,prixKmSup:v.prix_km_sup||0,kmIllimite:v.km_illimite||false,vin:v.vin||'',nbPortes:v.nb_portes||'',nbPlaces:v.nb_places||'',numParc:v.num_parc||'',docs:v.docs||[],frais:v.frais||DEF_FRAIS.map(f=>({...f})),clauses:v.clauses||DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:v.tarifs_speciaux||[],photosVehicule:v.photos_vehicule||[],publie:v.publie||false})));
@@ -1358,8 +1358,13 @@ function AppContent(){
     setForm(makeForm0());setTouched({});setSelId(null);setSigL(null);setSigLoc(null);setPhotosDepart([]);setDocsLocataire({});setSearchClientContrat("");
     if(user){
       const{data:ins,error:err}=await supabase.from('contrats').insert([{user_id:user.id,loc_prenom:form.locPrenom||'',loc_nom:locNom,loc_adresse:form.locAdresse,loc_tel:form.locTel,loc_email:form.locEmail,loc_permis:form.locPermis,date_debut:form.dateDebut,heure_debut:form.heureDebut,date_fin:form.dateFin,heure_fin:form.heureFin,paiement:form.paiement,caution_mode:form.cautionMode,km_depart:form.kmDepart,nb_jours:form.nbJours,heures_loc:form.heuresLoc,carburant_depart:form.carburantDepart,exterieur_propre:form.exterieurPropre,interieur_propre:form.interieurPropre,vehicle_id:c.vehicleId,vehicle_label:c.vehicleLabel,immat:c.immat,sig_l:c.sigL,sig_loc:c.sigLoc,total_calc:c.totalCalc,tarif_label:c.tarifLabel,remise:c.remise||0,accompte:c.accompte||0,reste_a_payer:c.resteAPayer||0,prix_jour_modifie:form.prixJourModifie||null,photos_depart:c.photosDepart,docs_locataire:c.docsLocataire,frais_snap:c.fraisSnap,clauses_snap:c.clausesSnap,km_inclus:c.kmInclus,prix_km_sup:c.prixKmSup}]).select().single();
-      if(!err&&ins)setContrats(p=>p.map(x=>x.id===c.id?{...x,id:ins.id}:x));
-      if(err){console.error(err);toast_("Erreur sauvegarde contrat: "+err.message,"error");}
+      if(err){
+        console.error('[saveContrat] Erreur DB:',err);
+        toast_("Erreur sauvegarde contrat: "+err.message,"error");
+        setContrats(p=>p.filter(x=>x.id!==c.id));
+        return;
+      }
+      if(ins)setContrats(p=>p.map(x=>x.id===c.id?{...x,id:ins.id}:x));
       // Envoi mail automatique si email renseigné
       if(form.locEmail){
         const realId=(!err&&ins)?ins.id:c.id;
@@ -1400,7 +1405,15 @@ function AppContent(){
     const newLabel=`Prolongé — ${tarifJ} €/j x ${newNbJours}j`;
     const updated={...c,dateFin:prolonDateFin,heureFin:prolonHeureFin,nbJours:newNbJours,totalCalc:newTotal,tarifLabel:newLabel};
     setContrats(cs=>cs.map(x=>x.id===c.id?updated:x));
-    if(user){await supabase.from('contrats').update({date_fin:prolonDateFin,heure_fin:prolonHeureFin,nb_jours:newNbJours,total_calc:newTotal,tarif_label:newLabel}).eq('id',c.id).eq('user_id',user.id);}
+    if(user){
+      const{error:prolErr}=await supabase.from('contrats').update({date_fin:prolonDateFin,heure_fin:prolonHeureFin,nb_jours:newNbJours,total_calc:newTotal,tarif_label:newLabel}).eq('id',c.id).eq('user_id',user.id);
+      if(prolErr){
+        console.error('[prolongerContrat] Erreur DB:',prolErr);
+        toast_("Erreur prolongation: "+prolErr.message,"error");
+        setContrats(cs=>cs.map(x=>x.id===c.id?c:x));
+        return;
+      }
+    }
     toast_("Contrat prolongé jusqu'au "+prolonDateFin+" !");
     setProlonContrat(null);
   }
@@ -1415,8 +1428,18 @@ function AppContent(){
     setPvMailStatus(null);
     toast_("Retour enregistré + PV PDF généré !");setRetourContratId(null);
     if(user){
-      await supabase.from('retours').insert([{user_id:user.id,contrat_id:contratId,km_retour:data.kmRetour||null,carburant_retour:data.carburantRetour??null,montant_retenu:data.montantRetenu||0,raison_retenue:data.raisonRetenue||'',rembourse:data.rembourse||0,km_sup:data.kmSup||0,surplus_km:data.surplusKm||0,caution_restituee:data.cautionRestituee,checks:data.checks||{},carro:data.carro||{},carro_photos:data.carroPhotos||{},carro_notes:data.carroNotes||{},photos:data.photos||{},notes:data.notes||'',remise_retour:data.remiseRetour||0,date:data.date||new Date().toISOString()}]);
-      if(ct&&data.kmRetour)await supabase.from('vehicules').update({km:parseFloat(data.kmRetour)}).eq('id',ct.vehicleId).eq('user_id',user.id);
+      const{data:retIns,error:retErr}=await supabase.from('retours').insert([{user_id:user.id,contrat_id:contratId,km_retour:data.kmRetour||null,carburant_retour:data.carburantRetour??null,montant_retenu:data.montantRetenu||0,raison_retenue:data.raisonRetenue||'',rembourse:data.rembourse||0,km_sup:data.kmSup||0,surplus_km:data.surplusKm||0,caution_restituee:data.cautionRestituee,checks:data.checks||{},carro:data.carro||{},carro_photos:data.carroPhotos||{},carro_notes:data.carroNotes||{},photos:data.photos||{},notes:data.notes||'',remise_retour:data.remiseRetour||0,date:data.date||new Date().toISOString()}]).select().single();
+      if(retErr){
+        console.error('[saveRetour] Erreur DB:',retErr);
+        toast_("Erreur sauvegarde retour: "+retErr.message,"error");
+        setRetours(r=>{const n={...r};delete n[contratId];return n;});
+        return;
+      }
+      if(retIns)setRetours(r=>({...r,[contratId]:{...data,id:retIns.id}}));
+      if(ct&&data.kmRetour){
+        const{error:kmErr}=await supabase.from('vehicules').update({km:parseFloat(data.kmRetour)}).eq('id',ct.vehicleId).eq('user_id',user.id);
+        if(kmErr)console.error('[saveRetour] km update failed:',kmErr);
+      }
       if(ct?.locEmail){
         setPvMailStatus("sending");
         const{sent,reason}=await envoyerContratParMail(supabase,pvHTML,contratId,ct.locEmail,ct.locNom);
@@ -1446,8 +1469,13 @@ function AppContent(){
       toast_("Véhicule ajouté !");
       if(user){
         const{data:ins,error:err}=await supabase.from('vehicules').insert([{user_id:user.id,marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifs_speciaux:[],photos_vehicule:[],publie:false}]).select().single();
-        if(!err&&ins)setVehicles(vs=>vs.map(x=>x.id===localId?{...x,id:ins.id}:x));
-        if(err)console.error(err);
+        if(err){
+          console.error('[addV] Erreur DB:',err);
+          toast_("Erreur sauvegarde véhicule: "+err.message,"error");
+          setVehicles(vs=>vs.filter(x=>x.id!==localId));
+        }else if(ins){
+          setVehicles(vs=>vs.map(x=>x.id===localId?{...x,id:ins.id}:x));
+        }
       }
     }
     setVForm({typeVehicule:"voiture",marque:"",modele:"",immat:"",couleur:"",annee:"",km:"",tarif:"",caution:"",kmInclus:"",prixKmSup:"",kmIllimite:false,motorisation:"Essence",boite:"Manuelle",puissanceFiscale:"",vin:"",nbPortes:"",nbPlaces:"",numParc:"",description:"",locationMin48:false});
@@ -1574,7 +1602,7 @@ function AppContent(){
             <TelInput value={profilForm[k]||""} onChange={v=>setProfilForm(p=>({...p,[k]:v}))} placeholder={l.replace(" *","")}/>
           </div>
         ))}
-        <button onClick={async()=>{if(!profilForm.nom||!profilForm.entreprise)return;setProfil({...profilForm});if(user)await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...profilForm},{onConflict:'user_id'});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>Commencer</button>
+        <button onClick={async()=>{if(!profilForm.nom||!profilForm.entreprise)return;const pf={...profilForm,docs:profilForm.docs||[],reseaux:profilForm.reseaux||null};setProfil(pf);if(user){const{error:e}=await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...pf},{onConflict:'user_id'});if(e)console.error('[onboarding] Erreur profil:',e);}}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>Commencer</button>
         <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
       </div>
     </div>
@@ -1710,7 +1738,7 @@ function AppContent(){
             </div>
             <div style={{padding:"12px 16px",borderTop:"1px solid #e5e7eb",background:"white"}}>
               <div style={{display:"flex",gap:8,marginBottom:deleteClientConfirm!==null?8:0}}>
-                <button onClick={()=>{setForm(f=>({...f,locNom:selectedClient.nom,locTel:selectedClient.tel,locAdresse:selectedClient.adresse||"",locEmail:selectedClient.email||"",locPermis:selectedClient.permis||""}));setDocsLocataire({...selectedClient.docs});setSelectedClient(null);setDeleteClientConfirm("");setPagePersist("nouveau");toast_("Client chargé !");}} style={{flex:1,background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Créer un contrat pour ce client</button>
+                <button onClick={()=>{const parts=(selectedClient.nom||"").trim().split(" ");setForm(f=>({...f,locPrenom:parts[0]||"",locNom:parts.slice(1).join(" ")||"",locTel:selectedClient.tel,locAdresse:selectedClient.adresse||"",locEmail:selectedClient.email||"",locPermis:selectedClient.permis||""}));setDocsLocataire({...selectedClient.docs});setSelectedClient(null);setDeleteClientConfirm("");setPagePersist("nouveau");toast_("Client chargé !");}} style={{flex:1,background:"#1e3a8a",color:"white",border:"none",borderRadius:10,padding:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>Créer un contrat pour ce client</button>
                 <button onClick={()=>setDeleteClientConfirm(prev=>prev===null?"":null)} style={{padding:"10px 14px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer"}}>🗑️</button>
               </div>
               {deleteClientConfirm!==null&&(
@@ -2854,12 +2882,12 @@ function AppContent(){
                 <div style={{marginBottom:10}}><label style={LBL_STYLE}>Snapchat</label><input style={INP_STYLE()} value={profilForm.snap||""} onChange={e=>setProfilForm(p=>({...p,snap:e.target.value}))}/></div>
                 <div style={{marginBottom:14}}><label style={LBL_STYLE}>💱 Devise</label><select style={INP_STYLE()} value={profilForm.devise||"EUR"} onChange={e=>setProfilForm(p=>({...p,devise:e.target.value}))}>{DEVISES.map(d=><option key={d.code} value={d.code}>{d.label}</option>)}</select></div>
                 <button onClick={async()=>{
-                  const pf={...profilForm,tel:profilForm.tel||null,whatsapp:profilForm.whatsapp||null,snap:profilForm.snap||null,email:profilForm.email||null,adresse:profilForm.adresse||null,ville:profilForm.ville||null,iban:profilForm.iban||null};
+                  const pf={...profilForm,tel:profilForm.tel||null,whatsapp:profilForm.whatsapp||null,snap:profilForm.snap||null,email:profilForm.email||null,adresse:profilForm.adresse||null,ville:profilForm.ville||null,iban:profilForm.iban||null,reseaux:profilForm.reseaux||null,docs:profilForm.docs||[]};
                   setProfil(pf);setProfilEdit(false);
                   if(user){
                     // Essai complet d'abord
                     let{error:e1}=await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...pf},{onConflict:'user_id'});
-                    // Si colonne inconnue → retry sans les champs optionnels (devise/snap/iban)
+                    // Si colonne inconnue → retry sans les champs optionnels (devise/snap/iban/reseaux/docs)
                     if(e1&&(e1.message.includes('column')||e1.code==='42703')){
                       const safe={user_id:user.id,slug:user.id.slice(0,8),nom:pf.nom||'',entreprise:pf.entreprise||'',siren:pf.siren||'',siret:pf.siret||'',kbis:pf.kbis||'',tel:pf.tel,whatsapp:pf.whatsapp,email:pf.email,adresse:pf.adresse,ville:pf.ville};
                       const{error:e2}=await supabase.from('profils').upsert(safe,{onConflict:'user_id'});

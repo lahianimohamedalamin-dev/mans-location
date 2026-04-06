@@ -1574,7 +1574,25 @@ function AppContent(){
             <TelInput value={profilForm[k]||""} onChange={v=>setProfilForm(p=>({...p,[k]:v}))} placeholder={l.replace(" *","")}/>
           </div>
         ))}
-        <button onClick={async()=>{if(!profilForm.nom||!profilForm.entreprise)return;setProfil({...profilForm});if(user)await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...profilForm},{onConflict:'user_id'});}} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>Commencer</button>
+        <button onClick={async()=>{
+          if(!profilForm.nom||!profilForm.entreprise)return;
+          if(user){
+            const pf={...profilForm,tel:profilForm.tel||null,whatsapp:profilForm.whatsapp||null,email:profilForm.email||null,adresse:profilForm.adresse||null,ville:profilForm.ville||null,iban:profilForm.iban||null};
+            // Essai complet d'abord
+            let{error:e1}=await supabase.from('profils').upsert({user_id:user.id,slug:user.id.slice(0,8),...pf},{onConflict:'user_id'});
+            // Si colonne inconnue → retry sans les champs optionnels (devise/snap/iban)
+            if(e1&&(e1.message.includes('column')||e1.code==='42703')){
+              const safe={user_id:user.id,slug:user.id.slice(0,8),nom:pf.nom||'',entreprise:pf.entreprise||'',siren:pf.siren||'',siret:pf.siret||'',kbis:pf.kbis||'',tel:pf.tel,whatsapp:pf.whatsapp,email:pf.email,adresse:pf.adresse,ville:pf.ville};
+              const{error:e2}=await supabase.from('profils').upsert(safe,{onConflict:'user_id'});
+              e1=e2;
+            }
+            if(e1){toast_("Erreur sauvegarde profil: "+e1.message,"error");return;}
+            setProfil({...pf});
+            try{const cached=localStorage.getItem('ml_data_'+user.id);if(cached){const d=JSON.parse(cached);d.profil=pf;localStorage.setItem('ml_data_'+user.id,JSON.stringify(d));}}catch{}
+          } else {
+            setProfil({...profilForm});
+          }
+        }} style={{width:"100%",padding:"12px",background:"#1d4ed8",color:"white",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:8}}>Commencer</button>
         <button onClick={()=>supabase.auth.signOut()} style={{width:"100%",padding:"10px",background:"transparent",color:"#6b7280",border:"1px solid #e5e7eb",borderRadius:10,fontSize:12,cursor:"pointer",marginTop:8}}>Déconnexion</button>
       </div>
     </div>

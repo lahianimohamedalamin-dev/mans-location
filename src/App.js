@@ -1228,6 +1228,12 @@ function AppContent(){
         supabase.from('amendes').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
       ]);
       if(activeUserIdRef.current!==uid)return;
+      if(profRes.error)console.error("Erreur chargement profil:",profRes.error);
+      if(vehRes.error)console.error("Erreur chargement véhicules:",vehRes.error);
+      if(conRes.error)console.error("Erreur chargement contrats:",conRes.error);
+      if(depRes.error)console.error("Erreur chargement dépenses:",depRes.error);
+      if(retRes.error)console.error("Erreur chargement retours:",retRes.error);
+      if(amenRes.error)console.error("Erreur chargement amendes:",amenRes.error);
       const p=profRes.data||{};
       const profData={nom:p.nom||'',entreprise:p.entreprise||'',siren:p.siren||'',siret:p.siret||'',kbis:p.kbis||'',tel:p.tel||'',whatsapp:p.whatsapp||'',snap:p.snap||'',email:p.email||'',adresse:p.adresse||'',ville:p.ville||'',iban:p.iban||'',devise:p.devise||'EUR'};
       setProfil(profData);setProfilForm(profData);
@@ -1359,7 +1365,7 @@ function AppContent(){
     if(user){
       const{data:ins,error:err}=await supabase.from('contrats').insert([{user_id:user.id,loc_prenom:form.locPrenom||'',loc_nom:locNom,loc_adresse:form.locAdresse,loc_tel:form.locTel,loc_email:form.locEmail,loc_permis:form.locPermis,date_debut:form.dateDebut,heure_debut:form.heureDebut,date_fin:form.dateFin,heure_fin:form.heureFin,paiement:form.paiement,caution_mode:form.cautionMode,km_depart:form.kmDepart,nb_jours:form.nbJours,heures_loc:form.heuresLoc,carburant_depart:form.carburantDepart,exterieur_propre:form.exterieurPropre,interieur_propre:form.interieurPropre,vehicle_id:c.vehicleId,vehicle_label:c.vehicleLabel,immat:c.immat,sig_l:c.sigL,sig_loc:c.sigLoc,total_calc:c.totalCalc,tarif_label:c.tarifLabel,remise:c.remise||0,accompte:c.accompte||0,reste_a_payer:c.resteAPayer||0,prix_jour_modifie:form.prixJourModifie||null,photos_depart:c.photosDepart,docs_locataire:c.docsLocataire,frais_snap:c.fraisSnap,clauses_snap:c.clausesSnap,km_inclus:c.kmInclus,prix_km_sup:c.prixKmSup}]).select().single();
       if(!err&&ins)setContrats(p=>p.map(x=>x.id===c.id?{...x,id:ins.id}:x));
-      if(err){console.error(err);toast_("Erreur sauvegarde contrat: "+err.message,"error");}
+      if(err){console.error(err);setContrats(p=>p.filter(x=>x.id!==c.id));toast_("Erreur sauvegarde contrat: "+err.message,"error");}
       // Envoi mail automatique si email renseigné
       if(form.locEmail){
         const realId=(!err&&ins)?ins.id:c.id;
@@ -1400,29 +1406,33 @@ function AppContent(){
     const newLabel=`Prolongé — ${tarifJ} €/j x ${newNbJours}j`;
     const updated={...c,dateFin:prolonDateFin,heureFin:prolonHeureFin,nbJours:newNbJours,totalCalc:newTotal,tarifLabel:newLabel};
     setContrats(cs=>cs.map(x=>x.id===c.id?updated:x));
-    if(user){await supabase.from('contrats').update({date_fin:prolonDateFin,heure_fin:prolonHeureFin,nb_jours:newNbJours,total_calc:newTotal,tarif_label:newLabel}).eq('id',c.id).eq('user_id',user.id);}
+    if(user){
+      const{error}=await supabase.from('contrats').update({date_fin:prolonDateFin,heure_fin:prolonHeureFin,nb_jours:newNbJours,total_calc:newTotal,tarif_label:newLabel}).eq('id',c.id).eq('user_id',user.id);
+      if(error){setContrats(cs=>cs.map(x=>x.id===c.id?c:x));toast_("Erreur prolongation: "+error.message,"error");return;}
+    }
     toast_("Contrat prolongé jusqu'au "+prolonDateFin+" !");
     setProlonContrat(null);
   }
 
   async function saveRetour(contratId,data){
-    setRetours(r=>({...r,[contratId]:data}));
     const ct=contrats.find(c=>c.id===contratId);
     const v=vehicles.find(x=>x.id===ct?.vehicleId);
+    if(user){
+      const{error:errR}=await supabase.from('retours').insert([{user_id:user.id,contrat_id:contratId,km_retour:data.kmRetour||null,carburant_retour:data.carburantRetour??null,montant_retenu:data.montantRetenu||0,raison_retenue:data.raisonRetenue||'',rembourse:data.rembourse||0,km_sup:data.kmSup||0,surplus_km:data.surplusKm||0,caution_restituee:data.cautionRestituee,checks:data.checks||{},carro:data.carro||{},carro_photos:data.carroPhotos||{},carro_notes:data.carroNotes||{},photos:data.photos||{},notes:data.notes||'',remise_retour:data.remiseRetour||0,date:data.date||new Date().toISOString()}]);
+      if(errR){toast_("Erreur sauvegarde retour: "+errR.message,"error");return;}
+      if(ct&&data.kmRetour){const{error:errV}=await supabase.from('vehicules').update({km:parseFloat(data.kmRetour)}).eq('id',ct.vehicleId).eq('user_id',user.id);if(errV)console.error("Erreur update km:",errV);}
+    }
+    setRetours(r=>({...r,[contratId]:data}));
     if(ct&&data.kmRetour)setVehicles(vs=>vs.map(x=>x.id===ct.vehicleId?{...x,km:parseFloat(data.kmRetour)}:x));
     const pvHTML=buildPVRetourHTML(ct,v,data,data.sigRetourLoueur||null,data.sigRetourLocataire||null,profil);
     setLastPV({contrat:ct,html:pvHTML});
     setPvMailStatus(null);
     toast_("Retour enregistré + PV PDF généré !");setRetourContratId(null);
-    if(user){
-      await supabase.from('retours').insert([{user_id:user.id,contrat_id:contratId,km_retour:data.kmRetour||null,carburant_retour:data.carburantRetour??null,montant_retenu:data.montantRetenu||0,raison_retenue:data.raisonRetenue||'',rembourse:data.rembourse||0,km_sup:data.kmSup||0,surplus_km:data.surplusKm||0,caution_restituee:data.cautionRestituee,checks:data.checks||{},carro:data.carro||{},carro_photos:data.carroPhotos||{},carro_notes:data.carroNotes||{},photos:data.photos||{},notes:data.notes||'',remise_retour:data.remiseRetour||0,date:data.date||new Date().toISOString()}]);
-      if(ct&&data.kmRetour)await supabase.from('vehicules').update({km:parseFloat(data.kmRetour)}).eq('id',ct.vehicleId).eq('user_id',user.id);
-      if(ct?.locEmail){
-        setPvMailStatus("sending");
-        const{sent,reason}=await envoyerContratParMail(supabase,pvHTML,contratId,ct.locEmail,ct.locNom);
-        setPvMailStatus(sent?"sent":"error");
-        if(!sent)console.warn("PV mail non envoyé:",reason);
-      }
+    if(user&&ct?.locEmail){
+      setPvMailStatus("sending");
+      const{sent,reason}=await envoyerContratParMail(supabase,pvHTML,contratId,ct.locEmail,ct.locNom);
+      setPvMailStatus(sent?"sent":"error");
+      if(!sent)console.warn("PV mail non envoyé:",reason);
     }
   }
 
@@ -1438,8 +1448,11 @@ function AppContent(){
     if(!vForm.marque||!vForm.modele||!vForm.immat){toast_("Champs manquants","error");return;}
     const base={...vForm,km:+vForm.km,tarif:+vForm.tarif,caution:+vForm.caution||1000,kmInclus:+vForm.kmInclus||0,prixKmSup:+vForm.prixKmSup||0};
     if(editV){
+      if(user){
+        const{error}=await supabase.from('vehicules').update({marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc}).eq('id',editV.id).eq('user_id',user.id);
+        if(error){toast_("Erreur mise à jour véhicule: "+error.message,"error");return;}
+      }
       setVehicles(vs=>vs.map(x=>x.id===editV.id?{...x,...base}:x));toast_("Mis à jour");
-      if(user)await supabase.from('vehicules').update({marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc}).eq('id',editV.id).eq('user_id',user.id);
     }else{
       const localId=Date.now();
       setVehicles(vs=>[...vs,{id:localId,...base,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[],photosVehicule:[],publie:false}]);
@@ -1458,16 +1471,22 @@ function AppContent(){
 
   async function saveTarifs(){
     if(!tarifsVehicleId)return;
+    if(user){
+      const{error}=await supabase.from('vehicules').update({tarifs_speciaux:[...tarifsTemp]}).eq('id',tarifsVehicleId).eq('user_id',user.id);
+      if(error){toast_("Erreur sauvegarde tarifs: "+error.message,"error");return;}
+    }
     setVehicles(vs=>vs.map(v=>v.id===tarifsVehicleId?{...v,tarifsSpeciaux:[...tarifsTemp]}:v));
     setTarifsVehicleId(null);toast_("Tarifs enregistrés !");
-    if(user)await supabase.from('vehicules').update({tarifs_speciaux:[...tarifsTemp]}).eq('id',tarifsVehicleId).eq('user_id',user.id);
   }
 
   async function togglePublier(v){
     const newVal=!v.publie;
     setVehicles(vs=>vs.map(x=>x.id===v.id?{...x,publie:newVal}:x));
+    if(user){
+      const{error}=await supabase.from('vehicules').update({publie:newVal}).eq('id',v.id).eq('user_id',user.id);
+      if(error){setVehicles(vs=>vs.map(x=>x.id===v.id?{...x,publie:v.publie}:x));toast_("Erreur publication: "+error.message,"error");return;}
+    }
     toast_(newVal?"Véhicule publié !":"Véhicule retiré de la vitrine");
-    if(user)await supabase.from('vehicules').update({publie:newVal}).eq('id',v.id).eq('user_id',user.id);
   }
 
   const tarifsVehicle=tarifsVehicleId?vehicles.find(v=>v.id===tarifsVehicleId):null;
@@ -2002,7 +2021,7 @@ function AppContent(){
                       <button onClick={()=>setContratModalId(v.id)} style={{flex:1,padding:"6px 0",background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Clauses</button>
                       <button onClick={()=>setDocsId(v.id)} style={{flex:1,padding:"6px 0",background:"#f0fdf4",color:"#16a34a",border:"1px solid #bbf7d0",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Docs</button>
                       <button onClick={()=>{setEditV(v);setVForm({typeVehicule:v.typeVehicule||"voiture",marque:v.marque,modele:v.modele,immat:v.immat,couleur:v.couleur||"",annee:v.annee||"",km:v.km,tarif:v.tarif,caution:v.caution,kmInclus:v.kmInclus||0,prixKmSup:v.prixKmSup||0,kmIllimite:v.kmIllimite||false,motorisation:"Essence",boite:"Manuelle",puissanceFiscale:"",vin:v.vin||"",nbPortes:v.nbPortes||"",nbPlaces:v.nbPlaces||"",numParc:v.numParc||"",description:"",locationMin48:false});setShowAddV(true);}} style={{padding:"6px 10px",background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer"}}>Editer</button>
-                      <button onClick={async()=>{if(window.confirm("Supprimer ?")){setVehicles(vs=>vs.filter(x=>x.id!==v.id));if(user)await supabase.from('vehicules').delete().eq('id',v.id).eq('user_id',user.id);}}} style={{padding:"6px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:11,cursor:"pointer"}}>X</button>
+                      <button onClick={async()=>{if(window.confirm("Supprimer ?")){if(user){const{error}=await supabase.from('vehicules').delete().eq('id',v.id).eq('user_id',user.id);if(error){toast_("Erreur suppression véhicule: "+error.message,"error");return;}}setVehicles(vs=>vs.filter(x=>x.id!==v.id));}}} style={{padding:"6px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:8,fontSize:11,cursor:"pointer"}}>X</button>
                     </div>
                   </div>
                 </div>
@@ -2560,7 +2579,7 @@ function AppContent(){
                     </div>
                   )}
                   <div style={{display:"flex",gap:8}}>
-                    <button onClick={async()=>{if(!amendeForm.vehicleId||!amendeForm.date){toast_("Choisissez un véhicule et une date","error");return;}const v=vehicles.find(x=>x.id===amendeForm.vehicleId);const localId=Date.now();const newA={id:localId,...amendeForm,vehicleLabel:v?v.marque+" "+v.modele+" - "+v.immat:"",contratId:contratRef?.id||null,locNom:contratRef?.locNom||"",locTel:contratRef?.locTel||""};setAmendes(a=>[newA,...a]);setAmendeForm({vehicleId:"",contratRef:"",date:"",heure:"",montant:"",type:"Excès de vitesse",statut:"A traiter",notes:"",photoData:null});setShowAddAmende(false);toast_("Amende ajoutée !");if(user){const{data:ins,error:err}=await supabase.from('amendes').insert([{user_id:user.id,vehicle_id:newA.vehicleId,vehicle_label:newA.vehicleLabel,contrat_id:newA.contratId,loc_nom:newA.locNom,loc_tel:newA.locTel,date:newA.date,heure:newA.heure,montant:newA.montant,type:newA.type,statut:newA.statut,notes:newA.notes,photo_data:newA.photoData}]).select().single();if(err){toast_("Erreur sauvegarde amende: "+err.message,"error");}else if(ins){setAmendes(as=>as.map(x=>x.id===localId?{...x,id:ins.id}:x));}}}} style={{background:"#dc2626",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>Enregistrer</button>
+                    <button onClick={async()=>{if(!amendeForm.vehicleId||!amendeForm.date){toast_("Choisissez un véhicule et une date","error");return;}const v=vehicles.find(x=>x.id===amendeForm.vehicleId);const localId=Date.now();const newA={id:localId,...amendeForm,vehicleLabel:v?v.marque+" "+v.modele+" - "+v.immat:"",contratId:contratRef?.id||null,locNom:contratRef?.locNom||"",locTel:contratRef?.locTel||""};setAmendes(a=>[newA,...a]);setAmendeForm({vehicleId:"",contratRef:"",date:"",heure:"",montant:"",type:"Excès de vitesse",statut:"A traiter",notes:"",photoData:null});setShowAddAmende(false);toast_("Amende ajoutée !");if(user){const{data:ins,error:err}=await supabase.from('amendes').insert([{user_id:user.id,vehicle_id:newA.vehicleId,vehicle_label:newA.vehicleLabel,contrat_id:newA.contratId,loc_nom:newA.locNom,loc_tel:newA.locTel,date:newA.date,heure:newA.heure,montant:newA.montant,type:newA.type,statut:newA.statut,notes:newA.notes,photo_data:newA.photoData}]).select().single();if(err){toast_("Erreur sauvegarde amende: "+err.message,"error");setAmendes(as=>as.filter(x=>x.id!==localId));}else if(ins){setAmendes(as=>as.map(x=>x.id===localId?{...x,id:ins.id}:x));}}}} style={{background:"#dc2626",color:"white",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,cursor:"pointer",fontSize:12}}>Enregistrer</button>
                     <button onClick={()=>setShowAddAmende(false)} style={{background:"#e5e7eb",border:"none",borderRadius:8,padding:"8px 14px",cursor:"pointer",fontSize:12}}>Annuler</button>
                   </div>
                 </div>
@@ -2593,8 +2612,8 @@ function AppContent(){
                     {contratLie&&<div style={{background:"#eff6ff",borderRadius:8,padding:"6px 10px",marginBottom:8,fontSize:11,border:"1px solid #bfdbfe"}}>Contrat : <b>{contratLie.locNom}</b> — {contratLie.dateDebut} → {contratLie.dateFin}<button onClick={()=>rePrint(contratLie)} style={{marginLeft:8,padding:"2px 8px",background:"#1e3a8a",color:"white",border:"none",borderRadius:5,fontSize:10,cursor:"pointer",fontWeight:700}}>PDF</button></div>}
                     {a.photoData&&<div style={{marginBottom:8}}><img src={a.photoData} alt="amende" style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:10,border:"2px solid #fecaca"}}/></div>}
                     <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                      {STATUTS_AMENDE.filter(s=>s!==a.statut).map(s=><button key={s} onClick={async()=>{setAmendes(as=>as.map(x=>x.id===a.id?{...x,statut:s}:x));if(user)await supabase.from('amendes').update({statut:s}).eq('id',a.id).eq('user_id',user.id);}} style={{padding:"4px 10px",background:"#f1f5f9",color:"#374151",border:"1px solid #e5e7eb",borderRadius:7,fontSize:10,cursor:"pointer",fontWeight:600}}>{s}</button>)}
-                      <button onClick={async()=>{setAmendes(as=>as.filter(x=>x.id!==a.id));if(user)await supabase.from('amendes').delete().eq('id',a.id).eq('user_id',user.id);}} style={{padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:10,cursor:"pointer"}}>Supprimer</button>
+                      {STATUTS_AMENDE.filter(s=>s!==a.statut).map(s=><button key={s} onClick={async()=>{setAmendes(as=>as.map(x=>x.id===a.id?{...x,statut:s}:x));if(user){const{error}=await supabase.from('amendes').update({statut:s}).eq('id',a.id).eq('user_id',user.id);if(error){setAmendes(as=>as.map(x=>x.id===a.id?{...x,statut:a.statut}:x));toast_("Erreur mise à jour statut","error");}};}} style={{padding:"4px 10px",background:"#f1f5f9",color:"#374151",border:"1px solid #e5e7eb",borderRadius:7,fontSize:10,cursor:"pointer",fontWeight:600}}>{s}</button>)}
+                      <button onClick={async()=>{if(user){const{error}=await supabase.from('amendes').delete().eq('id',a.id).eq('user_id',user.id);if(error){toast_("Erreur suppression: "+error.message,"error");return;}}setAmendes(as=>as.filter(x=>x.id!==a.id));}} style={{padding:"4px 10px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:7,fontSize:10,cursor:"pointer"}}>Supprimer</button>
                     </div>
                   </div>
                 );
@@ -2825,7 +2844,7 @@ function AppContent(){
                     <div><label style={LBL_STYLE}>Date</label><input type="date" style={INP_STYLE()} value={dForm.date} onChange={e=>setDForm(f=>({...f,date:e.target.value}))}/></div>
                     <div><label style={LBL_STYLE}>Véhicule</label><select style={INP_STYLE()} value={dForm.vehicleId} onChange={e=>setDForm(f=>({...f,vehicleId:e.target.value}))}><option value="">Tous</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.marque} {v.modele}</option>)}</select></div>
                   </div>
-                  <button onClick={async()=>{if(!dForm.label||!dForm.montant){toast_("Remplissez libellé et montant","error");return;}const localId=Date.now();const newDep={id:localId,...dForm};setDepenses(d=>[newDep,...d]);setDForm({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});setShowAddD(false);toast_("Dépense ajoutée");if(user){const{data:ins,error:err}=await supabase.from('depenses').insert([{user_id:user.id,label:newDep.label,montant:parseFloat(newDep.montant),categorie:newDep.categorie,date:newDep.date,vehicle_id:newDep.vehicleId||null}]).select().single();if(!err&&ins)setDepenses(ds=>ds.map(x=>x.id===localId?{...x,id:ins.id}:x));}}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
+                  <button onClick={async()=>{if(!dForm.label||!dForm.montant){toast_("Remplissez libellé et montant","error");return;}const localId=Date.now();const newDep={id:localId,...dForm};setDepenses(d=>[newDep,...d]);setDForm({label:"",montant:"",categorie:"Carburant",date:new Date().toISOString().slice(0,10),vehicleId:""});setShowAddD(false);toast_("Dépense ajoutée");if(user){const{data:ins,error:err}=await supabase.from('depenses').insert([{user_id:user.id,label:newDep.label,montant:parseFloat(newDep.montant),categorie:newDep.categorie,date:newDep.date,vehicle_id:newDep.vehicleId||null}]).select().single();if(err){toast_("Erreur sauvegarde dépense: "+err.message,"error");setDepenses(ds=>ds.filter(x=>x.id!==localId));}else if(ins){setDepenses(ds=>ds.map(x=>x.id===localId?{...x,id:ins.id}:x));}}}} style={{background:"#16a34a",color:"white",border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Enregistrer</button>
                 </div>
               )}
               {depenses.length===0
@@ -2845,7 +2864,7 @@ function AppContent(){
                       </div>
                       <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
                         <span style={{fontWeight:700,color:"#ef4444"}}>-{d.montant} {sym}</span>
-                        <button onClick={async()=>{setDepenses(ds=>ds.filter(x=>x.id!==d.id));if(user)await supabase.from('depenses').delete().eq('id',d.id).eq('user_id',user.id);}} style={{padding:"2px 6px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:10}}>X</button>
+                        <button onClick={async()=>{if(user){const{error}=await supabase.from('depenses').delete().eq('id',d.id).eq('user_id',user.id);if(error){toast_("Erreur suppression: "+error.message,"error");return;}}setDepenses(ds=>ds.filter(x=>x.id!==d.id));}} style={{padding:"2px 6px",background:"#fef2f2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:10}}>X</button>
                       </div>
                     </div>
                   );

@@ -1084,7 +1084,7 @@ function AppContent(){
   const[page,setPage]=useState(()=>{try{return localStorage.getItem("ml_page")||"vitrine";}catch{return "vitrine";}});
   const setPagePersist=useCallback(p=>{setPage(p);try{localStorage.setItem("ml_page",p);}catch{}},[]);
   const[selId,setSelId]=useState(null);
-  function makeForm0(){const n=new Date(),hh=String(n.getHours()).padStart(2,"0"),mm=String(n.getMinutes()).padStart(2,"0");return{locPrenom:"",locNom:"",locEntreprise:"",locAdresse:"",locCodePostal:"",locVille:"",locTel:"+33 ",locEmail:"",locPermis:"",locReseaux:"",loc2Prenom:"",loc2Nom:"",dateDebut:"",heureDebut:`${hh}:${mm}`,dateFin:"",heureFin:"10:00",paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null,prixJourModifie:"",accompte:"",remise:"",codePromo:""};};
+  function makeForm0(){const n=new Date(),hh=String(n.getHours()).padStart(2,"0"),mm=String(n.getMinutes()).padStart(2,"0");return{locPrenom:"",locNom:"",locEntreprise:"",locAdresse:"",locCodePostal:"",locVille:"",locTel:"+33 ",locEmail:"",locPermis:"",locReseaux:"",loc2Prenom:"",loc2Nom:"",dateDebut:"",heureDebut:`${hh}:${mm}`,dateFin:"",heureFin:`${hh}:${mm}`,paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null,prixJourModifie:"",accompte:"",remise:"",codePromo:""};};
   const[form,setForm]=useState(makeForm0);
   const[photosDepart,setPhotosDepart]=useState([]);
   const[photosVehicleModal,setPhotosVehicleModal]=useState(null);
@@ -1098,6 +1098,7 @@ function AppContent(){
   const[quickKmId,setQuickKmId]=useState(null);
   const[quickKmVal,setQuickKmVal]=useState("");
   const heureDebutManualRef=useRef(false);
+  const heureFinManualRef=useRef(false);
   const[toast,setToast]=useState(null);
   const[planMonth,setPlanMonth]=useState(new Date());
   const[planView,setPlanView]=useState("calendrier");
@@ -1158,10 +1159,19 @@ function AppContent(){
   useEffect(()=>{const h=()=>setSW(window.innerWidth);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
   const isPhone=sw<600;const isTablet=sw>=600&&sw<1024;
 
-  // Horloge en direct pour heureDebut dans le formulaire nouveau contrat
+  // Horloge en direct pour heureDebut + heureFin dans le formulaire nouveau contrat
   useEffect(()=>{
     if(page!=="nouveau")return;
-    const tick=()=>{if(heureDebutManualRef.current)return;const n=new Date(),hh=String(n.getHours()).padStart(2,"0"),mm=String(n.getMinutes()).padStart(2,"0");setForm(f=>({...f,heureDebut:`${hh}:${mm}`}));};
+    const tick=()=>{
+      const n=new Date(),hh=String(n.getHours()).padStart(2,"0"),mm=String(n.getMinutes()).padStart(2,"0");
+      const t=`${hh}:${mm}`;
+      setForm(f=>{
+        const upd={};
+        if(!heureDebutManualRef.current)upd.heureDebut=t;
+        if(!heureFinManualRef.current)upd.heureFin=t;
+        return Object.keys(upd).length?{...f,...upd}:f;
+      });
+    };
     tick();
     const id=setInterval(tick,30000);
     return()=>clearInterval(id);
@@ -1374,7 +1384,7 @@ function AppContent(){
     const html=buildContratHTML(c,sel,sigL,sigLoc,profil);
     setLastContrat({contrat:c,vehicle:sel,html});
     toast_("Contrat créé !");
-    setForm(makeForm0());heureDebutManualRef.current=false;setTouched({});setSelId(null);setSigL(null);setSigLoc(null);setPhotosDepart([]);setDocsLocataire({});setSearchClientContrat("");
+    setForm(makeForm0());heureDebutManualRef.current=false;heureFinManualRef.current=false;setTouched({});setSelId(null);setSigL(null);setSigLoc(null);setPhotosDepart([]);setDocsLocataire({});setSearchClientContrat("");
     if(user){
       const{data:ins,error:err}=await supabase.from('contrats').insert([{user_id:user.id,loc_prenom:form.locPrenom||'',loc_nom:locNom,loc_adresse:form.locAdresse,loc_tel:form.locTel,loc_email:form.locEmail,loc_permis:form.locPermis,date_debut:form.dateDebut,heure_debut:form.heureDebut,date_fin:form.dateFin,heure_fin:form.heureFin,paiement:form.paiement,caution_mode:form.cautionMode,km_depart:form.kmDepart,nb_jours:form.nbJours,heures_loc:form.heuresLoc,carburant_depart:form.carburantDepart,exterieur_propre:form.exterieurPropre,interieur_propre:form.interieurPropre,vehicle_id:c.vehicleId,vehicle_label:c.vehicleLabel,immat:c.immat,sig_l:c.sigL,sig_loc:c.sigLoc,total_calc:c.totalCalc,tarif_label:c.tarifLabel,remise:c.remise||0,accompte:c.accompte||0,reste_a_payer:c.resteAPayer||0,prix_jour_modifie:form.prixJourModifie||null,photos_depart:c.photosDepart,docs_locataire:c.docsLocataire,frais_snap:c.fraisSnap,clauses_snap:c.clausesSnap,km_inclus:c.kmInclus,prix_km_sup:c.prixKmSup}]).select().single();
       if(!err&&ins)setContrats(p=>p.map(x=>x.id===c.id?{...x,id:ins.id}:x));
@@ -1457,8 +1467,17 @@ function AppContent(){
     if(!vForm.marque||!vForm.modele||!vForm.immat){toast_("Champs manquants","error");return;}
     const base={...vForm,km:+vForm.km,tarif:+vForm.tarif,caution:+vForm.caution||1000,kmInclus:+vForm.kmInclus||0,prixKmSup:+vForm.prixKmSup||0};
     if(editV){
-      setVehicles(vs=>vs.map(x=>x.id===editV.id?{...x,...base}:x));toast_("Mis à jour");
-      if(user){const{error:upErr}=await supabase.from('vehicules').update({marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc}).eq('id',editV.id).eq('user_id',user.id);if(upErr)toast_("Erreur sauvegarde: "+upErr.message,"error");}
+      const eid=editV.id;
+      setVehicles(vs=>vs.map(x=>x.id===eid?{...x,...base}:x));
+      if(user){
+        const{error:upErr}=await supabase.from('vehicules').update({marque:base.marque,modele:base.modele,immat:base.immat,couleur:base.couleur,annee:base.annee,km:base.km,tarif:base.tarif,caution:base.caution,km_inclus:base.kmInclus,prix_km_sup:base.prixKmSup,km_illimite:base.kmIllimite,type_vehicule:base.typeVehicule,vin:base.vin,nb_portes:base.nbPortes,nb_places:base.nbPlaces,num_parc:base.numParc}).eq('id',eid).eq('user_id',user.id);
+        if(upErr){toast_("Erreur sauvegarde: "+upErr.message,"error");console.error("addV update error:",upErr);}
+        else{
+          toast_("Mis à jour !");
+          // Mettre à jour le cache localStorage pour éviter l'ancienne version au rechargement
+          try{const c=localStorage.getItem('ml_data_'+user.id);if(c){const d=JSON.parse(c);if(d.vehicles)d.vehicles=d.vehicles.map(v=>v.id===eid?{...v,...base}:v);localStorage.setItem('ml_data_'+user.id,JSON.stringify(d));}}catch{}
+        }
+      }else toast_("Mis à jour !");
     }else{
       const localId=Date.now();
       setVehicles(vs=>[...vs,{id:localId,...base,docs:[],frais:DEF_FRAIS.map(f=>({...f})),clauses:DEF_CLAUSES.map(c=>({...c})),tarifsSpeciaux:[],indisponibilites:[],photosVehicule:[],publie:false}]);
@@ -2196,7 +2215,7 @@ function AppContent(){
                     <div><label style={LBL_STYLE}>Début *</label><input type="date" style={INP_STYLE(inv("dateDebut")?{borderColor:"#f87171",background:"#fef2f2"}:{})} value={form.dateDebut} onChange={e=>setForm(f=>({...f,dateDebut:e.target.value}))} onBlur={()=>setTouched(t=>({...t,dateDebut:true}))}/></div>
                     <div><label style={LBL_STYLE}>Heure départ</label><input type="time" style={INP_STYLE()} value={form.heureDebut} onChange={e=>{heureDebutManualRef.current=true;setForm(f=>({...f,heureDebut:e.target.value}));}}/></div>
                     <div><label style={LBL_STYLE}>Fin *</label><input type="date" style={INP_STYLE(inv("dateFin")?{borderColor:"#f87171",background:"#fef2f2"}:{})} value={form.dateFin} onChange={e=>setForm(f=>({...f,dateFin:e.target.value}))} onBlur={()=>setTouched(t=>({...t,dateFin:true}))}/></div>
-                    <div><label style={LBL_STYLE}>Heure retour</label><input type="time" style={INP_STYLE()} value={form.heureFin} onChange={e=>setForm(f=>({...f,heureFin:e.target.value}))}/></div>
+                    <div><label style={LBL_STYLE}>Heure retour</label><input type="time" style={INP_STYLE()} value={form.heureFin} onChange={e=>{heureFinManualRef.current=true;setForm(f=>({...f,heureFin:e.target.value}));}}/></div>
                   </div>
                   <div style={{marginTop:10,background:"#f0fdf4",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#16a34a",fontWeight:600}}>Durée : {form.nbJours} jour(s) ({form.heuresLoc}h)</div>
                 </div>

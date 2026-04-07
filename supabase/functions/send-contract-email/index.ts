@@ -1,13 +1,70 @@
 import nodemailer from "npm:nodemailer@6";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Restrict CORS to known origins only
+const ALLOWED_ORIGINS = [
+  "https://mans-location.vercel.app",
+  "http://localhost:3000",
+];
+
+function getCorsHeaders(origin: string | null) {
+  const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Vary": "Origin",
+  };
+}
+
+// Strict email format validation
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]{1,64}@[^\s@]{1,253}\.[^\s@]{2,}$/.test(email) && email.length <= 320;
+}
+
+// Escape HTML to prevent injection in email body
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
+// Sanitize a string to safe alphanumeric + limited chars (for filenames/IDs)
+function sanitizeId(str: string): string {
+  return str.replace(/[^a-zA-Z0-9\-_]/g, "").slice(0, 100);
+}
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // Require authentication — only authenticated users can send contract emails
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return new Response(
+      JSON.stringify({ error: "Authentification requise" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return new Response(
+      JSON.stringify({ error: "Authentification invalide" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   try {
@@ -20,17 +77,36 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Validate email format
+    if (!isValidEmail(clientEmail)) {
+      return new Response(
+        JSON.stringify({ error: "Format email invalide" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate PDF size (max 10 MB in base64 ≈ 13.6 MB encoded)
+    if (pdfBase64.length > 14_000_000) {
+      return new Response(
+        JSON.stringify({ error: "PDF trop volumineux (max 10 Mo)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const gmailUser = Deno.env.get("GMAIL_USER");
     const gmailPass = Deno.env.get("GMAIL_APP_PASSWORD");
     if (!gmailUser || !gmailPass) {
+      // Log server-side only, no details to client
+      console.error("GMAIL env vars missing");
       return new Response(
-        JSON.stringify({ error: "Variables GMAIL manquantes" }),
+        JSON.stringify({ error: "Erreur configuration serveur" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const prenom = (clientName || "").split(" ")[0] || "Client";
-    const id = contractId || "location";
+    // Sanitize user-controlled values before embedding in HTML
+    const prenom = escapeHtml((clientName || "").split(" ")[0] || "Client").slice(0, 50);
+    const id = sanitizeId(contractId || "location");
 
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
@@ -83,9 +159,10 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
+    // Log full error server-side, return generic message to client
     console.error("send-contract-email error:", err);
     return new Response(
-      JSON.stringify({ error: err.message || "Erreur inconnue" }),
+      JSON.stringify({ error: "Erreur lors de l'envoi" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

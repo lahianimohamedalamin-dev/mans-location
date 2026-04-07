@@ -126,7 +126,7 @@ DROP POLICY IF EXISTS "contrats_public_dispo" ON contrats;
 CREATE POLICY "contrats_public_dispo" ON contrats
   FOR SELECT USING (true);
 
--- Questions : lecture + insertion publiques (formulaire de contact vitrine)
+-- Questions : insertion publique (formulaire de contact vitrine) — lecture propriétaire uniquement
 DROP POLICY IF EXISTS "questions_owner"         ON questions;
 DROP POLICY IF EXISTS "questions_public_insert" ON questions;
 DROP POLICY IF EXISTS "questions_public_read"   ON questions;
@@ -138,8 +138,8 @@ CREATE POLICY "questions_owner" ON questions
 CREATE POLICY "questions_public_insert" ON questions
   FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "questions_public_read" ON questions
-  FOR SELECT USING (true);
+-- SÉCURITÉ : la lecture publique est supprimée pour ne pas exposer
+-- les messages privés des clients. Seul le propriétaire peut lire ses questions.
 
 
 -- ============================================================

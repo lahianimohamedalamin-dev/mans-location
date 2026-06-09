@@ -1274,7 +1274,14 @@ function AppContent(){
     finally{if(activeUserIdRef.current===uid)setDataLoaded(true);}
   },[]);
 
-  useEffect(()=>{activeUserIdRef.current=user?.id||null;resetUserData();if(user)loadAllData(user.id);},[user,loadAllData,resetUserData]);
+  useEffect(()=>{
+    const newId=user?.id||null;
+    const prevId=activeUserIdRef.current;
+    if(newId===prevId)return; // même utilisateur (ex: refresh token) → ne pas vider l'UI
+    activeUserIdRef.current=newId;
+    resetUserData();
+    if(user)loadAllData(user.id);
+  },[user,loadAllData,resetUserData]);
 
   const sel=selId?vehicles.find(v=>v.id===selId)||null:null;
   function toast_(msg,type="success"){setToast({msg,type});setTimeout(()=>setToast(null),3500);}

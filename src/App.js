@@ -20,6 +20,17 @@ function validateFile(file, allowPdf = false) {
   return true;
 }
 
+// Input fichier attaché au DOM pour que le onchange survive au retour caméra sur mobile
+function openFilePicker({accept,capture,onFile}){
+  const i=document.createElement("input");
+  i.type="file";i.accept=accept||"image/*";
+  if(capture)i.capture=capture;
+  i.style.cssText="position:fixed;top:-9999px;opacity:0";
+  document.body.appendChild(i);
+  i.onchange=e=>{const f=e.target.files[0];document.body.removeChild(i);if(f)onFile(f);};
+  i.click();
+}
+
 const DEF_FRAIS=[
   {id:1,label:"Rayure",montant:300},{id:2,label:"Jantes rayées",montant:300},
   {id:3,label:"Élément touché",montant:300},{id:4,label:"Siège abîmé",montant:350},
@@ -518,8 +529,8 @@ function SigPad({label,onSave}){
 function PhotosDepart({photos,setPhotos}){
   const labels=["Avant","Arrière","Côté gauche","Côté droit","Intérieur","Jante AVG","Jante AVD","Jante ARG","Jante ARD","Autre"];
   function addPhoto(label,file){if(!file||!validateFile(file))return;const r=new FileReader();r.onload=ev=>setPhotos(p=>[...p,{id:Date.now(),label,data:ev.target.result,name:file.name}]);r.readAsDataURL(file);}
-  function pickFile(label){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>addPhoto(label,e.target.files[0]);i.click();}
-  function pickCamera(label){const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>addPhoto(label,e.target.files[0]);i.click();}
+  function pickFile(label){openFilePicker({onFile:f=>addPhoto(label,f)});}
+  function pickCamera(label){openFilePicker({capture:"environment",onFile:f=>addPhoto(label,f)});}
   function removePhoto(id){setPhotos(p=>p.filter(x=>x.id!==id));}
   return (
     <div>
@@ -583,8 +594,8 @@ function Lightbox({srcs,startIndex=0,onClose}){
 function PhotosVehicule({photos,setPhotos,max=5}){
   const[lbIdx,setLbIdx]=useState(null);
   function addPhoto(file){if(!file||!validateFile(file))return;if(photos.length>=max){alert("Maximum "+max+" photos");return;}const r=new FileReader();r.onload=ev=>setPhotos(p=>[...p,{id:Date.now(),data:ev.target.result,name:file.name}]);r.readAsDataURL(file);}
-  function pickFile(){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>addPhoto(e.target.files[0]);i.click();}
-  function pickCamera(){const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>addPhoto(e.target.files[0]);i.click();}
+  function pickFile(){openFilePicker({onFile:f=>addPhoto(f)});}
+  function pickCamera(){openFilePicker({capture:"environment",onFile:f=>addPhoto(f)});}
   function remove(id){setPhotos(p=>p.filter(x=>x.id!==id));}
   return (
     <div>
@@ -630,7 +641,7 @@ function PhotosVehiculeModal({vehicle,onClose,onSave}){
 
 function DocsLocataire({docs,setDocs}){
   const[lbSrc,setLbSrc]=useState(null);
-  function pickImg(key,capture=false){const i=document.createElement("input");i.type="file";i.accept="image/*";if(capture)i.capture="environment";i.onchange=e=>{const f=e.target.files[0];if(!validateFile(f))return;const r=new FileReader();r.onload=ev=>setDocs(d=>({...d,[key]:ev.target.result}));r.readAsDataURL(f);};i.click();}
+  function pickImg(key,capture=false){openFilePicker({capture:capture?"environment":undefined,onFile:f=>{if(!validateFile(f))return;const r=new FileReader();r.onload=ev=>setDocs(d=>({...d,[key]:ev.target.result}));r.readAsDataURL(f);}});}
   function removeImg(key){setDocs(d=>{const n={...d};delete n[key];return n;});}
   const ITEMS=[{key:"cniRecto",label:"CNI / Passeport - Recto",color:"#2563eb",icon:"🪪"},{key:"cniVerso",label:"CNI / Passeport - Verso",color:"#2563eb",icon:"🪪"},{key:"justifDom",label:"Justificatif de domicile",color:"#7c3aed",icon:"🏠"},{key:"photoAr",label:"Photo arrière du véhicule",color:"#16a34a",icon:"🚗"}];
   return (
@@ -736,8 +747,8 @@ function RetourModal({contrat,vehicle,profil,onClose,onSave}){
   const sym=(DEVISES.find(d=>d.code===(profil?.devise||"EUR"))||DEVISES[0]).symbol;
   const IS=INP_STYLE();
   function handlePhoto(id,file,setter){if(!validateFile(file))return;const r=new FileReader();r.onload=ev=>setter(p=>({...p,[id]:ev.target.result}));r.readAsDataURL(file);}
-  function pickFile(id,setter){const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>handlePhoto(id,e.target.files[0],setter);i.click();}
-  function pickCamera(id,setter){const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>handlePhoto(id,e.target.files[0],setter);i.click();}
+  function pickFile(id,setter){openFilePicker({onFile:f=>handlePhoto(id,f,setter)});}
+  function pickCamera(id,setter){openFilePicker({capture:"environment",onFile:f=>handlePhoto(id,f,setter)});}
   const remiseRet=parseFloat(remiseRetour)||0;
   function getRetourData(){return{checks,carro,carroPhotos,carroNotes,photos,notes,cautionRestituee,montantRetenu:retenu,raisonRetenue,rembourse:cautionRestituee?caution:Math.max(0,caution-retenu),kmRetour,kmSup,surplusKm,carburantRetour,fraisSup,totalFraisSup,remiseRetour:remiseRet,date:new Date().toISOString(),sigRetourLoueur,sigRetourLocataire};}
   function downloadPV(){const data=getRetourData();dlPDF(buildPVRetourHTML(contrat,vehicle,data,sigRetourLoueur,sigRetourLocataire,profil));}
@@ -1653,7 +1664,7 @@ function AppContent(){
                     <div style={{display:"flex",flexDirection:"column",gap:8}}>
                       {[{k:"cniRecto",l:"CNI / Passeport - Recto",col:"#2563eb",ic:"🪪"},{k:"cniVerso",l:"CNI / Passeport - Verso",col:"#2563eb",ic:"🪪"},{k:"justifDom",l:"Justificatif de domicile",col:"#7c3aed",ic:"🏠"},{k:"photoAr",l:"Photo locataire",col:"#16a34a",ic:"👤"}].map(({k,l,col,ic})=>{
                         const src=(editingClient.docs||{})[k];
-                        function pickD(capture){const i=document.createElement("input");i.type="file";i.accept="image/*,application/pdf";if(capture)i.capture="environment";i.onchange=e=>{const f=e.target.files[0];if(!validateFile(f,true))return;const r=new FileReader();r.onload=ev=>setEditingClient(c=>({...c,docs:{...(c.docs||{}),[k]:ev.target.result}}));r.readAsDataURL(f);};i.click();}
+                        function pickD(capture){openFilePicker({accept:"image/*,application/pdf",capture:capture?"environment":undefined,onFile:f=>{if(!validateFile(f,true))return;const r=new FileReader();r.onload=ev=>setEditingClient(c=>({...c,docs:{...(c.docs||{}),[k]:ev.target.result}}));r.readAsDataURL(f);}});}
                         function dlD(){const ext=src.startsWith("data:image/png")?"png":src.startsWith("data:image/gif")?"gif":src.startsWith("data:application/pdf")?"pdf":"jpg";const a=document.createElement("a");a.href=src;a.download=`${(editingClient.nom||"client").replace(/\s+/g,"_")}_${k}.${ext}`;a.click();}
                         return(
                           <div key={k} style={{borderRadius:10,border:`2px solid ${src?col:"#e5e7eb"}`,background:src?"#f8fafc":"white",overflow:"hidden"}}>
@@ -2555,8 +2566,8 @@ function AppContent(){
                         <button onClick={()=>setAmendeForm(f=>({...f,photoData:null}))} style={{position:"absolute",top:6,right:6,background:"#ef4444",color:"white",border:"none",borderRadius:"50%",width:22,height:22,fontSize:12,cursor:"pointer",fontWeight:700}}>x</button>
                       </div>
                       :<div style={{display:"flex",gap:8,marginTop:4}}>
-                        <button onClick={()=>{const i=document.createElement("input");i.type="file";i.accept="image/*";i.onchange=e=>{const f=e.target.files[0];if(!validateFile(f))return;const r=new FileReader();r.onload=ev=>setAmendeForm(x=>({...x,photoData:ev.target.result}));r.readAsDataURL(f);};i.click();}} style={{flex:1,padding:"8px 0",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📁 Galerie</button>
-                        <button onClick={()=>{const i=document.createElement("input");i.type="file";i.accept="image/*";i.capture="environment";i.onchange=e=>{const f=e.target.files[0];if(!validateFile(f))return;const r=new FileReader();r.onload=ev=>setAmendeForm(x=>({...x,photoData:ev.target.result}));r.readAsDataURL(f);};i.click();}} style={{flex:1,padding:"8px 0",background:"#7c3aed",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📷 Caméra</button>
+                        <button onClick={()=>openFilePicker({onFile:f=>{if(!validateFile(f))return;const r=new FileReader();r.onload=ev=>setAmendeForm(x=>({...x,photoData:ev.target.result}));r.readAsDataURL(f);}})} style={{flex:1,padding:"8px 0",background:"#1e3a8a",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📁 Galerie</button>
+                        <button onClick={()=>openFilePicker({capture:"environment",onFile:f=>{if(!validateFile(f))return;const r=new FileReader();r.onload=ev=>setAmendeForm(x=>({...x,photoData:ev.target.result}));r.readAsDataURL(f);}})} style={{flex:1,padding:"8px 0",background:"#7c3aed",color:"white",border:"none",borderRadius:8,fontSize:12,fontWeight:700,cursor:"pointer"}}>📷 Caméra</button>
                       </div>}
                   </div>
                   {amendeForm.vehicleId&&amendeForm.date&&(

@@ -1082,12 +1082,12 @@ function AppContent(){
   const[profil,setProfil]=useState(INIT_PROFIL);
   const[page,setPage]=useState(()=>{try{return localStorage.getItem("ml_page")||"vitrine";}catch{return "vitrine";}});
   const setPagePersist=useCallback(p=>{setPage(p);try{localStorage.setItem("ml_page",p);}catch{}},[]);
-  const[selId,setSelId]=useState(null);
+  const[selId,setSelId]=useState(()=>{try{return localStorage.getItem("ml_draft_selId")||null;}catch{return null;}});
   function makeForm0(){const n=new Date(),hh=String(n.getHours()).padStart(2,"0"),mm=String(n.getMinutes()).padStart(2,"0");return{locPrenom:"",locNom:"",locEntreprise:"",locAdresse:"",locCodePostal:"",locVille:"",locTel:"+33 ",locEmail:"",locPermis:"",locReseaux:"",loc2Prenom:"",loc2Nom:"",dateDebut:"",heureDebut:`${hh}:${mm}`,dateFin:"",heureFin:"10:00",paiement:"especes",cautionMode:"especes",kmDepart:"",nbJours:1,heuresLoc:24,carburantDepart:100,exterieurPropre:null,interieurPropre:null,prixJourModifie:"",accompte:"",remise:"",codePromo:""};};
-  const[form,setForm]=useState(makeForm0);
-  const[photosDepart,setPhotosDepart]=useState([]);
+  const[form,setForm]=useState(()=>{try{const d=localStorage.getItem("ml_draft_form");return d?JSON.parse(d):makeForm0();}catch{return makeForm0();}});
+  const[photosDepart,setPhotosDepart]=useState(()=>{try{const d=localStorage.getItem("ml_draft_photos");return d?JSON.parse(d):[];}catch{return [];}});
   const[photosVehicleModal,setPhotosVehicleModal]=useState(null);
-  const[docsLocataire,setDocsLocataire]=useState({});
+  const[docsLocataire,setDocsLocataire]=useState(()=>{try{const d=localStorage.getItem("ml_draft_docs");return d?JSON.parse(d):{};}catch{return {};}});
   const[touched,setTouched]=useState({});
   const[sigL,setSigL]=useState(null);
   const[sigLoc,setSigLoc]=useState(null);
@@ -1150,6 +1150,12 @@ function AppContent(){
   const[sw,setSW]=useState(typeof window!=="undefined"?window.innerWidth:390);
   useEffect(()=>{const h=()=>setSW(window.innerWidth);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
   const isPhone=sw<600;const isTablet=sw>=600&&sw<1024;
+
+  // Sauvegarde du brouillon contrat — survit au rechargement (ex: ouverture caméra)
+  useEffect(()=>{try{localStorage.setItem("ml_draft_form",JSON.stringify(form));}catch{}},[form]);
+  useEffect(()=>{try{if(selId)localStorage.setItem("ml_draft_selId",selId);else localStorage.removeItem("ml_draft_selId");}catch{}},[selId]);
+  useEffect(()=>{try{localStorage.setItem("ml_draft_photos",JSON.stringify(photosDepart));}catch{}},[photosDepart]);
+  useEffect(()=>{try{localStorage.setItem("ml_draft_docs",JSON.stringify(docsLocataire));}catch{}},[docsLocataire]);
 
   function findContratForAmende(vehicleId,date,heure){
     if(!vehicleId||!date)return null;
@@ -1364,6 +1370,7 @@ function AppContent(){
     setLastContrat({contrat:c,vehicle:sel,html});
     toast_("Contrat créé !");
     setForm(makeForm0());setTouched({});setSelId(null);setSigL(null);setSigLoc(null);setPhotosDepart([]);setDocsLocataire({});setSearchClientContrat("");
+    try{['ml_draft_form','ml_draft_selId','ml_draft_photos','ml_draft_docs'].forEach(k=>localStorage.removeItem(k));}catch{}
     if(user){
       const{data:ins,error:err}=await supabase.from('contrats').insert([{user_id:user.id,loc_prenom:form.locPrenom||'',loc_nom:locNom,loc_adresse:form.locAdresse,loc_tel:form.locTel,loc_email:form.locEmail,loc_permis:form.locPermis,date_debut:form.dateDebut,heure_debut:form.heureDebut,date_fin:form.dateFin,heure_fin:form.heureFin,paiement:form.paiement,caution_mode:form.cautionMode,km_depart:form.kmDepart,nb_jours:form.nbJours,heures_loc:form.heuresLoc,carburant_depart:form.carburantDepart,exterieur_propre:form.exterieurPropre,interieur_propre:form.interieurPropre,vehicle_id:c.vehicleId,vehicle_label:c.vehicleLabel,immat:c.immat,sig_l:c.sigL,sig_loc:c.sigLoc,total_calc:c.totalCalc,tarif_label:c.tarifLabel,remise:c.remise||0,accompte:c.accompte||0,reste_a_payer:c.resteAPayer||0,prix_jour_modifie:form.prixJourModifie||null,photos_depart:c.photosDepart,docs_locataire:c.docsLocataire,frais_snap:c.fraisSnap,clauses_snap:c.clausesSnap,km_inclus:c.kmInclus,prix_km_sup:c.prixKmSup}]).select().single();
       if(!err&&ins)setContrats(p=>p.map(x=>x.id===c.id?{...x,id:ins.id}:x));

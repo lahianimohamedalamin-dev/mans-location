@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import reportWebVitals from './reportWebVitals';
+import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
 // Chargement séparé : la vitrine et l'app sont 2 bundles distincts
 // => un visiteur vitrine ne télécharge PAS le code de l'app
@@ -65,4 +66,5 @@ root.render(
   </React.StrictMode>
 );
 
+serviceWorkerRegistration.register();
 reportWebVitals();

@@ -1073,7 +1073,7 @@ function ResetPasswordModal({onDone}){
 }
 
 function AppContent(){
-  const[user,setUser]=useState(null);
+  const[user,setUser]=useState(undefined); // undefined = vérification en cours, null = non connecté
   const[showResetPassword,setShowResetPassword]=useState(false);
   const[vehicles,setVehicles]=useState([]);
   const[contrats,setContrats]=useState([]);
@@ -1275,9 +1275,10 @@ function AppContent(){
   },[]);
 
   useEffect(()=>{
+    if(user===undefined)return; // session pas encore vérifiée
     const newId=user?.id||null;
     const prevId=activeUserIdRef.current;
-    if(newId===prevId)return; // même utilisateur (ex: refresh token) → ne pas vider l'UI
+    if(newId===prevId)return; // même utilisateur (refresh token) → ne pas vider l'UI
     activeUserIdRef.current=newId;
     resetUserData();
     if(user)loadAllData(user.id);
@@ -1555,6 +1556,14 @@ function AppContent(){
 
   function pickDocFile(e){const f=e.target.files[0];if(!validateFile(f,true))return;const r=new FileReader();r.onload=ev=>setNewDoc(d=>({...d,file:f.name,fileData:ev.target.result}));r.readAsDataURL(f);}
 
+  if(user===undefined)return(
+    <div style={{display:"flex",justifyContent:"center",alignItems:"center",minHeight:"100vh",background:"#0a1940"}}>
+      <div style={{textAlign:"center"}}>
+        <img src="/logo.png" alt="Man's Loc" style={{height:70,width:"auto",marginBottom:16,opacity:.9}}/>
+        <div style={{color:"rgba(255,255,255,.6)",fontSize:13}}>Chargement…</div>
+      </div>
+    </div>
+  );
   if(!user)return <AuthPage/>;
   if(showResetPassword)return <ResetPasswordModal onDone={()=>setShowResetPassword(false)}/>;
   if(!dataLoaded)return(
